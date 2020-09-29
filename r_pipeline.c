@@ -164,7 +164,6 @@ void initDescriptorSets(void)
 
 static void initPipelineLayouts(void)
 {
-
     const VkPushConstantRange pushConstantRt = {
         .stageFlags = 
             VK_SHADER_STAGE_RAYGEN_BIT_KHR |
