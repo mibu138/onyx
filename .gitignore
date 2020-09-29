@@ -1,0 +1,8 @@
+build/*
+.clangd
+bin/*
+compile_commands.json
+lib/*
+shaders/spv/*
+qrenderdoc
+tags
