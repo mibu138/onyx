@@ -127,12 +127,12 @@ static void initDescriptors(void)
 
 static void rayTrace(const VkCommandBuffer* cmdBuf)
 {
-    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelines[R_PIPELINE_RAYTRACE]);
+    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, pipelines[R_PIPE_RAYTRACE]);
 
     vkCmdBindDescriptorSets(*cmdBuf, VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR, 
-            pipelineLayoutRayTrace, 0, 2, descriptorSets, 0, NULL);
+            pipelineLayouts[R_PIPE_LAYOUT_RAYTRACE], 0, 2, descriptorSets, 0, NULL);
 
-    vkCmdPushConstants(*cmdBuf, pipelineLayoutRayTrace, 
+    vkCmdPushConstants(*cmdBuf, pipelineLayouts[R_PIPE_LAYOUT_RAYTRACE], 
         VK_SHADER_STAGE_RAYGEN_BIT_KHR | 
         VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
         VK_SHADER_STAGE_MISS_BIT_KHR, 0, sizeof(RtPushConstants), &pushConstants);
@@ -180,12 +180,12 @@ static void rayTrace(const VkCommandBuffer* cmdBuf)
 
 static void rasterize(const VkCommandBuffer* cmdBuf, const VkRenderPassBeginInfo* rpassInfo)
 {
-    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[R_PIPELINE_RASTER]);
+    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[R_PIPE_RASTER]);
 
     vkCmdBindDescriptorSets(
         *cmdBuf, 
         VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        pipelineLayoutRaster, 
+        pipelineLayouts[R_PIPE_LAYOUT_RASTER], 
         0, 1, &descriptorSets[R_DESC_SET_RASTER], 
         0, NULL);
 
@@ -224,12 +224,12 @@ static void rasterize(const VkCommandBuffer* cmdBuf, const VkRenderPassBeginInfo
 
 static void postProc(const VkCommandBuffer* cmdBuf, const VkRenderPassBeginInfo* rpassInfo)
 {
-    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[R_PIPELINE_POST]);
+    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[R_PIPE_POST]);
 
     vkCmdBindDescriptorSets(
         *cmdBuf, 
         VK_PIPELINE_BIND_POINT_GRAPHICS, 
-        pipelineLayoutPostProcess, 
+        pipelineLayouts[R_PIPE_LAYOUT_POST], 
         0, 1, &descriptorSets[R_DESC_SET_POST],
         0, NULL);
 
@@ -321,7 +321,7 @@ void r_CreateShaderBindingTable(void)
     printf("ShaderGroups total size   : %d\n", sbtSize);
 
     VkResult r;
-    r = vkGetRayTracingShaderGroupHandlesKHR(device, pipelines[R_PIPELINE_RAYTRACE], 0, groupCount, sbtSize, shaderHandleData);
+    r = vkGetRayTracingShaderGroupHandlesKHR(device, pipelines[R_PIPE_RAYTRACE], 0, groupCount, sbtSize, shaderHandleData);
     assert( VK_SUCCESS == r );
     stbBlock = v_RequestBlockAligned(sbtSize, baseAlignment);
 

@@ -9,18 +9,18 @@
 #include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_core.h>
 
-#define PIPELINE_COUNT 3
-#define DESCRIPTOR_SET_COUNT 3
-#define MAX_DESC_SET_LAYOUTS 3
+typedef enum {
+    R_DESC_SET_LAYOUT_RASTER,
+    R_DESC_SET_LAYOUT_RAYTRACE,
+    R_DESC_SET_LAYOUT_POST,
+    R_DESC_SET_LAYOUT_ID_SIZE
+} R_DescriptorSetLayoutId;
 
-VkPipeline      pipelines[MAX_PIPELINES];
-VkDescriptorSet descriptorSets[MAX_DESCRIPTOR_SETS];
+VkPipeline       pipelines[R_PIPE_ID_SIZE];
+VkDescriptorSet  descriptorSets[R_DESC_SET_ID_SIZE];
+VkPipelineLayout pipelineLayouts[R_PIPE_LAYOUT_ID_SIZE];
 
-VkPipelineLayout pipelineLayoutRaster;
-VkPipelineLayout pipelineLayoutRayTrace;
-VkPipelineLayout pipelineLayoutPostProcess;
-
-static VkDescriptorSetLayout descriptorSetLayouts[MAX_DESC_SET_LAYOUTS]; 
+static VkDescriptorSetLayout descriptorSetLayouts[R_DESC_SET_LAYOUT_ID_SIZE]; 
 static VkDescriptorPool      descriptorPool;
 
 enum shaderStageType { VERT, FRAG };
@@ -113,13 +113,13 @@ void initDescriptorSets(void)
         .pBindings = bindingsPostProc 
     };
 
-    r = vkCreateDescriptorSetLayout(device, &layoutInfoRaster, NULL, &descriptorSetLayouts[R_DESC_SET_RASTER]);
+    r = vkCreateDescriptorSetLayout(device, &layoutInfoRaster, NULL, &descriptorSetLayouts[R_DESC_SET_LAYOUT_RASTER]);
     assert( VK_SUCCESS == r );
 
-    r = vkCreateDescriptorSetLayout(device, &layoutInfoRayTrace, NULL, &descriptorSetLayouts[R_DESC_SET_RAYTRACE]);
+    r = vkCreateDescriptorSetLayout(device, &layoutInfoRayTrace, NULL, &descriptorSetLayouts[R_DESC_SET_LAYOUT_RAYTRACE]);
     assert( VK_SUCCESS == r );
 
-    r = vkCreateDescriptorSetLayout(device, &layoutInfoPostProc, NULL, &descriptorSetLayouts[R_DESC_SET_POST]);
+    r = vkCreateDescriptorSetLayout(device, &layoutInfoPostProc, NULL, &descriptorSetLayouts[R_DESC_SET_LAYOUT_POST]);
     assert( VK_SUCCESS == r );
 
     // these are for specifying how many total descriptors of a 
@@ -143,7 +143,7 @@ void initDescriptorSets(void)
 
     VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .maxSets = MAX_DESCRIPTOR_SETS,
+        .maxSets = R_DESC_SET_ID_SIZE,
         .poolSizeCount = ARRAY_SIZE(poolSize),
         .pPoolSizes = poolSize, 
     };
@@ -154,7 +154,7 @@ void initDescriptorSets(void)
     VkDescriptorSetAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = descriptorPool,
-        .descriptorSetCount = DESCRIPTOR_SET_COUNT,
+        .descriptorSetCount = R_DESC_SET_LAYOUT_ID_SIZE,
         .pSetLayouts = descriptorSetLayouts,
     };
 
@@ -164,8 +164,22 @@ void initDescriptorSets(void)
 
 static void initPipelineLayouts(void)
 {
-    VkResult r;
-    const VkPipelineLayoutCreateInfo info = {
+
+    const VkPushConstantRange pushConstantRt = {
+        .stageFlags = 
+            VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+            VK_SHADER_STAGE_MISS_BIT_KHR,
+        .offset = 0,
+        .size = sizeof(RtPushConstants)
+    };
+
+    const VkDescriptorSetLayout setLayoutsRt[] = {
+        descriptorSetLayouts[R_DESC_SET_LAYOUT_RASTER],
+        descriptorSetLayouts[R_DESC_SET_LAYOUT_RAYTRACE]
+    };
+
+    const VkPipelineLayoutCreateInfo infoRaster = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
         .pNext = NULL,
         .flags = 0,
@@ -174,9 +188,6 @@ static void initPipelineLayouts(void)
         .pushConstantRangeCount = 0,
         .pPushConstantRanges = NULL
     };
-
-    r = vkCreatePipelineLayout(device, &info, NULL, &pipelineLayoutRaster);
-    assert( VK_SUCCESS == r );
 
     const VkPipelineLayoutCreateInfo infoPost = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -188,8 +199,25 @@ static void initPipelineLayouts(void)
         .pPushConstantRanges = NULL
     };
 
-    r = vkCreatePipelineLayout(device, &infoPost, NULL, &pipelineLayoutPostProcess);
-    assert( VK_SUCCESS == r );
+    const VkPipelineLayoutCreateInfo infoRayTrace = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .pushConstantRangeCount = 1,
+        .pPushConstantRanges    = &pushConstantRt,
+        .setLayoutCount = sizeof(setLayoutsRt) / sizeof(VkDescriptorSetLayout),
+        .pSetLayouts = descriptorSetLayouts,
+    };
+
+    V_ASSERT( vkCreatePipelineLayout(device, 
+        &infoRaster, NULL, 
+        &pipelineLayouts[R_PIPE_LAYOUT_RASTER]));
+
+    V_ASSERT( vkCreatePipelineLayout(device, 
+        &infoRayTrace, NULL, 
+        &pipelineLayouts[R_PIPE_LAYOUT_RAYTRACE]));
+
+    V_ASSERT( vkCreatePipelineLayout(device,
+        &infoPost, NULL, 
+        &pipelineLayouts[R_PIPE_LAYOUT_POST]));
 }
 
 static void initPipelineRayTrace(void)
@@ -268,35 +296,12 @@ static void initPipelineRayTrace(void)
 
     const VkRayTracingShaderGroupCreateInfoKHR shaderGroups[] = {rg, mg, msg, hg};
 
-    const VkPushConstantRange pushConstant = {
-        .stageFlags = 
-            VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
-            VK_SHADER_STAGE_MISS_BIT_KHR,
-        .offset = 0,
-        .size = sizeof(RtPushConstants)
-    };
-
-    // were reversing the order here to conform to the tutorial
-    // const VkDescriptorSetLayout descSetLayouts[] = {descriptorSetLayouts[R_DESC_SET_RAYTRACE], descriptorSetLayouts[R_DESC_SET_RASTER]};
-
-    const VkPipelineLayoutCreateInfo pipelineLayout = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-        .pushConstantRangeCount = 1,
-        .setLayoutCount = 2,
-        .pSetLayouts = descriptorSetLayouts,
-        .pPushConstantRanges    = &pushConstant,
-    };
-
     VkResult r;
-
-    r = vkCreatePipelineLayout(device, &pipelineLayout, NULL, &pipelineLayoutRayTrace);
-    assert( VK_SUCCESS == r );
 
     VkRayTracingPipelineCreateInfoKHR pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
         .maxRecursionDepth = 1, 
-        .layout     = pipelineLayoutRayTrace,
+        .layout     = pipelineLayouts[R_PIPE_LAYOUT_RAYTRACE],
         .libraries  = {VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR},
         .groupCount = ARRAY_SIZE(shaderGroups),
         .stageCount = ARRAY_SIZE(shaderStages),
@@ -304,7 +309,7 @@ static void initPipelineRayTrace(void)
         .pStages    = shaderStages
     };
 
-    r = vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, &pipelines[R_PIPELINE_RAYTRACE]);
+    r = vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, &pipelines[R_PIPE_RAYTRACE]);
     assert( VK_SUCCESS == r );
 
     vkDestroyShaderModule(device, raygenSM, NULL);
@@ -315,8 +320,6 @@ static void initPipelineRayTrace(void)
 
 static void initPipelineRaster(void)
 {
-    initPipelineLayouts();
-
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
@@ -480,7 +483,7 @@ static void initPipelineRaster(void)
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
         .renderPass = offscreenRenderPass,
-        .layout = pipelineLayoutRaster,
+        .layout = pipelineLayouts[R_PIPE_LAYOUT_RASTER],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
         .pDepthStencilState = &depthStencilState,
@@ -495,7 +498,7 @@ static void initPipelineRaster(void)
         .pInputAssemblyState = &inputAssembly,
     };
 
-    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelines[R_PIPELINE_RASTER]);
+    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelines[R_PIPE_LAYOUT_RASTER]);
 
     vkDestroyShaderModule(device, vertModule, NULL);
     vkDestroyShaderModule(device, fragModule, NULL);
@@ -503,8 +506,6 @@ static void initPipelineRaster(void)
 
 static void initPipelinePostProc(void)
 {
-    initPipelineLayouts();
-
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
@@ -617,7 +618,7 @@ static void initPipelinePostProc(void)
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
         .renderPass = swapchainRenderPass,
-        .layout = pipelineLayoutPostProcess,
+        .layout = pipelineLayouts[R_PIPE_LAYOUT_POST],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
         .pDepthStencilState = &depthStencilState,
@@ -632,7 +633,7 @@ static void initPipelinePostProc(void)
         .pInputAssemblyState = &inputAssembly,
     };
 
-    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelines[R_PIPELINE_POST]);
+    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelines[R_PIPE_POST]);
 
     vkDestroyShaderModule(device, vertModule, NULL);
     vkDestroyShaderModule(device, fragModule, NULL);
@@ -640,6 +641,7 @@ static void initPipelinePostProc(void)
 
 void initPipelines(void)
 {
+    initPipelineLayouts();
     initPipelineRaster();
 #if RAY_TRACE
     initPipelineRayTrace();
@@ -649,13 +651,20 @@ void initPipelines(void)
 
 void cleanUpPipelines()
 {
-    vkDestroyDescriptorSetLayout(device, descriptorSetLayouts[R_DESC_SET_RASTER], NULL);
-    vkDestroyDescriptorSetLayout(device, descriptorSetLayouts[R_DESC_SET_RAYTRACE], NULL);
-    vkDestroyPipelineLayout(device, pipelineLayoutRaster, NULL);
-    vkDestroyPipelineLayout(device, pipelineLayoutPostProcess, NULL);
-    for (int i = 0; i < PIPELINE_COUNT; i++) 
+    for (int i = 0; i < R_PIPE_LAYOUT_ID_SIZE; i++) 
     {
-        vkDestroyPipeline(device, pipelines[i], NULL);
+        if (pipelineLayouts[i])
+            vkDestroyPipelineLayout(device, pipelineLayouts[i], NULL);
+    }
+    for (int i = 0; i < R_DESC_SET_LAYOUT_ID_SIZE; i++) 
+    {
+        if (descriptorSetLayouts[i])
+            vkDestroyDescriptorSetLayout(device, descriptorSetLayouts[i], NULL);
+    }
+    for (int i = 0; i < R_PIPE_ID_SIZE; i++) 
+    {
+        if (pipelines[i])
+            vkDestroyPipeline(device, pipelines[i], NULL);
     }
     vkDestroyDescriptorPool(device, descriptorPool, NULL);
 }

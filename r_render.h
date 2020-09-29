@@ -36,7 +36,6 @@ typedef struct frame {
     uint32_t        index;
 } Frame;
 
-extern VkPipeline pipelines[MAX_PIPELINES];
 extern VkRenderPass swapchainRenderPass;
 extern VkRenderPass offscreenRenderPass;
 extern Frame frames[FRAME_COUNT];
