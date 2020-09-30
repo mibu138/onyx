@@ -25,6 +25,8 @@ static VkDescriptorPool      descriptorPool;
 
 enum shaderStageType { VERT, FRAG };
 
+#define SPVDIR "/home/michaelb/dev/tanto/shaders/spv"
+
 static void initShaderModule(const char* filepath, VkShaderModule* module)
 {
     VkResult r;
@@ -226,10 +228,10 @@ static void initPipelineRayTrace(void)
     VkShaderModule missShadowSM;
     VkShaderModule chitSM;
 
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/raytrace-rgen.spv",  &raygenSM);
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/raytrace-rmiss.spv", &missSM);
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/raytraceShadow-rmiss.spv", &missShadowSM);
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/raytrace-rchit.spv", &chitSM);
+    initShaderModule(SPVDIR"/raytrace-rgen.spv",  &raygenSM);
+    initShaderModule(SPVDIR"/raytrace-rmiss.spv", &missSM);
+    initShaderModule(SPVDIR"/raytraceShadow-rmiss.spv", &missShadowSM);
+    initShaderModule(SPVDIR"/raytrace-rchit.spv", &chitSM);
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -322,8 +324,8 @@ static void initPipelineRaster(void)
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/default-vert.spv", &vertModule);
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/default-frag.spv", &fragModule);
+    initShaderModule(SPVDIR"/default-vert.spv", &vertModule);
+    initShaderModule(SPVDIR"/default-frag.spv", &fragModule);
 
     const VkSpecializationInfo shaderSpecialInfo = {
         // TODO
@@ -508,8 +510,8 @@ static void initPipelinePostProc(void)
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/post-vert.spv", &vertModule);
-    initShaderModule("/home/michaelb/dev/HDK/vk-window/vkcode/shaders/spv/post-frag.spv", &fragModule);
+    initShaderModule(SPVDIR"/post-vert.spv", &vertModule);
+    initShaderModule(SPVDIR"/post-frag.spv", &fragModule);
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         [0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,

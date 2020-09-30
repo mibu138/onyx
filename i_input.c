@@ -124,7 +124,8 @@ void i_ProcessEvents(void)
         event = &events[eventTail];   
         if (event->data == KEY_ESC)
         {
-            longjmp(exit_game, 1);
+            parms.shouldRun = false;
+            //longjmp(exit_game, 1);
         }
         g_Responder(event);
     }

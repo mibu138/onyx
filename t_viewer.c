@@ -99,12 +99,11 @@ void t_StartViewer(void)
     Mat4 pxpi = m_Mult_Mat4(xformProj, xformProjInv);
     printMat4(&pxpi);
 
-    while( 1 ) 
+    parms.shouldRun = true;
+
+    while( parms.shouldRun ) 
     {
-        if (setjmp(exit_game)) break;
-
         clock_gettime(CLOCK_MONOTONIC, &startTime);
-
 
         i_GetEvents();
         i_ProcessEvents();
@@ -147,9 +146,13 @@ void t_StartViewer(void)
         frameCount++;
     }
 
-    r_WaitOnQueueSubmit();
+    vkDeviceWaitIdle(device);
 
     i_CleanUp();
     r_CleanUp();
+}
+
+void t_CleanUp(void)
+{
     v_CleanUp();
 }

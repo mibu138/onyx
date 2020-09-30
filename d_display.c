@@ -58,10 +58,12 @@ void d_Init(void)
             XCB_ATOM_STRING, 8, strlen(windowName), windowName);
 
     xcb_map_window(d_XcbWindow.connection, d_XcbWindow.window);
-    //xcb_flush(d_XcbWindow.connection);
+    xcb_flush(d_XcbWindow.connection);
 }
 
 void d_CleanUp(void)
 {
+    xcb_flush(d_XcbWindow.connection);
+    xcb_destroy_window(d_XcbWindow.connection, d_XcbWindow.window);
     xcb_disconnect(d_XcbWindow.connection);
 }

@@ -28,6 +28,7 @@ static V_block* stbBlock;
 
 static RtPushConstants pushConstants;
 
+
 static void initDescriptors(void)
 {
     matrixBlock = v_RequestBlock(sizeof(UboMatrices), VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT);

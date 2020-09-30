@@ -38,6 +38,7 @@ typedef enum {
 typedef struct {
     ModeID mode;
     bool   renderNeedsUpdate;
+    bool   shouldRun;
 } Parms;
 
 extern Parms parms; //defined in g_game.c

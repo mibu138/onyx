@@ -20,6 +20,12 @@ uint8_t*              hostBuffer;
 static VkPhysicalDeviceMemoryProperties memoryProperties;
 static V_block blocks[MAX_BLOCKS];
 
+static int blockCount;
+static int bytesAvailable;
+static int curBufferOffset;
+
+static uint32_t curDevMemoryOffset;
+
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
     printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
@@ -28,6 +34,11 @@ static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 void v_InitMemory(void)
 {
     VkResult r;
+
+    blockCount = 0;
+    bytesAvailable = BUFFER_SIZE_HVC;
+    curBufferOffset = 0;
+    curDevMemoryOffset = 0;
 
     int hostVisibleCoherentTypeIndex;
     int deviceLocalTypeIndex;
@@ -130,9 +141,6 @@ void v_InitMemory(void)
 
 V_block* v_RequestBlockAligned(const size_t size, const uint32_t alignment)
 {
-    static int blockCount = 0;
-    static int bytesAvailable = BUFFER_SIZE_HVC;
-    static int curBufferOffset = 0;
     assert( size % 4 == 0 ); // only allow for word-sized blocks
     assert( size < bytesAvailable);
     assert( blockCount < MAX_BLOCKS );
@@ -201,7 +209,6 @@ void v_BindImageToMemory(const VkImage image, const uint32_t size)
 {
     //static bool imageBound = false;
     //assert (!imageBound);
-    static uint32_t curDevMemoryOffset = 0;
     assert( curDevMemoryOffset < MEMORY_SIZE_DL );
     vkBindImageMemory(device, image, memoryDeviceLocal, curDevMemoryOffset);
     curDevMemoryOffset += size;

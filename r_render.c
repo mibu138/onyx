@@ -24,7 +24,7 @@ static const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 static Image depthAttachment;
 
 Frame          frames[FRAME_COUNT];
-uint32_t       curFrameIndex = 0;
+uint32_t       curFrameIndex;
 
 static void initFrames(void)
 {
@@ -404,6 +404,7 @@ static void initFrameBuffers(void)
 
 void r_Init(void)
 {
+    curFrameIndex = 0;
     initRenderPasses();
     initFrames();
     initDepthAttachment();

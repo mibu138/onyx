@@ -8,6 +8,7 @@ LIBS = -lm -lvulkan -lxcb -lxcb-keysyms -lHAPIL
 LIB  = /home/michaelb/lib
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
+LIBNAME = tanto
 
 O = build
 GLSL = shaders
@@ -81,7 +82,7 @@ bin: main.c $(OBJS) $(DEPS) shaders
 	$(CC) $(CFLAGS) $(INFLAGS) $(LDFLAGS) $(OBJS) $< -o $(BIN)/$(NAME) $(LIBS)
 
 lib: $(OBJS) $(DEPS) shaders
-	$(CC) -shared -o $(LIB)/lib$(NAME).so $(OBJS)
+	$(CC) -shared -o $(LIB)/lib$(LIBNAME).so $(OBJS)
 
 staticlib: $(OBJS) $(DEPS) shaders
 	ar rcs $(LIB)/lib$(NAME).a $(OBJS)

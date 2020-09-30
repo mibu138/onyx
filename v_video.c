@@ -30,7 +30,7 @@ VkImage        swapchainImages[FRAME_COUNT];
 const VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
 VkSemaphore    imageAcquiredSemaphores[FRAME_COUNT];
-uint64_t       frameCounter = 0;
+uint64_t       frameCounter;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
     
@@ -468,6 +468,7 @@ const VkInstance* v_Init(void)
 
 void v_InitSwapchain(VkSurfaceKHR* psurface)
 {
+    frameCounter = 0;
     if (psurface)
         pSurface = psurface;
     else 
