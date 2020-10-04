@@ -5,7 +5,6 @@
 
 #define FRAME_COUNT 2
 #define G_QUEUE_COUNT 4
-#define MAX_PIPELINES 4
 
 #define RAY_TRACE 1
 

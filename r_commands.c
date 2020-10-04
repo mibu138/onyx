@@ -30,6 +30,27 @@ static RtPushConstants pushConstants;
 
 static FrameBuffer  offscreenFrameBuffer;
 
+typedef enum {
+    R_PIPE_RASTER,
+    R_PIPE_RAYTRACE,
+    R_PIPE_POST,
+    R_PIPE_ID_SIZE
+} R_PipelineId;
+
+typedef enum {
+    R_PIPE_LAYOUT_RASTER,
+    R_PIPE_LAYOUT_RAYTRACE,
+    R_PIPE_LAYOUT_POST,
+    R_PIPE_LAYOUT_ID_SIZE
+} R_PipelineLayoutId;
+
+typedef enum {
+    R_DESC_SET_RASTER,
+    R_DESC_SET_RAYTRACE,
+    R_DESC_SET_POST,
+    R_DESC_SET_ID_SIZE
+} R_DescriptorSetId;
+
 static void initDepthAttachment(void)
 {
     VkImageCreateInfo imageInfo = {
@@ -448,9 +469,100 @@ static void postProc(const VkCommandBuffer* cmdBuf, const VkRenderPassBeginInfo*
     vkCmdEndRenderPass(*cmdBuf);
 }
 
+static void createShaderBindingTable(void)
+{
+    const VkPhysicalDeviceRayTracingPropertiesKHR rtprops = v_GetPhysicalDeviceRayTracingProperties();
+    const uint32_t groupCount = 4;
+    const uint32_t groupHandleSize = rtprops.shaderGroupHandleSize;
+    const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
+    const uint32_t sbtSize = groupCount * baseAlignment; // 3 shader groups: raygen, miss, closest hit
+
+    uint8_t shaderHandleData[sbtSize];
+
+    printf("ShaderGroup base alignment: %d\n", baseAlignment);
+    printf("ShaderGroups total size   : %d\n", sbtSize);
+
+    VkResult r;
+    r = vkGetRayTracingShaderGroupHandlesKHR(device, pipelines[R_PIPE_RAYTRACE], 0, groupCount, sbtSize, shaderHandleData);
+    assert( VK_SUCCESS == r );
+    stbBlock = v_RequestBlockAligned(sbtSize, baseAlignment);
+
+    uint8_t* pSrc    = shaderHandleData;
+    uint8_t* pTarget = stbBlock->address;
+
+    for (int i = 0; i < groupCount; i++) 
+    {
+        memcpy(pTarget, pSrc + i * groupHandleSize, groupHandleSize);
+        pTarget += baseAlignment;
+    }
+
+    printf("Created shader binding table\n");
+}
+
 void r_InitRenderCommands(void)
 {
     assert(hapiMesh);
+
+    const R_DescriptorSet descSets[] = {{
+            R_DESC_SET_RASTER,
+            3, // binding count
+            {   {1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR},
+                {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR},
+                {1, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR}}
+        },{
+            R_DESC_SET_RAYTRACE,
+            2,
+            {   {1, VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR, 
+                    VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR},
+                {1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 
+                    VK_SHADER_STAGE_RAYGEN_BIT_KHR}}
+        },{
+            R_DESC_SET_POST,
+            1,
+            {
+                {1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VK_SHADER_STAGE_FRAGMENT_BIT}}
+    }};
+
+    const VkPushConstantRange pushConstantRt = {
+        .stageFlags = 
+            VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+            VK_SHADER_STAGE_MISS_BIT_KHR,
+        .offset = 0,
+        .size = sizeof(RtPushConstants)
+    };
+
+    const R_PipelineLayout pipelayouts[] = {{
+        R_PIPE_LAYOUT_RASTER, 1, {R_DESC_SET_RASTER}
+    },{
+        R_PIPE_LAYOUT_RAYTRACE, 2, {R_DESC_SET_RASTER, R_DESC_SET_RAYTRACE}, 1, {pushConstantRt}
+    },{
+        R_PIPE_LAYOUT_POST, 1, {R_DESC_SET_POST}
+    }};
+
+    const R_PipelineInfo pipeInfos[] = {{
+        R_PIPE_RASTER,
+        R_PIPELINE_TYPE_RASTER,
+        R_PIPE_LAYOUT_RASTER,
+        {R_RENDER_PASS_TYPE_OFFSCREEN, SPVDIR"/default-vert.spv", SPVDIR"/default-frag.spv"},
+        {}
+    },{
+        R_PIPE_RAYTRACE,
+        R_PIPELINE_TYPE_RAYTRACE,
+        R_PIPE_LAYOUT_RAYTRACE
+    },{
+        R_PIPE_POST,
+        R_PIPELINE_TYPE_POSTPROC,
+        R_PIPE_LAYOUT_POST,
+        {R_RENDER_PASS_TYPE_SWAPCHAIN, "", SPVDIR"/post-frag.spv"}
+    }};
+
+    r_InitDescriptorSets(descSets, ARRAY_SIZE(descSets));
+    r_InitPipelineLayouts(pipelayouts, ARRAY_SIZE(pipelayouts));
+    r_InitPipelines(pipeInfos, ARRAY_SIZE(pipeInfos));
+
+    createShaderBindingTable();
+
     initOffscreenFrameBuffer();
     initDescriptors();
 
@@ -514,36 +626,6 @@ void r_UpdateRenderCommands(void)
 
     r = vkEndCommandBuffer(frame->commandBuffer);
     assert ( VK_SUCCESS == r );
-}
-
-void r_CreateShaderBindingTable(void)
-{
-    const VkPhysicalDeviceRayTracingPropertiesKHR rtprops = v_GetPhysicalDeviceRayTracingProperties();
-    const uint32_t groupCount = 4;
-    const uint32_t groupHandleSize = rtprops.shaderGroupHandleSize;
-    const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
-    const uint32_t sbtSize = groupCount * baseAlignment; // 3 shader groups: raygen, miss, closest hit
-
-    uint8_t shaderHandleData[sbtSize];
-
-    printf("ShaderGroup base alignment: %d\n", baseAlignment);
-    printf("ShaderGroups total size   : %d\n", sbtSize);
-
-    VkResult r;
-    r = vkGetRayTracingShaderGroupHandlesKHR(device, pipelines[R_PIPE_RAYTRACE], 0, groupCount, sbtSize, shaderHandleData);
-    assert( VK_SUCCESS == r );
-    stbBlock = v_RequestBlockAligned(sbtSize, baseAlignment);
-
-    uint8_t* pSrc    = shaderHandleData;
-    uint8_t* pTarget = stbBlock->address;
-
-    for (int i = 0; i < groupCount; i++) 
-    {
-        memcpy(pTarget, pSrc + i * groupHandleSize, groupHandleSize);
-        pTarget += baseAlignment;
-    }
-
-    printf("Created shader binding table\n");
 }
 
 Mat4* r_GetXform(r_XformType type)

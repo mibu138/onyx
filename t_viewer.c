@@ -68,13 +68,11 @@ void t_StartViewer(void)
     parms.mode = MODE_RAY;
     r_BuildBlas(&mesh);
     r_BuildTlas();
-    r_CreateShaderBindingTable();
 #endif
-
-    //return 0;
 
     r_InitRenderCommands();
     g_Init();
+
     printf("Viewer initialized\n");
 
     //Mat4  m;

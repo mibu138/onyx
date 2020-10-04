@@ -196,9 +196,7 @@ void r_Init(void)
     initRenderPasses();
     initFrames();
     initFrameBuffers();
-    initDescriptorSets();
     r_InitRayTracing();
-    initPipelines();
 }
 
 void r_WaitOnQueueSubmit(void)

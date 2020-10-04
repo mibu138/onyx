@@ -26,7 +26,6 @@ void  r_InitRenderCommands(void);
 void  r_UpdateRenderCommands(void);
 Mat4* r_GetXform(r_XformType);
 void  r_LoadMesh(const Mesh*);
-void  r_CreateShaderBindingTable(void);
 void  r_CommandCleanUp(void);
 
 #endif /* end of include guard: R_COMMANDS_H */
