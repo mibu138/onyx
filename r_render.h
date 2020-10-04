@@ -40,7 +40,8 @@ extern VkRenderPass swapchainRenderPass;
 extern VkRenderPass offscreenRenderPass;
 extern Frame frames[FRAME_COUNT];
 extern uint32_t curFrameIndex;
-extern FrameBuffer offscreenFrameBuffer;
+extern const VkFormat offscreenColorFormat;
+extern const VkFormat depthFormat;
 
 void   r_Init(void);
 void   r_WaitOnQueueSubmit(void);

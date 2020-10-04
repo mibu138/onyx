@@ -148,6 +148,7 @@ void t_StartViewer(void)
 
     vkDeviceWaitIdle(device);
 
+    r_CommandCleanUp();
     i_CleanUp();
     r_CleanUp();
 }

@@ -205,7 +205,7 @@ static void initPipelineLayouts(void)
         .pushConstantRangeCount = 1,
         .pPushConstantRanges    = &pushConstantRt,
         .setLayoutCount = sizeof(setLayoutsRt) / sizeof(VkDescriptorSetLayout),
-        .pSetLayouts = descriptorSetLayouts,
+        .pSetLayouts = setLayoutsRt,
     };
 
     V_ASSERT( vkCreatePipelineLayout(device, 
@@ -319,13 +319,13 @@ static void initPipelineRayTrace(void)
     vkDestroyShaderModule(device, missShadowSM, NULL);
 }
 
-static void initPipelineRaster(void)
+static void createPipelineRasterization(const char* const vertexShader, const char* const fragmentShader)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    initShaderModule(SPVDIR"/default-vert.spv", &vertModule);
-    initShaderModule(SPVDIR"/default-frag.spv", &fragModule);
+    initShaderModule(vertexShader, &vertModule);
+    initShaderModule(fragmentShader, &fragModule);
 
     const VkSpecializationInfo shaderSpecialInfo = {
         // TODO
@@ -505,13 +505,18 @@ static void initPipelineRaster(void)
     vkDestroyShaderModule(device, fragModule, NULL);
 }
 
-static void initPipelinePostProc(void)
+static void initPipelineRaster(void)
+{
+    createPipelineRasterization(SPVDIR"/default-vert.spv", SPVDIR"/default-frag.spv");
+}
+
+static void createPipelinePostProcess(const char* const fragShader)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
     initShaderModule(SPVDIR"/post-vert.spv", &vertModule);
-    initShaderModule(SPVDIR"/post-frag.spv", &fragModule);
+    initShaderModule(fragShader, &fragModule);
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         [0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -638,6 +643,11 @@ static void initPipelinePostProc(void)
 
     vkDestroyShaderModule(device, vertModule, NULL);
     vkDestroyShaderModule(device, fragModule, NULL);
+}
+
+static void initPipelinePostProc(void)
+{
+    createPipelinePostProcess(SPVDIR"/post-frag.spv");
 }
 
 void initPipelines(void)

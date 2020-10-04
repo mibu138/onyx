@@ -24,10 +24,217 @@ typedef struct {
 static V_block*      matrixBlock;
 static UboMatrices*  matrices;
 static const Mesh*   hapiMesh;
-static V_block* stbBlock;
+static V_block*      stbBlock;
 
 static RtPushConstants pushConstants;
 
+static FrameBuffer  offscreenFrameBuffer;
+
+static void initDepthAttachment(void)
+{
+    VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = depthFormat,
+        .extent = {WINDOW_WIDTH, WINDOW_HEIGHT, 1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 1,
+        .pQueueFamilyIndices = &graphicsQueueFamilyIndex,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    VkResult r;
+
+    r = vkCreateImage(device, &imageInfo, NULL, &offscreenFrameBuffer.depthAttachment.handle);
+    assert( VK_SUCCESS == r );
+
+    VkMemoryRequirements memReqs;
+    vkGetImageMemoryRequirements(device, offscreenFrameBuffer.depthAttachment.handle, &memReqs);
+
+#ifndef NDEBUG
+    V1_PRINT("Depth image reqs: \nSize: %ld\nAlignment: %ld\nTypes: ", 
+            memReqs.size, memReqs.alignment);
+    bitprint(&memReqs.memoryTypeBits, 32);
+#endif
+
+    v_BindImageToMemory(offscreenFrameBuffer.depthAttachment.handle, memReqs.size);
+    
+    VkImageViewCreateInfo viewInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = offscreenFrameBuffer.depthAttachment.handle,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .components = {0, 0, 0, 0}, // no swizzling
+        .format = depthFormat,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    r = vkCreateImageView(device, &viewInfo, NULL, &offscreenFrameBuffer.depthAttachment.view);
+    assert( VK_SUCCESS == r );
+}
+
+static void initOffscreenFrameBuffer(void)
+{
+    initDepthAttachment();
+    VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = offscreenColorFormat,
+        .extent = {WINDOW_WIDTH, WINDOW_HEIGHT, 1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = 
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | 
+            VK_IMAGE_USAGE_SAMPLED_BIT |
+            VK_IMAGE_USAGE_STORAGE_BIT,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 1,
+        .pQueueFamilyIndices = &graphicsQueueFamilyIndex,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    VkResult r;
+
+    r = vkCreateImage(device, &imageInfo, NULL, &offscreenFrameBuffer.colorAttachment.handle);
+    assert( VK_SUCCESS == r );
+
+    VkMemoryRequirements memReqs;
+    vkGetImageMemoryRequirements(device, offscreenFrameBuffer.colorAttachment.handle, &memReqs);
+
+#ifndef NDEBUG
+    V1_PRINT("Offscreen framebuffer reqs: \nSize: %ld\nAlignment: %ld\nTypes: ", 
+            memReqs.size, memReqs.alignment);
+    bitprint(&memReqs.memoryTypeBits, 32);
+#endif
+
+    v_BindImageToMemory(offscreenFrameBuffer.colorAttachment.handle, memReqs.size);
+
+    VkImageViewCreateInfo viewInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = offscreenFrameBuffer.colorAttachment.handle,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .components = {0, 0, 0, 0}, // no swizzling
+        .format = offscreenColorFormat,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    r = vkCreateImageView(device, &viewInfo, NULL, &offscreenFrameBuffer.colorAttachment.view);
+    assert( VK_SUCCESS == r );
+
+
+    VkSamplerCreateInfo samplerInfo = {
+        .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+        .magFilter = VK_FILTER_NEAREST,
+        .minFilter = VK_FILTER_NEAREST,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+        .mipLodBias = 0.0,
+        .anisotropyEnable = VK_FALSE,
+        .compareEnable = VK_FALSE,
+        .minLod = 0.0,
+        .maxLod = 0.0, // must both be 0 when using unnormalizedCoordinates
+        .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+        .unnormalizedCoordinates = VK_FALSE // allow us to window coordinates in frag shader
+    };
+
+    r = vkCreateSampler(device, &samplerInfo, NULL, &offscreenFrameBuffer.colorAttachment.sampler);
+    assert( VK_SUCCESS == r );
+
+    // seting render pass and depth attachment
+    offscreenFrameBuffer.pRenderPass = &offscreenRenderPass;
+
+    const VkImageView attachments[] = {offscreenFrameBuffer.colorAttachment.view, offscreenFrameBuffer.depthAttachment.view};
+
+    VkFramebufferCreateInfo framebufferInfo = {
+        .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        .layers = 1,
+        .height = WINDOW_HEIGHT,
+        .width  = WINDOW_WIDTH,
+        .renderPass = *offscreenFrameBuffer.pRenderPass,
+        .attachmentCount = 2,
+        .pAttachments = attachments
+    };
+
+    r = vkCreateFramebuffer(device, &framebufferInfo, NULL, &offscreenFrameBuffer.handle);
+    assert( VK_SUCCESS == r );
+
+    {
+        VkCommandPool cmdPool;
+
+        VkCommandPoolCreateInfo poolInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+            .queueFamilyIndex = graphicsQueueFamilyIndex,
+        };
+
+        vkCreateCommandPool(device, &poolInfo, NULL, &cmdPool);
+
+        VkCommandBufferAllocateInfo cmdBufInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+            .commandBufferCount = 1,
+            .commandPool = cmdPool,
+            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        };
+
+        VkCommandBuffer cmdBuf;
+
+        vkAllocateCommandBuffers(device, &cmdBufInfo, &cmdBuf);
+
+        VkCommandBufferBeginInfo beginInfo = {
+            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+            .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+        };
+
+        vkBeginCommandBuffer(cmdBuf, &beginInfo);
+
+        VkImageSubresourceRange subResRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseArrayLayer = 0,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .layerCount = 1,
+        };
+
+        VkImageMemoryBarrier imgBarrier = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            .image = offscreenFrameBuffer.colorAttachment.handle,
+            .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+            .newLayout = VK_IMAGE_LAYOUT_GENERAL,
+            .subresourceRange = subResRange,
+            .srcAccessMask = 0,
+            .dstAccessMask = 0,
+        };
+
+        vkCmdPipelineBarrier(cmdBuf, 
+                VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, 
+                VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0, NULL, 1, &imgBarrier);
+
+        vkEndCommandBuffer(cmdBuf);
+
+        v_SubmitToQueueWait(&cmdBuf, V_QUEUE_TYPE_GRAPHICS, 0);
+
+        vkDestroyCommandPool(device, cmdPool, NULL);
+    }
+}
 
 static void initDescriptors(void)
 {
@@ -213,7 +420,7 @@ static void rasterize(const VkCommandBuffer* cmdBuf, const VkRenderPassBeginInfo
         vkCmdBindIndexBuffer(
             *cmdBuf, 
             *hapiMesh->indexBlock->vBuffer, 
-            hapiMesh->indexBlock->vOffset, VK_INDEX_TYPE_UINT32);
+            hapiMesh->indexBlock->vOffset, R_VERT_INDEX_TYPE);
 
         vkCmdDrawIndexed(*cmdBuf, 
             hapiMesh->indexCount, 1, 0, 
@@ -244,6 +451,7 @@ static void postProc(const VkCommandBuffer* cmdBuf, const VkRenderPassBeginInfo*
 void r_InitRenderCommands(void)
 {
     assert(hapiMesh);
+    initOffscreenFrameBuffer();
     initDescriptors();
 
     pushConstants.clearColor = (Vec4){0.1, 0.2, 0.5, 1.0};
@@ -354,4 +562,14 @@ Mat4* r_GetXform(r_XformType type)
 void r_LoadMesh(const Mesh* mesh)
 {
     hapiMesh = mesh;
+}
+
+void r_CommandCleanUp(void)
+{
+    vkDestroySampler(device, offscreenFrameBuffer.colorAttachment.sampler, NULL);
+    vkDestroyFramebuffer(device, offscreenFrameBuffer.handle, NULL);
+    vkDestroyImageView(device, offscreenFrameBuffer.colorAttachment.view, NULL);
+    vkDestroyImage(device, offscreenFrameBuffer.colorAttachment.handle, NULL);
+    vkDestroyImageView(device, offscreenFrameBuffer.depthAttachment.view, NULL);
+    vkDestroyImage(device, offscreenFrameBuffer.depthAttachment.handle, NULL);
 }
