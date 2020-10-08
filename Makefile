@@ -23,16 +23,13 @@ DEPS =  \
     v_def.h      \
     v_memory.h   \
     r_render.h   \
-    r_commands.h \
     r_pipeline.h \
 	r_raytrace.h \
 	r_geo.h      \
     i_input.h    \
-	g_game.h     \
     m_math.h     \
-    utils.h      \
-    def.h        \
-	t_viewer.h  
+    t_utils.h      \
+    t_def.h        \
 
 
 OBJS =  \
@@ -41,15 +38,12 @@ OBJS =  \
 	$(O)/v_def.o      \
     $(O)/v_memory.o   \
     $(O)/r_render.o   \
-    $(O)/r_commands.o \
     $(O)/r_pipeline.o \
 	$(O)/r_raytrace.o \
 	$(O)/r_geo.o      \
     $(O)/i_input.o    \
-	$(O)/g_game.o     \
     $(O)/m_math.o     \
-    $(O)/utils.o      \
-	$(O)/t_viewer.o
+    $(O)/t_utils.o      \
 
 
 SHADERS =                         \
@@ -68,7 +62,7 @@ debug: all
 release: CFLAGS += -DNDEBUG -O2
 release: all
 
-all: bin lib tags
+all: lib tags
 
 shaders: $(SHADERS)
 

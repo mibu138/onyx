@@ -24,6 +24,7 @@ extern VkSemaphore    imageAcquiredSemaphores[FRAME_COUNT];
 extern uint64_t       frameCounter;
 
 const VkInstance* v_Init(void);
+void v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window);
 void v_InitSwapchain(VkSurfaceKHR* surface);
 void v_SubmitToQueue(const VkCommandBuffer* buffer, const V_QueueType, const uint32_t queueIndex);
 void v_SubmitToQueueWait(const VkCommandBuffer* buffer, const V_QueueType, const uint32_t queueIndex);

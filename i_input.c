@@ -1,7 +1,6 @@
 #include "i_input.h"
 #include "d_display.h"
-#include "def.h"
-#include "g_game.h"
+#include "t_def.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <xcb/xcb.h>
@@ -11,12 +10,16 @@
 #include <X11/keysym.h>
 
 #define MAX_EVENTS 32
+#define MAX_SUBSCRIBERS 5
 
 static xcb_key_symbols_t* pXcbKeySymbols;
 
 static I_Event events[MAX_EVENTS];
 static int     eventHead;
 static int     eventTail;
+
+static I_SubscriberFn subscribers[MAX_SUBSCRIBERS];
+static int subscriberCount;
 
 static I_EventData getKeyCode(xcb_key_press_event_t* event)
 {
@@ -45,6 +48,9 @@ static void postEvent(I_Event event)
 
 void i_Init(void)
 {
+    subscriberCount = 0;
+    eventHead = 0;
+    eventTail = 0;
     pXcbKeySymbols = xcb_key_symbols_alloc(d_XcbWindow.connection);
 }
 
@@ -116,18 +122,22 @@ end:
     // to do
 }
 
+void i_Subscribe(I_SubscriberFn fn)
+{
+    assert(subscriberCount < MAX_SUBSCRIBERS);
+    subscribers[subscriberCount++] = fn;
+}
+
 void i_ProcessEvents(void)
 {
     I_Event* event;
     for ( ; eventTail != eventHead; eventTail = (eventTail + 1) % MAX_EVENTS) 
     {
         event = &events[eventTail];   
-        if (event->data == KEY_ESC)
+        for (int i = 0; i < subscriberCount; i++) 
         {
-            parms.shouldRun = false;
-            //longjmp(exit_game, 1);
+            subscribers[i](event);
         }
-        g_Responder(event);
     }
 }
 

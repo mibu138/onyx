@@ -1,10 +1,10 @@
-#include "def.h"
+#include "t_def.h"
 #include "r_render.h"
 #include "v_video.h"
 #include "v_memory.h"
 #include "r_pipeline.h"
 #include "r_raytrace.h"
-#include "utils.h"
+#include "t_utils.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>

@@ -1,5 +1,5 @@
-#ifndef DEF_H
-#define DEF_H
+#ifndef T_DEF_H
+#define T_DEF_H
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -27,20 +27,5 @@
 #define KEY_R     140
 
 #define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
-
-extern jmp_buf exit_game;
-
-typedef enum {
-    MODE_RASTER,
-    MODE_RAY,
-} ModeID;
-
-typedef struct {
-    ModeID mode;
-    bool   renderNeedsUpdate;
-    bool   shouldRun;
-} Parms;
-
-extern Parms parms; //defined in g_game.c
 
 #endif /* end of include guard: DEF_H */

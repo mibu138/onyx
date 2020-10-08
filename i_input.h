@@ -15,8 +15,11 @@ typedef struct i_event {
     I_EventData data;
 } I_Event;
 
+typedef void (*I_SubscriberFn)(const I_Event*);
+
 void i_Init(void);
 void i_GetEvents(void);
+void i_Subscribe(I_SubscriberFn);
 void i_ProcessEvents(void);
 void i_CleanUp(void);
 

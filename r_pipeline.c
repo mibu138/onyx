@@ -1,9 +1,8 @@
 #include "r_pipeline.h"
 #include "v_video.h"
 #include "r_render.h"
-#include "r_commands.h"
 #include "m_math.h"
-#include "def.h"
+#include "t_def.h"
 #include "v_vulkan.h"
 #include <stdio.h>
 #include <assert.h>
@@ -45,117 +44,6 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
     assert( VK_SUCCESS == r );
 }
 
-//void initDescriptorSets(void)
-//{
-//    VkResult r;
-//
-//    VkDescriptorSetLayoutBinding bindingsRaster[] = {{
-//            .binding = 0,
-//            .descriptorCount = 1,
-//            .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-//            .stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-//            .pImmutableSamplers = NULL, // no one really seems to use these
-//        },{ 
-//            // will store the vertex buffer for the rt pipeline
-//            .binding = 1,
-//            .descriptorCount = 1,
-//            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-//            .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-//            .pImmutableSamplers = NULL, // no one really seems to use these
-//        },{
-//            // will store the index buffer for the rt pipeline
-//            .binding = 2,
-//            .descriptorCount = 1,
-//            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-//            .stageFlags = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-//            .pImmutableSamplers = NULL, // no one really seems to use these
-//    }};
-//
-//    VkDescriptorSetLayoutBinding bindingsRayTrace[] = {{
-//            .binding = 0, 
-//            .descriptorCount = 1,
-//            .descriptorType = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-//            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
-//        },{
-//            .binding = 1,
-//            .descriptorCount = 1,
-//            .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-//            .stageFlags = VK_SHADER_STAGE_RAYGEN_BIT_KHR
-//    }};
-//
-//    VkDescriptorSetLayoutBinding bindingsPostProc[] = {{
-//        .binding = 0,
-//        .descriptorCount = 1,
-//        .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-//        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-//    }};
-//
-//    VkDescriptorSetLayoutCreateInfo layoutInfoRaster = {
-//        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-//        .bindingCount = ARRAY_SIZE(bindingsRaster),
-//        .pBindings = bindingsRaster
-//    };
-//
-//    VkDescriptorSetLayoutCreateInfo layoutInfoRayTrace = {
-//        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-//        .bindingCount = ARRAY_SIZE(bindingsRayTrace),
-//        .pBindings = bindingsRayTrace
-//    };
-//
-//    VkDescriptorSetLayoutCreateInfo layoutInfoPostProc = {
-//        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-//        .bindingCount = ARRAY_SIZE(bindingsPostProc),
-//        .pBindings = bindingsPostProc 
-//    };
-//
-//    r = vkCreateDescriptorSetLayout(device, &layoutInfoRaster, NULL, &descriptorSetLayouts[R_DESC_SET_LAYOUT_RASTER]);
-//    assert( VK_SUCCESS == r );
-//
-//    r = vkCreateDescriptorSetLayout(device, &layoutInfoRayTrace, NULL, &descriptorSetLayouts[R_DESC_SET_LAYOUT_RAYTRACE]);
-//    assert( VK_SUCCESS == r );
-//
-//    r = vkCreateDescriptorSetLayout(device, &layoutInfoPostProc, NULL, &descriptorSetLayouts[R_DESC_SET_LAYOUT_POST]);
-//    assert( VK_SUCCESS == r );
-//
-//    // these are for specifying how many total descriptors of a 
-//    // particular type will be allocated from a pool
-//    VkDescriptorPoolSize poolSize[] = {{
-//            .descriptorCount = 1,
-//            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-//        },{
-//            .descriptorCount = 1,
-//            .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-//        },{
-//            .descriptorCount = 1,
-//            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-//        },{
-//            .descriptorCount = 2,
-//            .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-//        },{
-//            .descriptorCount = 1,
-//            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-//    }};
-//
-//    VkDescriptorPoolCreateInfo poolInfo = {
-//        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-//        .maxSets = R_DESC_SET_ID_SIZE,
-//        .poolSizeCount = ARRAY_SIZE(poolSize),
-//        .pPoolSizes = poolSize, 
-//    };
-//
-//    r = vkCreateDescriptorPool(device, &poolInfo, NULL, &descriptorPool);
-//    assert( VK_SUCCESS == r );
-//
-//    VkDescriptorSetAllocateInfo allocInfo = {
-//        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-//        .descriptorPool = descriptorPool,
-//        .descriptorSetCount = R_DESC_SET_LAYOUT_ID_SIZE,
-//        .pSetLayouts = descriptorSetLayouts,
-//    };
-//
-//    r = vkAllocateDescriptorSets(device, &allocInfo, descriptorSets);
-//    assert( VK_SUCCESS == r );
-//}
 
 void r_InitDescriptorSets(const R_DescriptorSet* const sets, const int count)
 {
@@ -263,63 +151,6 @@ void r_InitPipelineLayouts(const R_PipelineLayout *const layouts, const int coun
         V_ASSERT(vkCreatePipelineLayout(device, &info, NULL, &pipelineLayouts[layout.id]));
     }
 }
-
-//static void initPipelineLayouts(void)
-//{
-//    const VkPushConstantRange pushConstantRt = {
-//        .stageFlags = 
-//            VK_SHADER_STAGE_RAYGEN_BIT_KHR |
-//            VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
-//            VK_SHADER_STAGE_MISS_BIT_KHR,
-//        .offset = 0,
-//        .size = sizeof(RtPushConstants)
-//    };
-//
-//    const VkDescriptorSetLayout setLayoutsRt[] = {
-//        descriptorSetLayouts[R_DESC_SET_LAYOUT_RASTER],
-//        descriptorSetLayouts[R_DESC_SET_LAYOUT_RAYTRACE]
-//    };
-//
-//    const VkPipelineLayoutCreateInfo infoRaster = {
-//        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-//        .pNext = NULL,
-//        .flags = 0,
-//        .setLayoutCount = 1, // ?
-//        .pSetLayouts = &descriptorSetLayouts[R_DESC_SET_RASTER],
-//        .pushConstantRangeCount = 0,
-//        .pPushConstantRanges = NULL
-//    };
-//
-//    const VkPipelineLayoutCreateInfo infoPost = {
-//        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-//        .pNext = NULL,
-//        .flags = 0,
-//        .setLayoutCount = 1, // ?
-//        .pSetLayouts = &descriptorSetLayouts[R_DESC_SET_POST],
-//        .pushConstantRangeCount = 0,
-//        .pPushConstantRanges = NULL
-//    };
-//
-//    const VkPipelineLayoutCreateInfo infoRayTrace = {
-//        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-//        .pushConstantRangeCount = 1,
-//        .pPushConstantRanges    = &pushConstantRt,
-//        .setLayoutCount = sizeof(setLayoutsRt) / sizeof(VkDescriptorSetLayout),
-//        .pSetLayouts = setLayoutsRt,
-//    };
-//
-//    V_ASSERT( vkCreatePipelineLayout(device, 
-//        &infoRaster, NULL, 
-//        &pipelineLayouts[R_PIPE_LAYOUT_RASTER]));
-//
-//    V_ASSERT( vkCreatePipelineLayout(device, 
-//        &infoRayTrace, NULL, 
-//        &pipelineLayouts[R_PIPE_LAYOUT_RAYTRACE]));
-//
-//    V_ASSERT( vkCreatePipelineLayout(device,
-//        &infoPost, NULL, 
-//        &pipelineLayouts[R_PIPE_LAYOUT_POST]));
-//}
 
 static void createPipelineRayTrace(const R_PipelineInfo* plInfo)
 {
@@ -462,6 +293,12 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
         .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
     };
 
+    const VkVertexInputBindingDescription bindingDescriptionUvw = {
+        .binding = 3,
+        .stride  = sizeof(Vec3), 
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
     const VkVertexInputAttributeDescription positionAttributeDescription = {
         .binding = 0,
         .location = 0, 
@@ -483,12 +320,19 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
         .offset = sizeof(Vec3) * 0,
     };
 
-    VkVertexInputBindingDescription vBindDescs[3] = {
-        bindingDescriptionPos, bindingDescriptionColor, bindingDescriptionNormal
+    const VkVertexInputAttributeDescription uvwAttributeDescription = {
+        .binding = 3,
+        .location = 3, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0,
     };
 
-    VkVertexInputAttributeDescription vAttrDescs[3] = {
-        positionAttributeDescription, colorAttributeDescription, normalAttributeDescription 
+    VkVertexInputBindingDescription vBindDescs[4] = {
+        bindingDescriptionPos, bindingDescriptionColor, bindingDescriptionNormal, bindingDescriptionUvw
+    };
+
+    VkVertexInputAttributeDescription vAttrDescs[4] = {
+        positionAttributeDescription, colorAttributeDescription, normalAttributeDescription, uvwAttributeDescription
     };
 
     const VkPipelineVertexInputStateCreateInfo vertexInput = {
@@ -604,11 +448,6 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
     vkDestroyShaderModule(device, vertModule, NULL);
     vkDestroyShaderModule(device, fragModule, NULL);
 }
-
-//static void initPipelineRaster(void)
-//{
-//    createPipelineRasterization(SPVDIR"/default-vert.spv", SPVDIR"/default-frag.spv");
-//}
 
 static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
 {
@@ -745,11 +584,6 @@ static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
     vkDestroyShaderModule(device, fragModule, NULL);
 }
 
-//static void initPipelinePostProc(void)
-//{
-//    createPipelinePostProcess(SPVDIR"/post-frag.spv");
-//}
-
 void r_InitPipelines(const R_PipelineInfo *const pipelineInfos, const int count)
 {
     for (int i = 0; i < count; i++) 
@@ -764,32 +598,27 @@ void r_InitPipelines(const R_PipelineInfo *const pipelineInfos, const int count)
     }
 }
 
-//void initPipelines(void)
-//{
-//    initPipelineLayouts();
-//    initPipelineRaster();
-//#if RAY_TRACE
-//    initPipelineRayTrace();
-//#endif
-//    initPipelinePostProc();
-//}
-
 void cleanUpPipelines()
 {
     for (int i = 0; i < MAX_PIPELINES; i++) 
     {
         if (pipelineLayouts[i])
             vkDestroyPipelineLayout(device, pipelineLayouts[i], NULL);
+        pipelineLayouts[i] = 0;
     }
+    vkDestroyDescriptorPool(device, descriptorPool, NULL);
+    descriptorPool = 0;
     for (int i = 0; i < MAX_DESCRIPTOR_SETS; i++) 
     {
         if (descriptorSetLayouts[i])
             vkDestroyDescriptorSetLayout(device, descriptorSetLayouts[i], NULL);
+        descriptorSetLayouts[i] = 0;
+        descriptorSets[i] = 0;
     }
     for (int i = 0; i < MAX_PIPELINES; i++) 
     {
         if (pipelines[i])
             vkDestroyPipeline(device, pipelines[i], NULL);
+        pipelines[i] = 0;
     }
-    vkDestroyDescriptorPool(device, descriptorPool, NULL);
 }

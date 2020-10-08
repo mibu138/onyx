@@ -1,7 +1,7 @@
-#include "def.h"
 #include "v_video.h"
 #include "v_memory.h"
 #include "d_display.h"
+#include "t_def.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -466,17 +466,25 @@ const VkInstance* v_Init(void)
     return &instance;
 }
 
+void v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
+{
+    const VkXcbSurfaceCreateInfoKHR ci = {
+        .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
+        .connection = connection,
+        .window = window,
+    };
+
+    VkResult r = vkCreateXcbSurfaceKHR(instance, &ci, NULL, &nativeSurface);
+    assert(r == VK_SUCCESS);
+    V1_PRINT("Surface created successfully.\n");
+    pSurface = &nativeSurface;
+}
+
 void v_InitSwapchain(VkSurfaceKHR* psurface)
 {
     frameCounter = 0;
     if (psurface)
         pSurface = psurface;
-    else 
-    {
-        d_Init();
-        initSurface();
-        pSurface = &nativeSurface;
-    }
     initSwapchain();
 }
 
@@ -522,7 +530,6 @@ void v_CleanUp(void)
     vkDestroyDevice(device, NULL);
     vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
     vkDestroyInstance(instance, NULL);
-    d_CleanUp();
 }
 
 VkPhysicalDeviceRayTracingPropertiesKHR v_GetPhysicalDeviceRayTracingProperties(void)

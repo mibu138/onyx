@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef T_UTILS_H
+#define T_UTILS_H
 
 #include <stdio.h>
 #include "m_math.h"
@@ -13,6 +13,7 @@
 } ;
 
 void printVec2(const Vec2*);
+void printVec3(const Vec3*);
 void printMat4(const Mat4*);
 void bitprintRowLen(const void *const thing, const size_t bitcount, const size_t rowlength);
 void bytePrint(const void* const thing, const size_t byteCount);

@@ -2,9 +2,9 @@
 #include "v_video.h"
 #include "r_render.h"
 #include "v_memory.h"
-#include "utils.h"
+#include "t_utils.h"
 #include <assert.h>
-#include "def.h"
+#include "t_def.h"
 #include <stdio.h>
 #include <string.h>
 #include <vulkan/vulkan_beta.h>
@@ -159,7 +159,7 @@ void r_BuildBlas(const Mesh* mesh)
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
         .vertexFormat  = R_VERT_POS_FORMAT,
-        .vertexStride  = sizeof(Vec3),
+        .vertexStride  = sizeof(Attribute),
         .indexType     = R_VERT_INDEX_TYPE,
         .vertexData.deviceAddress = vertAddr,
         .indexData.deviceAddress = indexAddr,

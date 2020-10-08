@@ -1,4 +1,4 @@
-#include "utils.h"
+#include "t_utils.h"
 #include <stdio.h>
 #include <stdint.h>
 
@@ -6,6 +6,12 @@ void printVec2(const Vec2* vec)
 {
     printf("x: %f, y: %f\n", vec->x, vec->y);
 }
+
+void printVec3(const Vec3* vec)
+{
+    printf("x: %f, y: %f z: %f\n", vec->x[0], vec->x[1], vec->x[2]);
+}
+
 
 void printMat4(const Mat4 * m)
 {
