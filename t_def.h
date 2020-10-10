@@ -1,5 +1,5 @@
-#ifndef T_DEF_H
-#define T_DEF_H
+#ifndef TANTO_T_DEF_H
+#define TANTO_T_DEF_H
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -16,16 +16,16 @@
 #endif
 
 // key values are ascii lower case
-#define KEY_W     119
-#define KEY_A     97
-#define KEY_S     115
-#define KEY_D     100
-#define KEY_SPACE 32
+#define TANTO_KEY_W     119
+#define TANTO_KEY_A     97
+#define TANTO_KEY_S     115
+#define TANTO_KEY_D     100
+#define TANTO_KEY_SPACE 32
 // these values are arbitrary
-#define KEY_CTRL  24
-#define KEY_ESC   27
-#define KEY_R     140
+#define TANTO_KEY_CTRL  24
+#define TANTO_KEY_ESC   27
+#define TANTO_KEY_R     140
 
-#define ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+#define TANTO_ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
 #endif /* end of include guard: DEF_H */

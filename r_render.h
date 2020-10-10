@@ -1,28 +1,25 @@
-/*
-r_render.c
- */
-#ifndef R_INIT_H
-#define R_INIT_H
+#ifndef TANTO_R_INIT_H
+#define TANTO_R_INIT_H
 
 #include "v_def.h"
 #include "v_memory.h"
 #include "m_math.h"
 
-#define R_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
-#define R_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
+#define TANTO_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
+#define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
 
 typedef struct {
     VkImage         handle;
     VkImageView     view;
     VkSampler       sampler;
-} Image;
+} Tanto_R_Image;
 
 typedef struct {
     VkFramebuffer   handle;
-    Image           colorAttachment;
-    Image           depthAttachment;
+    Tanto_R_Image   colorAttachment;
+    Tanto_R_Image   depthAttachment;
     VkRenderPass*   pRenderPass;
-} FrameBuffer;
+} Tanto_R_FrameBuffer;
 
 typedef struct frame {
     VkCommandPool   commandPool;
@@ -34,19 +31,19 @@ typedef struct frame {
     VkFramebuffer   frameBuffer;
     VkRenderPass*   renderPass;
     uint32_t        index;
-} Frame;
+} Tanto_R_Frame;
 
 extern VkRenderPass swapchainRenderPass;
 extern VkRenderPass offscreenRenderPass;
-extern Frame frames[FRAME_COUNT];
+extern Tanto_R_Frame frames[TANTO_FRAME_COUNT];
 extern uint32_t curFrameIndex;
 extern const VkFormat offscreenColorFormat;
 extern const VkFormat depthFormat;
 
-void   r_Init(void);
-void   r_WaitOnQueueSubmit(void);
-Frame* r_RequestFrame(void);
-void   r_PresentFrame(void);
-void   r_CleanUp(void);
+void           tanto_r_Init(void);
+void           tanto_r_WaitOnQueueSubmit(void);
+void           tanto_r_PresentFrame(void);
+void           tanto_r_CleanUp(void);
+Tanto_R_Frame* tanto_r_RequestFrame(void);
 
 #endif /* end of include guard: R_INIT_H */

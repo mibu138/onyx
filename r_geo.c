@@ -3,58 +3,58 @@
 
 const int CW = 1;
 
-Mesh r_PreMeshToMesh(const PreMesh pm)
+Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
 {
-    Mesh m = {};
+    Tanto_R_Mesh m = {};
     size_t nverts = pm.vertexCount;
     m.vertexCount = nverts;
-    m.vertexBlock = v_RequestBlock(nverts * sizeof(Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    m.posOffset   = nverts * sizeof(Attribute) * 0;
-    m.colOffset   = nverts * sizeof(Attribute) * 1;
-    m.norOffset   = nverts * sizeof(Attribute) * 2;
-    m.uvwOffset   = nverts * sizeof(Attribute) * 3;
-    m.indexBlock  = v_RequestBlock(nverts * sizeof(Index), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m.vertexBlock = tanto_v_RequestBlockHost(nverts * sizeof(Tanto_R_Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m.posOffset   = nverts * sizeof(Tanto_R_Attribute) * 0;
+    m.colOffset   = nverts * sizeof(Tanto_R_Attribute) * 1;
+    m.norOffset   = nverts * sizeof(Tanto_R_Attribute) * 2;
+    m.uvwOffset   = nverts * sizeof(Tanto_R_Attribute) * 3;
+    m.indexBlock  = tanto_v_RequestBlockHost(nverts * sizeof(Tanto_R_Index), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     m.indexCount  = nverts;
 
-    memcpy(m.vertexBlock->address + m.posOffset, pm.posData, sizeof(Attribute) * nverts);
-    memcpy(m.vertexBlock->address + m.colOffset, pm.colData, sizeof(Attribute) * nverts);
-    memcpy(m.vertexBlock->address + m.norOffset, pm.norData, sizeof(Attribute) * nverts);
-    memcpy(m.indexBlock->address, pm.indexData, sizeof(Index) * nverts);
+    memcpy(m.vertexBlock->hostData + m.posOffset, pm.posData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.vertexBlock->hostData + m.colOffset, pm.colData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.vertexBlock->hostData + m.norOffset, pm.norData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.indexBlock->hostData, pm.indexData, sizeof(Tanto_R_Index) * nverts);
     
     return m;
 }
 
-Mesh r_CreateMesh(uint32_t vertexCount, uint32_t indexCount)
+Tanto_R_Mesh tanto_r_CreateMesh(uint32_t vertexCount, uint32_t indexCount)
 {
-    Mesh mesh;
+    Tanto_R_Mesh mesh;
     mesh.vertexCount = vertexCount;
     mesh.indexCount  = indexCount;
-    mesh.vertexBlock = v_RequestBlock(sizeof(Vertex) * mesh.vertexCount, 
+    mesh.vertexBlock = tanto_v_RequestBlockHost(sizeof(Tanto_R_Vertex) * mesh.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    mesh.indexBlock  = v_RequestBlock(sizeof(Index) * mesh.indexCount, 
+    mesh.indexBlock  = tanto_v_RequestBlockHost(sizeof(Tanto_R_Index) * mesh.indexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    mesh.posOffset = 0 * mesh.vertexCount * sizeof(Attribute);
-    mesh.colOffset = 1 * mesh.vertexCount * sizeof(Attribute);
-    mesh.norOffset = 2 * mesh.vertexCount * sizeof(Attribute);
-    mesh.uvwOffset = 3 * mesh.vertexCount * sizeof(Attribute);
+    mesh.posOffset = 0 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
+    mesh.colOffset = 1 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
+    mesh.norOffset = 2 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
+    mesh.uvwOffset = 3 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
     return mesh;
 }
 
-Mesh r_CreateCube(void)
+Tanto_R_Mesh tanto_r_CreateCube(void)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
-    Mesh mesh = r_CreateMesh(vertCount, indexCount);
-    Attribute* pPositions = (Attribute*)(mesh.vertexBlock->address + mesh.posOffset);
-    Attribute* pColors    = (Attribute*)(mesh.vertexBlock->address + mesh.colOffset);
-    Attribute* pNormals   = (Attribute*)(mesh.vertexBlock->address + mesh.norOffset);
-    Attribute* pUvws      = (Attribute*)(mesh.vertexBlock->address + mesh.uvwOffset);
-    Index*  indices       = (Index*)mesh.indexBlock->address;
+    Tanto_R_Mesh mesh = tanto_r_CreateMesh(vertCount, indexCount);
+    Tanto_R_Attribute* pPositions = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.posOffset);
+    Tanto_R_Attribute* pColors    = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.colOffset);
+    Tanto_R_Attribute* pNormals   = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.norOffset);
+    Tanto_R_Attribute* pUvws      = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.uvwOffset);
+    Tanto_R_Index*  indices       = (Tanto_R_Index*)mesh.indexBlock->hostData;
 
-    //memset(indices, 0, sizeof(Index) * mesh.indexCount);
-    //memset(positions, 0, sizeof(Vertex) * mesh.vertexCount);
+    //memset(indices, 0, sizeof(Tanto_R_Index) * mesh.indexCount);
+    //memset(positions, 0, sizeof(Tanto_R_Vertex) * mesh.vertexCount);
     
     // make cube
     
@@ -87,7 +87,7 @@ Mesh r_CreateCube(void)
         {  0.5,  1.0,  0.0 },
     };
 
-    const Attribute uvws[4] = {
+    const Tanto_R_Attribute uvws[4] = {
         { 0.0, 0.0, 0.0 },
         { 1.0, 0.0, 0.0 },
         { 0.0, 1.0, 0.0 },

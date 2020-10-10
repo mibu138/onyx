@@ -1,35 +1,35 @@
-#ifndef V_MEMORY_H
-#define V_MEMORY_H
+#ifndef TANTO_V_MEMORY_H
+#define TANTO_V_MEMORY_H
 
 #include "v_def.h"
 #include <stdbool.h>
 
 typedef struct {
     size_t       size;
-    uint8_t*     address;
+    uint8_t*     hostData;
     VkDeviceSize vOffset;
     VkBuffer*    vBuffer;
     bool         isMapped;
-} V_block;
+} Tanto_V_BlockHostBuffer;
 
-extern uint8_t* hostBuffer;
+typedef struct {
+} Tanto_V_BlockDevBuffer;
 
-//typedef enum {
-//    V_MEM_TYPE_VERTEX, 
-//    V_MEM_TYPE_INDEX,
-//    V_MEM_TYPE_UNIFORM, 
-//} V_MEM_TYPE;
+typedef struct {
+    size_t       size;
+    VkDeviceSize vOffset;
+} Tanto_V_BlockDevImage;
 
-void v_InitMemory(void);
+void tanto_v_InitMemory(void);
 
-V_block* v_RequestBlock(size_t size, const VkBufferUsageFlags);
+Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHost(size_t size, const VkBufferUsageFlags);
 
-V_block* v_RequestBlockAligned(const size_t size, const uint32_t alignment);
+Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHostAligned(const size_t size, const uint32_t alignment);
 
-uint32_t v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties);
+uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties);
 
-void v_BindImageToMemory(const VkImage, const uint32_t size);
+void tanto_v_BindImageToMemory(const VkImage, const uint32_t size);
 
-void v_CleanUpMemory(void);
+void tanto_v_CleanUpMemory(void);
 
 #endif /* end of include guard: V_MEMORY_H */

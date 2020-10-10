@@ -1,26 +1,37 @@
-#ifndef I_INPUT_H
-#define I_INPUT_H
+#ifndef TANTO_I_INPUT_H
+#define TANTO_I_INPUT_H
 
 #include <stdint.h>
 
-typedef uint32_t I_EventData;
+typedef struct {
+    int16_t x;
+    int16_t y;
+} Tanto_I_MouseCoords;
+
+typedef union {
+    uint32_t keyCode;
+    Tanto_I_MouseCoords mouseCoords;
+} Tanto_I_EventData;
 
 typedef enum {
-    i_Keydown,
-    i_Keyup,
-} I_EventType;
+    TANTO_I_KEYDOWN,
+    TANTO_I_KEYUP,
+    TANTO_I_MOUSEDOWN,
+    TANTO_I_MOUSEUP,
+    TANTO_I_MOTION
+} Tanto_I_EventType;
 
-typedef struct i_event {
-    I_EventType type;
-    I_EventData data;
-} I_Event;
+typedef struct {
+    Tanto_I_EventType type;
+    Tanto_I_EventData data;
+} Tanto_I_Event;
 
-typedef void (*I_SubscriberFn)(const I_Event*);
+typedef void (*Tanto_I_SubscriberFn)(const Tanto_I_Event*);
 
-void i_Init(void);
-void i_GetEvents(void);
-void i_Subscribe(I_SubscriberFn);
-void i_ProcessEvents(void);
-void i_CleanUp(void);
+void tanto_i_Init(void);
+void tanto_i_GetEvents(void);
+void tanto_i_Subscribe(Tanto_I_SubscriberFn);
+void tanto_i_ProcessEvents(void);
+void tanto_i_CleanUp(void);
 
-#endif /* end of include guard: I_INPUT_H */
+#endif /* end of include guard: TANTO_I_INPUT_H */

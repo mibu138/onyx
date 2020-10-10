@@ -19,7 +19,7 @@ const VkFormat presentColorFormat = VK_FORMAT_R8G8B8A8_SRGB;
 const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
-Frame          frames[FRAME_COUNT];
+Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
 uint32_t       curFrameIndex;
 
 static void initFrames(void)
@@ -30,7 +30,7 @@ static void initFrames(void)
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
     };
 
-    for (int i = 0; i < FRAME_COUNT; i++) 
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         r = vkCreateCommandPool(device, &cmdPoolCi, NULL, &frames[i].commandPool);
         assert(r == VK_SUCCESS);
@@ -147,7 +147,7 @@ static void initRenderPasses(void)
     VkRenderPassCreateInfo ci = {
         .subpassCount = 1,
         .pSubpasses = &subpass,
-        .attachmentCount = ARRAY_SIZE(attachments),
+        .attachmentCount = TANTO_ARRAY_SIZE(attachments),
         .pAttachments = attachments,
         .dependencyCount = 1,
         .pDependencies = &dependency,
@@ -169,7 +169,7 @@ static void initRenderPasses(void)
 static void initFrameBuffers(void)
 {
     VkResult r;
-    for (int i = 0; i < FRAME_COUNT; i++) 
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         const VkImageView attachments[] = {
             frames[i].imageView,
@@ -179,8 +179,8 @@ static void initFrameBuffers(void)
             .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
             .layers = 1,
             .renderPass = *frames->renderPass,
-            .width = WINDOW_WIDTH,
-            .height = WINDOW_HEIGHT,
+            .width = TANTO_WINDOW_WIDTH,
+            .height = TANTO_WINDOW_HEIGHT,
             .attachmentCount = 1,
             .pAttachments = attachments,
         };
@@ -190,24 +190,24 @@ static void initFrameBuffers(void)
     }
 }
 
-void r_Init(void)
+void tanto_r_Init(void)
 {
     curFrameIndex = 0;
     initRenderPasses();
     initFrames();
     initFrameBuffers();
-    r_InitRayTracing();
+    tanto_r_InitRayTracing();
 }
 
-void r_WaitOnQueueSubmit(void)
+void tanto_r_WaitOnQueueSubmit(void)
 {
     vkWaitForFences(device, 1, &frames[curFrameIndex].fence, VK_TRUE, UINT64_MAX);
 }
 
-Frame* r_RequestFrame(void)
+Tanto_R_Frame* tanto_r_RequestFrame(void)
 {
     VkResult r;
-    uint32_t i = frameCounter % FRAME_COUNT;
+    uint32_t i = frameCounter % TANTO_FRAME_COUNT;
     r = vkAcquireNextImageKHR(device, 
             swapchain, 
             UINT64_MAX, 
@@ -219,7 +219,7 @@ Frame* r_RequestFrame(void)
     return &frames[curFrameIndex];
 }
 
-void r_PresentFrame(void)
+void tanto_r_PresentFrame(void)
 {
     VkResult res;
 
@@ -258,13 +258,13 @@ void r_PresentFrame(void)
     assert( VK_SUCCESS == res );
 }
 
-void r_CleanUp(void)
+void tanto_r_CleanUp(void)
 {
-    r_RayTraceCleanUp();
-    cleanUpPipelines();
+    tanto_r_RayTraceCleanUp();
+    tanto_r_CleanUpPipelines();
     vkDestroyRenderPass(device, swapchainRenderPass, NULL);
     vkDestroyRenderPass(device, offscreenRenderPass, NULL);
-    for (int i = 0; i < FRAME_COUNT; i++) 
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroyFence(device, frames[i].fence, NULL);
         vkDestroyImageView(device, frames[i].imageView, NULL);

@@ -4,6 +4,4 @@
 #include "v_def.h"
 #include <assert.h>
 
-    
-
 #endif /* end of include guard: V_UTILS_H */

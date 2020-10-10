@@ -1,74 +1,72 @@
-#ifndef R_PIPELINE_H
-#define R_PIPELINE_H
+#ifndef TANTO_R_PIPELINE_H
+#define TANTO_R_PIPELINE_H
 
 #include "v_def.h"
 
-#define MAX_PIPELINES 10
-#define MAX_DESCRIPTOR_SETS 10
-#define MAX_BINDINGS 10
-#define MAX_PUSH_CONSTANTS 5
+#define TANTO_MAX_PIPELINES 10
+#define TANTO_MAX_DESCRIPTOR_SETS 10
+#define TANTO_MAX_BINDINGS 10
+#define TANTO_MAX_PUSH_CONSTANTS 5
 
-#define SPVDIR "/home/michaelb/dev/tanto/shaders/spv"
+#define TANTO_SPVDIR "/home/michaelb/dev/tanto/shaders/spv"
 
-extern VkPipeline       pipelines[MAX_PIPELINES];
-extern VkDescriptorSet  descriptorSets[MAX_DESCRIPTOR_SETS];
-extern VkPipelineLayout pipelineLayouts[MAX_PIPELINES];
+extern VkPipeline       pipelines[TANTO_MAX_PIPELINES];
+extern VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
+extern VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
 
 typedef struct {
     uint32_t           descriptorCount;
     VkDescriptorType   type;
     VkShaderStageFlags stageFlags;
-} R_DescriptorBinding;
+} Tanto_R_DescriptorBinding;
 
 typedef struct {
     int    id;
     size_t bindingCount;
-    R_DescriptorBinding bindings[MAX_BINDINGS];
-} R_DescriptorSet;
+    Tanto_R_DescriptorBinding bindings[TANTO_MAX_BINDINGS];
+} Tanto_R_DescriptorSet;
 
 typedef struct {
     int id;
     size_t descriptorSetCount;
-    int    descriptorSetIds[MAX_DESCRIPTOR_SETS];
+    int    descriptorSetIds[TANTO_MAX_DESCRIPTOR_SETS];
     size_t pushConstantCount;
-    VkPushConstantRange pushConstantsRanges[MAX_PUSH_CONSTANTS];
-} R_PipelineLayout;
+    VkPushConstantRange pushConstantsRanges[TANTO_MAX_PUSH_CONSTANTS];
+} Tanto_R_PipelineLayout;
 
 typedef enum {
-    R_PIPELINE_TYPE_RASTER,
-    R_PIPELINE_TYPE_RAYTRACE,
-    R_PIPELINE_TYPE_POSTPROC
-} R_PipelineType;
+    TANTO_R_PIPELINE_RASTER_TYPE,
+    TANTO_R_PIPELINE_RAYTRACE_TYPE,
+    TANTO_R_PIPELINE_POSTPROC_TYPE
+} Tanto_R_PipelineType;
 
 typedef enum {
-    R_RENDER_PASS_TYPE_SWAPCHAIN,
-    R_RENDER_PASS_TYPE_OFFSCREEN
-} R_RenderPassType;
+    TANTO_R_RENDER_PASS_SWAPCHAIN_TYPE,
+    TANTO_R_RENDER_PASS_OFFSCREEN_TYPE
+} Tanto_R_RenderPassType;
 
 typedef struct {
-    const R_RenderPassType renderPassType;
+    const Tanto_R_RenderPassType renderPassType;
     const char* vertShader;
     const char* fragShader;
-} R_PipelineRasterInfo;
+} Tanto_R_PipelineRasterInfo;
 
 typedef struct {
-} R_PipelineRayTraceInfo;
+} Tanto_R_PipelineRayTraceInfo;
 
 typedef struct {
     const int   id;
-    const R_PipelineType type;
+    const Tanto_R_PipelineType type;
     const int   pipelineLayoutId;
-    const R_PipelineRasterInfo rasterInfo;
-    const R_PipelineRayTraceInfo raytraceInfo;
-} R_PipelineInfo;
+    const Tanto_R_PipelineRasterInfo rasterInfo;
+    const Tanto_R_PipelineRayTraceInfo raytraceInfo;
+} Tanto_R_PipelineInfo;
 
 
-void r_InitDescriptorSets(const R_DescriptorSet* const sets, const int count);
-void r_InitPipelineLayouts(const R_PipelineLayout* const layouts, const int count);
-void r_InitPipelines(const R_PipelineInfo* const pipelineInfos, const int count);
-//void initPipelines(void);
-
-void cleanUpPipelines(void);
+void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const int count);
+void tanto_r_InitPipelineLayouts(const Tanto_R_PipelineLayout* const layouts, const int count);
+void tanto_r_InitPipelines(const Tanto_R_PipelineInfo* const pipelineInfos, const int count);
+void tanto_r_CleanUpPipelines(void);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

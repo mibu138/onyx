@@ -9,15 +9,14 @@
 #include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_core.h>
 
-VkPipeline       pipelines[MAX_PIPELINES];
-VkDescriptorSet  descriptorSets[MAX_DESCRIPTOR_SETS];
-VkPipelineLayout pipelineLayouts[MAX_PIPELINES];
+VkPipeline       pipelines[TANTO_MAX_PIPELINES];
+VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
+VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
 
-static VkDescriptorSetLayout descriptorSetLayouts[MAX_DESCRIPTOR_SETS]; 
+static VkDescriptorSetLayout descriptorSetLayouts[TANTO_MAX_DESCRIPTOR_SETS]; 
 static VkDescriptorPool      descriptorPool;
 
 enum shaderStageType { VERT, FRAG };
-
 
 static void initShaderModule(const char* filepath, VkShaderModule* module)
 {
@@ -44,125 +43,17 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
     assert( VK_SUCCESS == r );
 }
 
-
-void r_InitDescriptorSets(const R_DescriptorSet* const sets, const int count)
-{
-    // counters for different descriptors
-    int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0;
-    for (int i = 0; i < count; i++) 
-    {
-        const R_DescriptorSet set = sets[i];
-        assert(set.bindingCount > 0);
-        assert(set.bindingCount <= MAX_BINDINGS);
-        assert(descriptorSets[set.id] == VK_NULL_HANDLE);
-        assert(set.id == i); // we ensure that the set ids increase from with i from 0. No gaps.
-        VkDescriptorSetLayoutBinding bindings[set.bindingCount];
-        for (int b = 0; b < set.bindingCount; b++) 
-        {
-            const uint32_t dCount = set.bindings[b].descriptorCount;
-            bindings[b].binding = b;
-            bindings[b].descriptorCount = dCount;
-            bindings[b].descriptorType  = set.bindings[b].type;
-            bindings[b].stageFlags      = set.bindings[b].stageFlags;
-            bindings[b].pImmutableSamplers = NULL;
-            switch (set.bindings[b].type) 
-            {
-                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:             dcUbo += dCount; break;
-                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: dcAs  += dCount; break;
-                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:              dcSi  += dCount; break;
-                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:             dcSb  += dCount; break;
-                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:     dcCis += dCount; break;
-                default: assert(false);
-            }
-        }
-        const VkDescriptorSetLayoutCreateInfo layoutInfo = {
-            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-            .bindingCount = set.bindingCount,
-            .pBindings = bindings
-        };
-        V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptorSetLayouts[set.id]));
-    }
-
-    const VkDescriptorPoolSize poolSizes[] = {{
-            .descriptorCount = dcUbo,
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        },{
-            .descriptorCount = dcAs,
-            .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-        },{
-            .descriptorCount = dcSi,
-            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        },{
-            .descriptorCount = dcSb,
-            .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        },{
-            .descriptorCount = dcCis,
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    }};
-
-    const VkDescriptorPoolCreateInfo poolInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .maxSets = count,
-        .poolSizeCount = ARRAY_SIZE(poolSizes),
-        .pPoolSizes = poolSizes, 
-    };
-
-    V_ASSERT(vkCreateDescriptorPool(device, &poolInfo, NULL, &descriptorPool));
-
-    VkDescriptorSetAllocateInfo allocInfo = {
-        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
-        .descriptorPool = descriptorPool,
-        .descriptorSetCount = count,
-        .pSetLayouts = descriptorSetLayouts,
-    };
-
-    V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, descriptorSets));
-}
-
-void r_InitPipelineLayouts(const R_PipelineLayout *const layouts, const int count)
-{
-    assert(count > 0 && count < MAX_PIPELINES);
-    for (int i = 0; i < count; i++) 
-    {
-        const R_PipelineLayout layout = layouts[i];
-        assert(layout.id == i);
-        assert(layout.pushConstantCount < MAX_PUSH_CONSTANTS);
-
-        const int dsCount = layout.descriptorSetCount;
-        assert(dsCount > 0 && dsCount < MAX_DESCRIPTOR_SETS);
-
-        VkDescriptorSetLayout descSetLayouts[dsCount];
-
-        for (int j = 0; j < count; j++) 
-        {
-            descSetLayouts[j] = descriptorSetLayouts[layout.descriptorSetIds[j]];
-        }
-
-        VkPipelineLayoutCreateInfo info = {
-            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-            .pNext = NULL,
-            .flags = 0,
-            .setLayoutCount = dsCount,
-            .pSetLayouts = descSetLayouts,
-            .pushConstantRangeCount = layout.pushConstantCount,
-            .pPushConstantRanges = layout.pushConstantsRanges
-        };
-
-        V_ASSERT(vkCreatePipelineLayout(device, &info, NULL, &pipelineLayouts[layout.id]));
-    }
-}
-
-static void createPipelineRayTrace(const R_PipelineInfo* plInfo)
+static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
 {
     VkShaderModule raygenSM;
     VkShaderModule missSM;
     VkShaderModule missShadowSM;
     VkShaderModule chitSM;
 
-    initShaderModule(SPVDIR"/raytrace-rgen.spv",  &raygenSM);
-    initShaderModule(SPVDIR"/raytrace-rmiss.spv", &missSM);
-    initShaderModule(SPVDIR"/raytraceShadow-rmiss.spv", &missShadowSM);
-    initShaderModule(SPVDIR"/raytrace-rchit.spv", &chitSM);
+    initShaderModule(TANTO_SPVDIR"/raytrace-rgen.spv",  &raygenSM);
+    initShaderModule(TANTO_SPVDIR"/raytrace-rmiss.spv", &missSM);
+    initShaderModule(TANTO_SPVDIR"/raytraceShadow-rmiss.spv", &missShadowSM);
+    initShaderModule(TANTO_SPVDIR"/raytrace-rchit.spv", &chitSM);
 
     VkPipelineShaderStageCreateInfo shaderStages[] = {{
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -235,8 +126,8 @@ static void createPipelineRayTrace(const R_PipelineInfo* plInfo)
         .maxRecursionDepth = 1, 
         .layout     = pipelineLayouts[plInfo->pipelineLayoutId],
         .libraries  = {VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR},
-        .groupCount = ARRAY_SIZE(shaderGroups),
-        .stageCount = ARRAY_SIZE(shaderStages),
+        .groupCount = TANTO_ARRAY_SIZE(shaderGroups),
+        .stageCount = TANTO_ARRAY_SIZE(shaderStages),
         .pGroups    = shaderGroups,
         .pStages    = shaderStages
     };
@@ -250,7 +141,7 @@ static void createPipelineRayTrace(const R_PipelineInfo* plInfo)
     vkDestroyShaderModule(device, missShadowSM, NULL);
 }
 
-static void createPipelineRasterization(const R_PipelineInfo* plInfo)
+static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
@@ -337,9 +228,9 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
 
     const VkPipelineVertexInputStateCreateInfo vertexInput = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = ARRAY_SIZE(vBindDescs),
+        .vertexBindingDescriptionCount = TANTO_ARRAY_SIZE(vBindDescs),
         .pVertexBindingDescriptions = vBindDescs,
-        .vertexAttributeDescriptionCount = ARRAY_SIZE(vAttrDescs),
+        .vertexAttributeDescriptionCount = TANTO_ARRAY_SIZE(vAttrDescs),
         .pVertexAttributeDescriptions = vAttrDescs 
     };
 
@@ -350,8 +241,8 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
     };
 
     const VkViewport viewport = {
-        .height = WINDOW_HEIGHT,
-        .width = WINDOW_WIDTH,
+        .height = TANTO_WINDOW_HEIGHT,
+        .width = TANTO_WINDOW_WIDTH,
         .x = 0,
         .y = 0,
         .minDepth = 0.0,
@@ -359,7 +250,7 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
     };
 
     const VkRect2D scissor = {
-        .extent = {WINDOW_WIDTH, WINDOW_HEIGHT},
+        .extent = {TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT},
         .offset = {0, 0}
     };
 
@@ -437,7 +328,7 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
         .pViewportState = &viewportState,
         .pTessellationState = NULL, // may be able to do splines with this
         .flags = 0,
-        .stageCount = ARRAY_SIZE(shaderStages),
+        .stageCount = TANTO_ARRAY_SIZE(shaderStages),
         .pStages = shaderStages,
         .pVertexInputState = &vertexInput,
         .pInputAssemblyState = &inputAssembly,
@@ -449,12 +340,12 @@ static void createPipelineRasterization(const R_PipelineInfo* plInfo)
     vkDestroyShaderModule(device, fragModule, NULL);
 }
 
-static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
+static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    initShaderModule(SPVDIR"/post-vert.spv", &vertModule);
+    initShaderModule(TANTO_SPVDIR"/post-vert.spv", &vertModule);
     initShaderModule(plInfo->rasterInfo.fragShader, &fragModule);
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
@@ -485,8 +376,8 @@ static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
     };
 
     const VkViewport viewport = {
-        .height = WINDOW_HEIGHT,
-        .width = WINDOW_WIDTH,
+        .height = TANTO_WINDOW_HEIGHT,
+        .width = TANTO_WINDOW_WIDTH,
         .x = 0,
         .y = 0,
         .minDepth = 0.0,
@@ -494,7 +385,7 @@ static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
     };
 
     const VkRect2D scissor = {
-        .extent = {WINDOW_WIDTH, WINDOW_HEIGHT},
+        .extent = {TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT},
         .offset = {0, 0}
     };
 
@@ -572,7 +463,7 @@ static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
         .pViewportState = &viewportState,
         .pTessellationState = NULL, // may be able to do splines with this
         .flags = 0,
-        .stageCount = ARRAY_SIZE(shaderStages),
+        .stageCount = TANTO_ARRAY_SIZE(shaderStages),
         .pStages = shaderStages,
         .pVertexInputState = &vertexInput,
         .pInputAssemblyState = &inputAssembly,
@@ -584,23 +475,130 @@ static void createPipelinePostProcess(const R_PipelineInfo* plInfo)
     vkDestroyShaderModule(device, fragModule, NULL);
 }
 
-void r_InitPipelines(const R_PipelineInfo *const pipelineInfos, const int count)
+void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const int count)
+{
+    // counters for different descriptors
+    int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0;
+    for (int i = 0; i < count; i++) 
+    {
+        const Tanto_R_DescriptorSet set = sets[i];
+        assert(set.bindingCount > 0);
+        assert(set.bindingCount <= TANTO_MAX_BINDINGS);
+        assert(descriptorSets[set.id] == VK_NULL_HANDLE);
+        assert(set.id == i); // we ensure that the set ids increase from with i from 0. No gaps.
+        VkDescriptorSetLayoutBinding bindings[set.bindingCount];
+        for (int b = 0; b < set.bindingCount; b++) 
+        {
+            const uint32_t dCount = set.bindings[b].descriptorCount;
+            bindings[b].binding = b;
+            bindings[b].descriptorCount = dCount;
+            bindings[b].descriptorType  = set.bindings[b].type;
+            bindings[b].stageFlags      = set.bindings[b].stageFlags;
+            bindings[b].pImmutableSamplers = NULL;
+            switch (set.bindings[b].type) 
+            {
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:             dcUbo += dCount; break;
+                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: dcAs  += dCount; break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:              dcSi  += dCount; break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:             dcSb  += dCount; break;
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:     dcCis += dCount; break;
+                default: assert(false);
+            }
+        }
+        const VkDescriptorSetLayoutCreateInfo layoutInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .bindingCount = set.bindingCount,
+            .pBindings = bindings
+        };
+        V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptorSetLayouts[set.id]));
+    }
+
+    const VkDescriptorPoolSize poolSizes[] = {{
+            .descriptorCount = dcUbo,
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        },{
+            .descriptorCount = dcAs,
+            .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+        },{
+            .descriptorCount = dcSi,
+            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        },{
+            .descriptorCount = dcSb,
+            .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        },{
+            .descriptorCount = dcCis,
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    }};
+
+    const VkDescriptorPoolCreateInfo poolInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .maxSets = count,
+        .poolSizeCount = TANTO_ARRAY_SIZE(poolSizes),
+        .pPoolSizes = poolSizes, 
+    };
+
+    V_ASSERT(vkCreateDescriptorPool(device, &poolInfo, NULL, &descriptorPool));
+
+    VkDescriptorSetAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = descriptorPool,
+        .descriptorSetCount = count,
+        .pSetLayouts = descriptorSetLayouts,
+    };
+
+    V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, descriptorSets));
+}
+
+void tanto_r_InitPipelineLayouts(const Tanto_R_PipelineLayout *const layouts, const int count)
+{
+    assert(count > 0 && count < TANTO_MAX_PIPELINES);
+    for (int i = 0; i < count; i++) 
+    {
+        const Tanto_R_PipelineLayout layout = layouts[i];
+        assert(layout.id == i);
+        assert(layout.pushConstantCount < TANTO_MAX_PUSH_CONSTANTS);
+
+        const int dsCount = layout.descriptorSetCount;
+        assert(dsCount > 0 && dsCount < TANTO_MAX_DESCRIPTOR_SETS);
+
+        VkDescriptorSetLayout descSetLayouts[dsCount];
+
+        for (int j = 0; j < count; j++) 
+        {
+            descSetLayouts[j] = descriptorSetLayouts[layout.descriptorSetIds[j]];
+        }
+
+        VkPipelineLayoutCreateInfo info = {
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .setLayoutCount = dsCount,
+            .pSetLayouts = descSetLayouts,
+            .pushConstantRangeCount = layout.pushConstantCount,
+            .pPushConstantRanges = layout.pushConstantsRanges
+        };
+
+        V_ASSERT(vkCreatePipelineLayout(device, &info, NULL, &pipelineLayouts[layout.id]));
+    }
+}
+
+void tanto_r_InitPipelines(const Tanto_R_PipelineInfo *const pipelineInfos, const int count)
 {
     for (int i = 0; i < count; i++) 
     {
-        const R_PipelineInfo plInfo = pipelineInfos[i];
+        const Tanto_R_PipelineInfo plInfo = pipelineInfos[i];
         switch (plInfo.type) 
         {
-            case R_PIPELINE_TYPE_RASTER: createPipelineRasterization(&plInfo); break;
-            case R_PIPELINE_TYPE_RAYTRACE: createPipelineRayTrace(&plInfo); break;
-            case R_PIPELINE_TYPE_POSTPROC: createPipelinePostProcess(&plInfo); break;
+            case TANTO_R_PIPELINE_RASTER_TYPE: createPipelineRasterization(&plInfo); break;
+            case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(&plInfo); break;
+            case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(&plInfo); break;
         }
     }
 }
 
-void cleanUpPipelines()
+void tanto_r_CleanUpPipelines()
 {
-    for (int i = 0; i < MAX_PIPELINES; i++) 
+    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
     {
         if (pipelineLayouts[i])
             vkDestroyPipelineLayout(device, pipelineLayouts[i], NULL);
@@ -608,14 +606,14 @@ void cleanUpPipelines()
     }
     vkDestroyDescriptorPool(device, descriptorPool, NULL);
     descriptorPool = 0;
-    for (int i = 0; i < MAX_DESCRIPTOR_SETS; i++) 
+    for (int i = 0; i < TANTO_MAX_DESCRIPTOR_SETS; i++) 
     {
         if (descriptorSetLayouts[i])
             vkDestroyDescriptorSetLayout(device, descriptorSetLayouts[i], NULL);
         descriptorSetLayouts[i] = 0;
         descriptorSets[i] = 0;
     }
-    for (int i = 0; i < MAX_PIPELINES; i++) 
+    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
     {
         if (pipelines[i])
             vkDestroyPipeline(device, pipelines[i], NULL);

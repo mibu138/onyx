@@ -19,17 +19,17 @@ VkDevice          device;
 VkPhysicalDevice  physicalDevice;
 
 uint32_t graphicsQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
-VkQueue  graphicsQueues[G_QUEUE_COUNT];
+VkQueue  graphicsQueues[TANTO_G_QUEUE_COUNT];
 VkQueue  presentQueue;
 
 static VkSurfaceKHR      nativeSurface;
 static VkSurfaceKHR*     pSurface;
 VkSwapchainKHR   swapchain;
 
-VkImage        swapchainImages[FRAME_COUNT];
+VkImage        swapchainImages[TANTO_FRAME_COUNT];
 const VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
-VkSemaphore    imageAcquiredSemaphores[FRAME_COUNT];
+VkSemaphore    imageAcquiredSemaphores[TANTO_FRAME_COUNT];
 uint64_t       frameCounter;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
@@ -233,15 +233,15 @@ static void initDevice(void)
     }
 
     graphicsQueueFamilyIndex = 0; // because we know this
-    assert( G_QUEUE_COUNT < qfprops[graphicsQueueFamilyIndex].queueCount );
+    assert( TANTO_G_QUEUE_COUNT < qfprops[graphicsQueueFamilyIndex].queueCount );
 
-    const float priorities[G_QUEUE_COUNT] = {1.0, 1.0, 1.0, 1.0};
+    const float priorities[TANTO_G_QUEUE_COUNT] = {1.0, 1.0, 1.0, 1.0};
 
     const VkDeviceQueueCreateInfo qci[] = { 
         { 
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .queueFamilyIndex = graphicsQueueFamilyIndex,
-            .queueCount = G_QUEUE_COUNT,
+            .queueCount = TANTO_G_QUEUE_COUNT,
             .pQueuePriorities = priorities,
         }
     };
@@ -353,8 +353,8 @@ static void initDevice(void)
         .ppEnabledLayerNames = NULL,
         .pEnabledFeatures = NULL, // not used in newer vulkan versions
         .pQueueCreateInfos = qci,
-        .queueCreateInfoCount = ARRAY_SIZE(qci),
-        .enabledExtensionCount = ARRAY_SIZE(extensions),
+        .queueCreateInfoCount = TANTO_ARRAY_SIZE(qci),
+        .enabledExtensionCount = TANTO_ARRAY_SIZE(extensions),
         .ppEnabledExtensionNames = extensions
     };
 
@@ -365,7 +365,7 @@ static void initDevice(void)
 
 static void initQueues(void)
 {
-    for (int i = 0; i < G_QUEUE_COUNT; i++) 
+    for (int i = 0; i < TANTO_G_QUEUE_COUNT; i++) 
     {
         vkGetDeviceQueue(device, graphicsQueueFamilyIndex, i, &graphicsQueues[i]);
     }
@@ -441,11 +441,11 @@ static void initSwapchain(void)
     uint32_t imageCount;
     r = vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL);
     assert(VK_SUCCESS == r);
-    assert(FRAME_COUNT == imageCount);
+    assert(TANTO_FRAME_COUNT == imageCount);
     r = vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages);
     assert(VK_SUCCESS == r);
 
-    for (int i = 0; i < FRAME_COUNT; i++) 
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         r = vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]);
@@ -454,19 +454,19 @@ static void initSwapchain(void)
     V1_PRINT("Swapchain created successfully.\n");
 }
 
-const VkInstance* v_Init(void)
+const VkInstance* tanto_v_Init(void)
 {
     nativeSurface = VK_NULL_HANDLE;
     initVkInstance();
     initDebugMessenger();
     initDevice();
-    v_LoadFunctions(&device);
+    tanto_v_LoadFunctions(&device);
     initQueues();
-    v_InitMemory();
+    tanto_v_InitMemory();
     return &instance;
 }
 
-void v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
+void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
 {
     const VkXcbSurfaceCreateInfoKHR ci = {
         .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
@@ -480,7 +480,7 @@ void v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window)
     pSurface = &nativeSurface;
 }
 
-void v_InitSwapchain(VkSurfaceKHR* psurface)
+void tanto_v_InitSwapchain(VkSurfaceKHR* psurface)
 {
     frameCounter = 0;
     if (psurface)
@@ -488,10 +488,10 @@ void v_InitSwapchain(VkSurfaceKHR* psurface)
     initSwapchain();
 }
 
-void v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const V_QueueType queueType, const uint32_t index)
+void tanto_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Tanto_V_QueueType queueType, const uint32_t index)
 {
-    assert( V_QUEUE_TYPE_GRAPHICS == queueType );
-    assert( G_QUEUE_COUNT > index );
+    assert( TANTO_V_QUEUE_GRAPHICS_TYPE == queueType );
+    assert( TANTO_G_QUEUE_COUNT > index );
 
     const VkSubmitInfo info = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -506,21 +506,21 @@ void v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const V_QueueType queueType,
     assert( VK_SUCCESS == r );
 }
 
-void v_SubmitToQueueWait(const VkCommandBuffer* buffer, const V_QueueType type, const uint32_t queueIndex)
+void tanto_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Tanto_V_QueueType type, const uint32_t queueIndex)
 {
     VkResult r;
-    v_SubmitToQueue(buffer, type, queueIndex);
+    tanto_v_SubmitToQueue(buffer, type, queueIndex);
     r = vkQueueWaitIdle(graphicsQueues[queueIndex]);
     assert( VK_SUCCESS == r );
 }
 
-void v_CleanUp(void)
+void tanto_v_CleanUp(void)
 {
     PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         
-    v_CleanUpMemory();
-    for (int i = 0; i < FRAME_COUNT; i++) 
+    tanto_v_CleanUpMemory();
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
     }
@@ -532,7 +532,7 @@ void v_CleanUp(void)
     vkDestroyInstance(instance, NULL);
 }
 
-VkPhysicalDeviceRayTracingPropertiesKHR v_GetPhysicalDeviceRayTracingProperties(void)
+VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void)
 {
     return rtProperties;
 }

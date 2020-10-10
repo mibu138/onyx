@@ -3,8 +3,6 @@
 
 #include <math.h>
 
-#define PI 3.141592653589793
-
 typedef struct {
     float x;
     float y;

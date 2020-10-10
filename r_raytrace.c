@@ -46,7 +46,7 @@ static void allocObjectMemory(const VkAccelerationStructureKHR* accelStruct, VkD
     VkMemoryAllocateInfo memAlloc = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
         .allocationSize = memReqs.memoryRequirements.size,
-        .memoryTypeIndex = v_GetMemoryType(
+        .memoryTypeIndex = tanto_v_GetMemoryType(
                 memReqs.memoryRequirements.memoryTypeBits, 
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
     };
@@ -92,7 +92,7 @@ static void createScratchBuffer(const VkAccelerationStructureKHR* accelStruct, S
 
     VkMemoryAllocateInfo memAlloc = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .memoryTypeIndex = v_GetMemoryType(bufferMemReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
+        .memoryTypeIndex = tanto_v_GetMemoryType(bufferMemReqs.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
         .allocationSize = bufferMemReqs.size
     };
 
@@ -108,15 +108,37 @@ static void createScratchBuffer(const VkAccelerationStructureKHR* accelStruct, S
     scratchBuffer->address = vkGetBufferDeviceAddress(device, &addrInfo);
 }
 
-void r_BuildBlas(const Mesh* mesh)
+static void initCmdPool(void)
+{
+    const VkCommandPoolCreateInfo cmdPoolCi = {
+        .queueFamilyIndex = graphicsQueueFamilyIndex,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+    };
+
+    VkResult r;
+    r = vkCreateCommandPool(device, &cmdPoolCi, NULL, &rtCmdPool);
+    assert( VK_SUCCESS == r );
+
+    const VkCommandBufferAllocateInfo allocInfo = {
+        .commandBufferCount = 1,
+        .commandPool = rtCmdPool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
+    };
+
+    r = vkAllocateCommandBuffers(device, &allocInfo, rtCmdBuffers);
+    assert( VK_SUCCESS == r );
+}
+
+void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
 {
     VkResult r;
 
     const VkAccelerationStructureCreateGeometryTypeInfoKHR asCreate = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_GEOMETRY_TYPE_INFO_KHR,
         .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
-        .indexType    = R_VERT_INDEX_TYPE,
-        .vertexFormat = R_VERT_POS_FORMAT,
+        .indexType    = TANTO_VERT_INDEX_TYPE,
+        .vertexFormat = TANTO_VERT_POS_FORMAT,
         .maxPrimitiveCount = mesh->indexCount / 3, // all triangles
         .maxVertexCount = mesh->vertexCount,
         .allowsTransforms = VK_FALSE // no adding transform matrices
@@ -158,9 +180,9 @@ void r_BuildBlas(const Mesh* mesh)
 
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-        .vertexFormat  = R_VERT_POS_FORMAT,
-        .vertexStride  = sizeof(Attribute),
-        .indexType     = R_VERT_INDEX_TYPE,
+        .vertexFormat  = TANTO_VERT_POS_FORMAT,
+        .vertexStride  = sizeof(Tanto_R_Attribute),
+        .indexType     = TANTO_VERT_INDEX_TYPE,
         .vertexData.deviceAddress = vertAddr,
         .indexData.deviceAddress = indexAddr,
         .transformData = 0
@@ -226,7 +248,7 @@ void r_BuildBlas(const Mesh* mesh)
 
     vkEndCommandBuffer(rtCmdBuffers[0]);
 
-    v_SubmitToQueueWait(&rtCmdBuffers[0], V_QUEUE_TYPE_GRAPHICS, 0); // choosing the last queue for no reason
+    tanto_v_SubmitToQueueWait(&rtCmdBuffers[0], TANTO_V_QUEUE_GRAPHICS_TYPE, 0); // choosing the last queue for no reason
 
     vkResetCommandPool(device, rtCmdPool, 0);
 
@@ -235,7 +257,7 @@ void r_BuildBlas(const Mesh* mesh)
     vkFreeMemory(device, scratchBuffer.memory, NULL);
 }
 
-void r_BuildTlas(void)
+void tanto_r_BuildTlas(void)
 {
     const VkBuildAccelerationStructureFlagsKHR flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
 
@@ -326,7 +348,7 @@ void r_BuildTlas(void)
 
         VkMemoryAllocateInfo memAlloc = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .memoryTypeIndex = v_GetMemoryType(memReqs.memoryTypeBits, 
+            .memoryTypeIndex = tanto_v_GetMemoryType(memReqs.memoryTypeBits, 
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_CACHED_BIT),
             .allocationSize = memReqs.size
         };
@@ -404,7 +426,7 @@ void r_BuildTlas(void)
 
     vkEndCommandBuffer(rtCmdBuffers[0]);
 
-    v_SubmitToQueueWait(&rtCmdBuffers[0], V_QUEUE_TYPE_GRAPHICS, 0);
+    tanto_v_SubmitToQueueWait(&rtCmdBuffers[0], TANTO_V_QUEUE_GRAPHICS_TYPE, 0);
 
     vkDestroyBuffer(device, scratchBuffer.buffer, NULL);
     vkDestroyBuffer(device, instBuffer, NULL);
@@ -412,29 +434,7 @@ void r_BuildTlas(void)
     vkFreeMemory(device, instMemory, NULL);
 }
 
-static void initCmdPool(void)
-{
-    const VkCommandPoolCreateInfo cmdPoolCi = {
-        .queueFamilyIndex = graphicsQueueFamilyIndex,
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-    };
-
-    VkResult r;
-    r = vkCreateCommandPool(device, &cmdPoolCi, NULL, &rtCmdPool);
-    assert( VK_SUCCESS == r );
-
-    const VkCommandBufferAllocateInfo allocInfo = {
-        .commandBufferCount = 1,
-        .commandPool = rtCmdPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
-    };
-
-    r = vkAllocateCommandBuffers(device, &allocInfo, rtCmdBuffers);
-    assert( VK_SUCCESS == r );
-}
-
-void r_InitRayTracing(void)
+void tanto_r_InitRayTracing(void)
 {
     VkPhysicalDeviceRayTracingPropertiesKHR rtProps = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR,
@@ -454,7 +454,7 @@ void r_InitRayTracing(void)
     initCmdPool();
 }
 
-void r_RayTraceCleanUp(void)
+void tanto_r_RayTraceCleanUp(void)
 {
     vkDestroyAccelerationStructureKHR(device, topLevelAS, NULL);
     vkDestroyAccelerationStructureKHR(device, bottomLevelAS, NULL);

@@ -1,10 +1,10 @@
-#ifndef V_DEF_H
-#define V_DEF_H
+#ifndef TANTO_V_DEF_H
+#define TANTO_V_DEF_H
 
 #include "v_vulkan.h"
 
-#define FRAME_COUNT 2
-#define G_QUEUE_COUNT 4
+#define TANTO_FRAME_COUNT 2
+#define TANTO_G_QUEUE_COUNT 4
 
 #define RAY_TRACE 1
 
@@ -63,7 +63,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         const VkStridedBufferRegionKHR *pCallableShaderBindingTable, 
         uint32_t width, uint32_t height, uint32_t depth);
 
-void v_LoadFunctions(const VkDevice* device);
+void tanto_v_LoadFunctions(const VkDevice* device);
 
 #endif /* end of include guard: V_DEF_H */
 

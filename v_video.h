@@ -1,36 +1,36 @@
 /*
 v_video.c
  */
-#ifndef V_VIDEO_H
-#define V_VIDEO_H
+#ifndef TANTO_V_VIDEO_H
+#define TANTO_V_VIDEO_H
 
 #include "v_def.h"
 
 typedef enum {
-    V_QUEUE_TYPE_GRAPHICS,
-    V_QUEUE_TYPE_COMPUTE
-} V_QueueType;
+    TANTO_V_QUEUE_GRAPHICS_TYPE,
+    TANTO_V_QUEUE_COMPUTE_TYPE,
+} Tanto_V_QueueType;
 
 extern VkDevice         device;
 extern VkPhysicalDevice physicalDevice;
 extern uint32_t graphicsQueueFamilyIndex;
-extern VkQueue  graphicsQueues[G_QUEUE_COUNT];
+extern VkQueue  graphicsQueues[TANTO_G_QUEUE_COUNT];
 extern VkQueue  presentQueue;
 
-extern VkImage        swapchainImages[FRAME_COUNT];
+extern VkImage        swapchainImages[TANTO_FRAME_COUNT];
 extern const VkFormat swapFormat;
 extern VkSwapchainKHR   swapchain;
-extern VkSemaphore    imageAcquiredSemaphores[FRAME_COUNT];
+extern VkSemaphore    imageAcquiredSemaphores[TANTO_FRAME_COUNT];
 extern uint64_t       frameCounter;
 
-const VkInstance* v_Init(void);
-void v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window);
-void v_InitSwapchain(VkSurfaceKHR* surface);
-void v_SubmitToQueue(const VkCommandBuffer* buffer, const V_QueueType, const uint32_t queueIndex);
-void v_SubmitToQueueWait(const VkCommandBuffer* buffer, const V_QueueType, const uint32_t queueIndex);
-void v_AcquireSwapImage(uint32_t* pImageIndex);
-void v_CleanUp(void);
+const VkInstance* tanto_v_Init(void);
+void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window);
+void tanto_v_InitSwapchain(VkSurfaceKHR* surface);
+void tanto_v_SubmitToQueue(const VkCommandBuffer* buffer, const Tanto_V_QueueType, const uint32_t queueIndex);
+void tanto_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Tanto_V_QueueType, const uint32_t queueIndex);
+void tanto_v_AcquireSwapImage(uint32_t* pImageIndex);
+void tanto_v_CleanUp(void);
 
-VkPhysicalDeviceRayTracingPropertiesKHR v_GetPhysicalDeviceRayTracingProperties(void);
+VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void);
 
 #endif /* end of include guard: V_VIDEO_H */

@@ -108,7 +108,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
             width, height, depth);
 }
 
-void v_LoadFunctions(const VkDevice* device)
+void tanto_v_LoadFunctions(const VkDevice* device)
 {
     pfn_vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)
         vkGetDeviceProcAddr(*device, "vkCreateAccelerationStructureKHR");
