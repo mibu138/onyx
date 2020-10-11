@@ -42,6 +42,7 @@ struct BlockChain {
 };
 
 static struct BlockChain diBlockChain;
+static struct BlockChain dbBlockChain;
 
 static void initPool(const VkDeviceSize size, const uint32_t memTypeIndex, struct Pool* pool)
 {
@@ -204,16 +205,7 @@ void tanto_v_InitMemory(void)
 
     initHbPool(bhbFlags, hostVisibleCoherentTypeIndex, &hbPool);
     initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, &diBlockChain);
-
-    // temporary 
-    //
-    const VkMemoryAllocateInfo allocInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize = MEMORY_SIZE_DEV_IMAGE,
-        .memoryTypeIndex = deviceLocalTypeIndex 
-    };
-
-    V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, &memoryDeviceLocal) );
+    initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, &dbBlockChain);
 }
 
 Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHostAligned(const size_t size, const uint32_t alignment)
@@ -290,7 +282,8 @@ Tanto_V_Image tanto_v_CreateImage(
         const uint32_t width, 
         const uint32_t height,
         const VkFormat format,
-        const VkImageUsageFlags usageFlags)
+        const VkImageUsageFlags usageFlags,
+        const VkImageAspectFlags aspectMask)
 {
     assert( width * height < MEMORY_SIZE_DEV_IMAGE );
 
@@ -329,7 +322,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .components = {0, 0, 0, 0}, // no swizzling
         .format = format,
         .subresourceRange = {
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .aspectMask = aspectMask,
             .baseMipLevel = 0,
             .levelCount = 1,
             .baseArrayLayer = 0,

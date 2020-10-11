@@ -36,6 +36,13 @@ Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHostAligned(const size_t size, cons
 
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties);
 
+Tanto_V_Image tanto_v_CreateImage(
+        const uint32_t width, 
+        const uint32_t height,
+        const VkFormat format,
+        const VkImageUsageFlags usageFlags,
+        const VkImageAspectFlags aspectMask);
+
 void tanto_v_BindImageToMemory(const VkImage, const uint32_t size);
 
 void tanto_v_CleanUpMemory(void);
