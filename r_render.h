@@ -9,15 +9,9 @@
 #define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
 
 typedef struct {
-    VkImage         handle;
-    VkImageView     view;
-    VkSampler       sampler;
-} Tanto_R_Image;
-
-typedef struct {
     VkFramebuffer   handle;
-    Tanto_R_Image   colorAttachment;
-    Tanto_R_Image   depthAttachment;
+    Tanto_V_Image   colorAttachment;
+    Tanto_V_Image   depthAttachment;
     VkRenderPass*   pRenderPass;
 } Tanto_R_FrameBuffer;
 
@@ -32,6 +26,8 @@ typedef struct frame {
     VkRenderPass*   renderPass;
     uint32_t        index;
 } Tanto_R_Frame;
+
+typedef Tanto_V_Image Tanto_R_Image; //for now 
 
 extern VkRenderPass swapchainRenderPass;
 extern VkRenderPass offscreenRenderPass;

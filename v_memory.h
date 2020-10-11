@@ -4,6 +4,12 @@
 #include "v_def.h"
 #include <stdbool.h>
 
+typedef struct tanto_V_MemBlock {
+    VkDeviceSize size;
+    VkDeviceSize offset;
+    bool         inUse;
+} Tanto_V_MemBlock;
+
 typedef struct {
     size_t       size;
     uint8_t*     hostData;
@@ -16,9 +22,11 @@ typedef struct {
 } Tanto_V_BlockDevBuffer;
 
 typedef struct {
-    size_t       size;
-    VkDeviceSize vOffset;
-} Tanto_V_BlockDevImage;
+    VkImage                 handle;
+    VkImageView             view;
+    VkSampler               sampler;
+    const Tanto_V_MemBlock* memBlock;
+} Tanto_V_Image;
 
 void tanto_v_InitMemory(void);
 

@@ -2,8 +2,8 @@
 #include "v_video.h"
 #include "t_def.h"
 #include <stdio.h>
-#include <vulkan/vulkan_core.h>
 #include <assert.h>
+#include <string.h>
 
 // HVC = Host Visible and Coherent
 #define MEMORY_SIZE_HOST 16777216
@@ -11,9 +11,7 @@
 // DL = Device Local    
 #define MEMORY_SIZE_DEV_IMAGE   33554432 // 32 MiB
 #define MEMORY_SIZE_DEV_BUFFER  33554432 // 32 MiB
-#define MAX_HOST_BUFFER_BLOCKS 256
-#define MAX_DEV_IMAGE_BLOCKS 256
-#define MAX_DEV_BUFFER_BLOCKS 256
+#define MAX_BLOCKS 256
 
 static VkDeviceMemory memoryDeviceLocal;
 
@@ -32,19 +30,18 @@ static struct HbPool {
     struct Pool pool;
     uint8_t* hostData;
     VkBuffer buffer;
-    Tanto_V_BlockHostBuffer blocks[MAX_HOST_BUFFER_BLOCKS];
+    Tanto_V_BlockHostBuffer blocks[MAX_BLOCKS];
 } hbPool;
 
-static struct DbPool {
-    struct Pool pool;
-    VkBuffer buffer;
-    Tanto_V_BlockDevBuffer blocks[MAX_DEV_BUFFER_BLOCKS];
-} dbPool;
+struct BlockChain {
+    size_t            totalSize;
+    size_t            count;
+    size_t            cur;
+    VkDeviceMemory    memory;
+    Tanto_V_MemBlock  blocks[MAX_BLOCKS];
+};
 
-static struct DiPool {
-    struct Pool pool;
-    Tanto_V_BlockDevImage blocks[MAX_DEV_IMAGE_BLOCKS];
-} diPool;
+static struct BlockChain diBlockChain;
 
 static void initPool(const VkDeviceSize size, const uint32_t memTypeIndex, struct Pool* pool)
 {
@@ -85,14 +82,63 @@ static void initHbPool(const VkBufferUsageFlags usageFlags, const uint32_t memTy
     V_ASSERT( vkMapMemory(device, pool->pool.memory, 0, BUFFER_SIZE_HOST, 0, (void**)&pool->hostData) );
 }
 
-static void initDiPool(const uint32_t memTypeIndex, struct DiPool* pool)
-{
-    initPool(MEMORY_SIZE_DEV_IMAGE, memTypeIndex, &pool->pool);
-}
-
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
     printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
+}
+
+static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memTypeIndex, struct BlockChain* chain)
+{
+    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
+    assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
+    chain->count = 1;
+    chain->cur   = 0;
+    chain->totalSize = memorySize;
+    chain->blocks[0].inUse = false;
+    chain->blocks[0].offset = 0;
+    chain->blocks[0].size = memorySize;
+
+    const VkMemoryAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memorySize,
+        .memoryTypeIndex = memTypeIndex 
+    };
+
+    V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, &chain->memory) ); 
+}
+
+static const Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
+{
+    size_t cur  = chain->cur;
+    const size_t init = chain->cur;
+    const size_t count = chain->count;
+    assert( size < chain->totalSize );
+    assert( count > 0 );
+    assert( cur < count );
+    while (chain->blocks[cur].inUse || chain->blocks[cur].size < size)
+    {
+        cur = (cur + 1) % count;
+        assert( cur != init ); // looped around. no blocks suitable.
+    }
+    // found a block not in use and with enough size
+    // split the block
+    size_t new = chain->count++;
+    assert( new < MAX_BLOCKS );
+    Tanto_V_MemBlock* curBlock = &chain->blocks[cur];
+    Tanto_V_MemBlock* newBlock = &chain->blocks[new];
+    assert( newBlock->inUse == false );
+    VkDeviceSize alignedOffset = curBlock->offset;
+    if (alignedOffset % alignment != 0) // not aligned
+        alignedOffset = (alignedOffset / alignment + 1) * alignment;
+    const VkDeviceSize offsetDiff = alignedOffset - curBlock->offset;
+    // take away the size lost due to alignment and the new size
+    newBlock->size   = curBlock->size - offsetDiff - size;
+    newBlock->offset = alignedOffset + size;
+    curBlock->size   = size;
+    curBlock->offset = alignedOffset;
+    curBlock->inUse = true;
+    chain->cur = cur;
+    return curBlock;
 }
 
 void tanto_v_InitMemory(void)
@@ -157,7 +203,7 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
 
     initHbPool(bhbFlags, hostVisibleCoherentTypeIndex, &hbPool);
-    initDiPool(deviceLocalTypeIndex, &diPool);
+    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, &diBlockChain);
 
     // temporary 
     //
@@ -174,7 +220,7 @@ Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHostAligned(const size_t size, cons
 {
     assert( size % 4 == 0 ); // only allow for word-sized blocks
     assert( size < hbPool.pool.bytesAvailable);
-    assert( hbPool.pool.count < MAX_HOST_BUFFER_BLOCKS);
+    assert( hbPool.pool.count < MAX_BLOCKS );
     if (hbPool.pool.curOffset % alignment != 0)
         hbPool.pool.curOffset = (hbPool.pool.curOffset / alignment + 1) * alignment;
     Tanto_V_BlockHostBuffer* pBlock = &hbPool.blocks[hbPool.pool.count];
@@ -218,10 +264,6 @@ Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHost(const size_t size, const VkBuf
     return tanto_v_RequestBlockHostAligned(size, alignment);
 }
 
-Tanto_V_BlockDevBuffer* tanto_v_RequestBlockDevLocal(const VkMemoryRequirements2 memReqs)
-{
-}
-
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
 {
     for(uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
@@ -242,6 +284,62 @@ void tanto_v_BindImageToMemory(const VkImage image, const uint32_t size)
     assert( curDevMemoryOffset < MEMORY_SIZE_DEV_IMAGE );
     vkBindImageMemory(device, image, memoryDeviceLocal, curDevMemoryOffset);
     curDevMemoryOffset += size;
+}
+
+Tanto_V_Image tanto_v_CreateImage(
+        const uint32_t width, 
+        const uint32_t height,
+        const VkFormat format,
+        const VkImageUsageFlags usageFlags)
+{
+    assert( width * height < MEMORY_SIZE_DEV_IMAGE );
+
+    VkImageCreateInfo imageInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .imageType = VK_IMAGE_TYPE_2D,
+        .format = format,
+        .extent = {width, height, 1},
+        .mipLevels = 1,
+        .arrayLayers = 1,
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .tiling = VK_IMAGE_TILING_OPTIMAL,
+        .usage = usageFlags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+        .queueFamilyIndexCount = 1,
+        .pQueueFamilyIndices = &graphicsQueueFamilyIndex,
+        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
+    };
+
+    Tanto_V_Image image;
+
+    V_ASSERT( vkCreateImage(device, &imageInfo, NULL, &image.handle) );
+
+    VkMemoryRequirements memReqs;
+    vkGetImageMemoryRequirements(device, image.handle, &memReqs);
+
+    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &diBlockChain);
+    image.memBlock = block;
+
+    vkBindImageMemory(device, image.handle, diBlockChain.memory, block->offset);
+
+    VkImageViewCreateInfo viewInfo = {
+        .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+        .image = image.handle,
+        .viewType = VK_IMAGE_VIEW_TYPE_2D,
+        .components = {0, 0, 0, 0}, // no swizzling
+        .format = format,
+        .subresourceRange = {
+            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .baseMipLevel = 0,
+            .levelCount = 1,
+            .baseArrayLayer = 0,
+            .layerCount = 1
+        }
+    };
+
+    V_ASSERT( vkCreateImageView(device, &viewInfo, NULL, &image.view) );
+
+    return image;
 }
 
 void tanto_v_CleanUpMemory()
