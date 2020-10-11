@@ -6,8 +6,6 @@
 #include "v_vulkan.h"
 #include <stdio.h>
 #include <assert.h>
-#include <vulkan/vulkan_beta.h>
-#include <vulkan/vulkan_core.h>
 
 VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
