@@ -411,7 +411,8 @@ static void initSwapchain(void)
     VkPresentModeKHR presentModes[presentModeCount];
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, presentModes);
 
-    const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
+    //const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
+    const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
 
     assert(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     V1_PRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);

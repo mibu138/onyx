@@ -146,12 +146,14 @@ void tanto_i_ProcessEvents(void)
     Tanto_I_Event* event;
     for ( ; eventTail != eventHead; eventTail = (eventTail + 1) % MAX_EVENTS) 
     {
+        //printf("e");
         event = &events[eventTail];   
         for (int i = 0; i < subscriberCount; i++) 
         {
             subscribers[i](event);
         }
     }
+    //printf("\n");
 }
 
 void tanto_i_CleanUp(void)
