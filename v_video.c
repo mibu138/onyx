@@ -253,15 +253,14 @@ static void initDevice(void)
     r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, properties);
     assert(r == VK_SUCCESS);
 
-#if VERBOSE > 1
+    #if VERBOSE > 1
     V1_PRINT("Device Extensions available: \n");
     for (int i = 0; i < propCount; i++) 
     {
         V1_PRINT("Name: %s    Spec Version: %d\n", properties[i].extensionName, properties[i].specVersion);    
     }
-#endif
+    #endif
 
-#if RAY_TRACE 
     VkPhysicalDeviceRayTracingPropertiesKHR rayTracingProps = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR,
     };
@@ -273,16 +272,13 @@ static void initDevice(void)
 
     vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
     rtProperties = rayTracingProps;
-#endif
 
     const char* extensions[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-#if RAY_TRACE
         VK_KHR_RAY_TRACING_EXTENSION_NAME,
         //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
         VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-#endif
         //VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
     };
 
@@ -291,7 +287,6 @@ static void initDevice(void)
     // Newer features are enabled by chaining them 
     // on to the pNext member of deviceFeatures. 
     
-#if RAY_TRACE
     VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
         .pNext = NULL
@@ -306,12 +301,6 @@ static void initDevice(void)
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         .pNext = &rtFeatures
     };
-#else 
-    VkPhysicalDeviceFeatures2 deviceFeatures = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-        .pNext = NULL
-    };
-#endif
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 

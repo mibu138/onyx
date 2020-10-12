@@ -6,8 +6,6 @@
 #define TANTO_FRAME_COUNT 2
 #define TANTO_G_QUEUE_COUNT 4
 
-#define RAY_TRACE 1
-
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateAccelerationStructureKHR(
         VkDevice device, 
         const VkAccelerationStructureCreateInfoKHR *pCreateInfo, 
