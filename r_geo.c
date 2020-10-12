@@ -69,7 +69,7 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
         {  0.5,  0.5, -0.5 },
     };
     
-    const Vec3 norals[6] = {
+    const Vec3 normals[6] = {
         {  0.0,  0.0,  1.0 },
         {  0.0,  0.0, -1.0 },
         {  0.0,  1.0,  0.0 },
@@ -128,39 +128,52 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
     for (int i = 0; i < vertCount; i++) 
     {
         pColors[i]  = colors[ i / 4 ];
-        pUvws[i]    = uvws[ i % 4 ];
+        //pUvws[i]    = uvws[ i % 4 ];
     }
+    for (int i = 0; i < vertCount; i += 4) 
+    {
+        pUvws[i + 1] = uvws[0];
+        pUvws[i + 0] = uvws[1];
+        pUvws[i + 2] = uvws[2];
+        pUvws[i + 3] = uvws[3];
+    }
+
     //
     // face 0: +Z
-    pNormals[0]  = norals[0];
-    pNormals[1]  = norals[0];
-    pNormals[2]  = norals[0];
-    pNormals[3]  = norals[0];
+    pNormals[0]  = normals[0];
+    pNormals[1]  = normals[0];
+    pNormals[2]  = normals[0];
+    pNormals[3]  = normals[0];
     // pNormals -Z
-    pNormals[4]  = norals[1];
-    pNormals[5]  = norals[1];
-    pNormals[6]  = norals[1];
-    pNormals[7]  = norals[1];
+    pNormals[4]  = normals[1];
+    pNormals[5]  = normals[1];
+    pNormals[6]  = normals[1];
+    pNormals[7]  = normals[1];
     // pNormals -X
-    pNormals[8]  = norals[5];
-    pNormals[9]  = norals[5];
-    pNormals[10] = norals[5];
-    pNormals[11] = norals[5];
+    pNormals[8]  = normals[5];
+    pNormals[9]  = normals[5];
+    pNormals[10] = normals[5];
+    pNormals[11] = normals[5];
     // pNormals +X
-    pNormals[12] = norals[4];
-    pNormals[13] = norals[4];
-    pNormals[14] = norals[4];
-    pNormals[15] = norals[4];
+    pNormals[12] = normals[4];
+    pNormals[13] = normals[4];
+    pNormals[14] = normals[4];
+    pNormals[15] = normals[4];
     // pNormals +Y
-    pNormals[16] = norals[2];
-    pNormals[17] = norals[2];
-    pNormals[18] = norals[2];
-    pNormals[19] = norals[2];
+    pNormals[16] = normals[2];
+    pNormals[17] = normals[2];
+    pNormals[18] = normals[2];
+    pNormals[19] = normals[2];
     // pNormals -Y
-    pNormals[20] = norals[3];
-    pNormals[21] = norals[3];
-    pNormals[22] = norals[3];
-    pNormals[23] = norals[3];
+    pNormals[20] = normals[3];
+    pNormals[21] = normals[3];
+    pNormals[22] = normals[3];
+    pNormals[23] = normals[3];
+
+    pUvws[1] = uvws[0];
+    pUvws[0] = uvws[1];
+    pUvws[2] = uvws[2];
+    pUvws[3] = uvws[3];
 
     if (CW == 1)
         for (int face = 0; face < indexCount / 6; face++) 
