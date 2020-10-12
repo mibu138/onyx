@@ -6,6 +6,7 @@
 #include "v_vulkan.h"
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>
 
 VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
@@ -22,6 +23,7 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
     int fr;
     FILE* fp;
     fp = fopen(filepath, "rb");
+    assert(fp);
     fr = fseek(fp, 0, SEEK_END);
     assert( fr == 0 ); // success 
     size_t codeSize = ftell(fp);
@@ -43,86 +45,84 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
 
 static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
 {
-    VkShaderModule raygenSM;
-    VkShaderModule missSM;
-    VkShaderModule missShadowSM;
-    VkShaderModule chitSM;
+    const int raygenCount = plInfo->payload.rayTraceInfo.raygenCount;
+    const int missCount   = plInfo->payload.rayTraceInfo.missCount;
+    const int chitCount   = plInfo->payload.rayTraceInfo.chitCount;
+    assert( raygenCount == 1 ); // for now
+    assert( missCount > 0 && missCount < 10 );
+    assert( chitCount > 0 && chitCount < 10 ); // make sure its in a reasonable range
 
-    initShaderModule(TANTO_SPVDIR"/raytrace-rgen.spv",  &raygenSM);
-    initShaderModule(TANTO_SPVDIR"/raytrace-rmiss.spv", &missSM);
-    initShaderModule(TANTO_SPVDIR"/raytraceShadow-rmiss.spv", &missShadowSM);
-    initShaderModule(TANTO_SPVDIR"/raytrace-rchit.spv", &chitSM);
+    VkShaderModule raygenSM[raygenCount];
+    VkShaderModule missSM[missCount];
+    VkShaderModule chitSM[chitCount];
+    memset(raygenSM, 0, sizeof(raygenSM));
+    memset(missSM, 0, sizeof(missSM));
+    memset(chitSM, 0, sizeof(chitSM));
 
-    VkPipelineShaderStageCreateInfo shaderStages[] = {{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR,
-        .module = raygenSM,
-        .pName = "main",
-    },{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
-        .module = missSM,
-        .pName = "main",
-    },{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage = VK_SHADER_STAGE_MISS_BIT_KHR,
-        .module = missShadowSM,
-        .pName = "main",
-    },{
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        .stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR,
-        .module = chitSM,
-        .pName = "main",
-    }};
+    char* const* const raygenShaders = plInfo->payload.rayTraceInfo.raygenShaders;
+    char* const* const missShaders =   plInfo->payload.rayTraceInfo.missShaders;
+    char* const* const chitShaders =   plInfo->payload.rayTraceInfo.chitShaders;
 
-    VkRayTracingShaderGroupCreateInfoKHR rg = {
-        .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
-        .type  = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-        .generalShader =      0, // stage 0 in shaderStages
-        .closestHitShader =   VK_SHADER_UNUSED_KHR,
-        .anyHitShader =       VK_SHADER_UNUSED_KHR,
-        .intersectionShader = VK_SHADER_UNUSED_KHR,
-        .pShaderGroupCaptureReplayHandle = NULL
-    };
+    for (int i = 0; i < raygenCount; i++) 
+        initShaderModule(raygenShaders[i], &raygenSM[i]);
+    for (int i = 0; i < missCount; i++) 
+        initShaderModule(missShaders[i], &missSM[i]);
+    for (int i = 0; i < chitCount; i++) 
+        initShaderModule(chitShaders[i], &chitSM[i]);
 
-    VkRayTracingShaderGroupCreateInfoKHR mg = {
-        .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
-        .type  = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-        .generalShader =      1, // stage 1 in shaderStages
-        .closestHitShader =   VK_SHADER_UNUSED_KHR,
-        .anyHitShader =       VK_SHADER_UNUSED_KHR,
-        .intersectionShader = VK_SHADER_UNUSED_KHR,
-        .pShaderGroupCaptureReplayHandle = NULL
-    };
+    const int shaderCount = raygenCount + missCount + chitCount;
 
-    VkRayTracingShaderGroupCreateInfoKHR msg = {
-        .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
-        .type  = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR,
-        .generalShader =      2, // stage 1 in shaderStages
-        .closestHitShader =   VK_SHADER_UNUSED_KHR,
-        .anyHitShader =       VK_SHADER_UNUSED_KHR,
-        .intersectionShader = VK_SHADER_UNUSED_KHR,
-        .pShaderGroupCaptureReplayHandle = NULL
-    };
+    VkPipelineShaderStageCreateInfo      shaderStages[shaderCount];
+    VkRayTracingShaderGroupCreateInfoKHR shaderGroups[shaderCount];
+    memset(shaderStages, 0, sizeof(shaderStages));
+    memset(shaderGroups, 0, sizeof(shaderGroups));
 
-    VkRayTracingShaderGroupCreateInfoKHR hg = {
-        .sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR,
-        .type  = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR,
-        .generalShader =      VK_SHADER_UNUSED_KHR, // stage 1 in shaderStages
-        .closestHitShader =   3,
-        .anyHitShader =       VK_SHADER_UNUSED_KHR,
-        .intersectionShader = VK_SHADER_UNUSED_KHR,
-        .pShaderGroupCaptureReplayHandle = NULL
-    };
+    for (int i = 0; i < shaderCount; i++) 
+    {
+        shaderStages[i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStages[i].pName = "main";
 
-    const VkRayTracingShaderGroupCreateInfoKHR shaderGroups[] = {rg, mg, msg, hg};
+        shaderGroups[i].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+        shaderGroups[i].pShaderGroupCaptureReplayHandle = NULL;
+        shaderGroups[i].anyHitShader       = VK_SHADER_UNUSED_KHR;
+        shaderGroups[i].closestHitShader   = VK_SHADER_UNUSED_KHR;
+        shaderGroups[i].generalShader      = VK_SHADER_UNUSED_KHR;
+        shaderGroups[i].intersectionShader = VK_SHADER_UNUSED_KHR;
 
-    VkResult r;
+        if (i < raygenCount)
+        {
+            int m = i - 0;
+            shaderStages[i].stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+            shaderStages[i].module = raygenSM[m];
+
+            shaderGroups[i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+            shaderGroups[i].generalShader = i;
+
+        }
+        else if ( i - raygenCount < missCount )
+        {
+            int m = i - raygenCount;
+            shaderStages[i].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+            shaderStages[i].module = missSM[m];
+
+            shaderGroups[i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+            shaderGroups[i].generalShader = i;
+        }
+        else if ( i - raygenCount - missCount < chitCount )
+        {
+            int m = i - raygenCount - missCount;
+            shaderStages[i].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+            shaderStages[i].module = chitSM[m];
+
+            shaderGroups[i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+            shaderGroups[i].closestHitShader = i;
+        }
+    }
 
     VkRayTracingPipelineCreateInfoKHR pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
         .maxRecursionDepth = 1, 
-        .layout     = pipelineLayouts[plInfo->pipelineLayoutId],
+        .layout     = pipelineLayouts[plInfo->layoutId],
         .libraries  = {VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR},
         .groupCount = TANTO_ARRAY_SIZE(shaderGroups),
         .stageCount = TANTO_ARRAY_SIZE(shaderStages),
@@ -130,13 +130,20 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
         .pStages    = shaderStages
     };
 
-    r = vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, &pipelines[plInfo->id]);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, &pipelines[plInfo->id]) );
 
-    vkDestroyShaderModule(device, raygenSM, NULL);
-    vkDestroyShaderModule(device, chitSM, NULL);
-    vkDestroyShaderModule(device, missSM, NULL);
-    vkDestroyShaderModule(device, missShadowSM, NULL);
+    for (int i = 0; i < raygenCount; i++) 
+    {
+        vkDestroyShaderModule(device, raygenSM[i], NULL);
+    }
+    for (int i = 0; i < missCount; i++) 
+    {
+        vkDestroyShaderModule(device, missSM[i], NULL);
+    }
+    for (int i = 0; i < chitCount; i++) 
+    {
+        vkDestroyShaderModule(device, chitSM[i], NULL);
+    }
 }
 
 static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
@@ -144,8 +151,8 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
-    initShaderModule(plInfo->rasterInfo.vertShader, &vertModule);
-    initShaderModule(plInfo->rasterInfo.fragShader, &fragModule);
+    initShaderModule(plInfo->payload.rasterInfo.vertShader, &vertModule);
+    initShaderModule(plInfo->payload.rasterInfo.fragShader, &fragModule);
 
     const VkSpecializationInfo shaderSpecialInfo = {
         // TODO
@@ -317,7 +324,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
         .renderPass = offscreenRenderPass,
-        .layout = pipelineLayouts[plInfo->pipelineLayoutId],
+        .layout = pipelineLayouts[plInfo->layoutId],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
         .pDepthStencilState = &depthStencilState,
@@ -344,7 +351,7 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
     VkShaderModule fragModule;
 
     initShaderModule(TANTO_SPVDIR"/post-vert.spv", &vertModule);
-    initShaderModule(plInfo->rasterInfo.fragShader, &fragModule);
+    initShaderModule(plInfo->payload.rasterInfo.fragShader, &fragModule);
 
     const VkPipelineShaderStageCreateInfo shaderStages[2] = {
         [0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -452,7 +459,7 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
         .renderPass = swapchainRenderPass,
-        .layout = pipelineLayouts[plInfo->pipelineLayoutId],
+        .layout = pipelineLayouts[plInfo->layoutId],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
         .pDepthStencilState = &depthStencilState,
@@ -587,7 +594,7 @@ void tanto_r_InitPipelines(const Tanto_R_PipelineInfo *const pipelineInfos, cons
         const Tanto_R_PipelineInfo plInfo = pipelineInfos[i];
         switch (plInfo.type) 
         {
-            case TANTO_R_PIPELINE_RASTER_TYPE: createPipelineRasterization(&plInfo); break;
+            case TANTO_R_PIPELINE_RASTER_TYPE:   createPipelineRasterization(&plInfo); break;
             case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(&plInfo); break;
             case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(&plInfo); break;
         }

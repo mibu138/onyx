@@ -46,20 +46,30 @@ typedef enum {
 } Tanto_R_RenderPassType;
 
 typedef struct {
-    const Tanto_R_RenderPassType renderPassType;
-    const char* vertShader;
-    const char* fragShader;
+    Tanto_R_RenderPassType renderPassType;
+    char* vertShader;
+    char* fragShader;
 } Tanto_R_PipelineRasterInfo;
 
 typedef struct {
+    uint8_t raygenCount;
+    char**  raygenShaders;
+    uint8_t missCount;
+    char**  missShaders;
+    uint8_t chitCount;
+    char**  chitShaders;
 } Tanto_R_PipelineRayTraceInfo;
 
+union Tanto_R_PipelineInfoPayload {
+    Tanto_R_PipelineRasterInfo   rasterInfo;
+    Tanto_R_PipelineRayTraceInfo rayTraceInfo;
+};
+
 typedef struct {
-    const int   id;
-    const Tanto_R_PipelineType type;
-    const int   pipelineLayoutId;
-    const Tanto_R_PipelineRasterInfo rasterInfo;
-    const Tanto_R_PipelineRayTraceInfo raytraceInfo;
+    int   id;
+    Tanto_R_PipelineType type;
+    int   layoutId;
+    union Tanto_R_PipelineInfoPayload payload;
 } Tanto_R_PipelineInfo;
 
 
