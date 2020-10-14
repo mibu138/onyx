@@ -19,6 +19,7 @@ Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
     memcpy(m.vertexBlock->hostData + m.posOffset, pm.posData, sizeof(Tanto_R_Attribute) * nverts);
     memcpy(m.vertexBlock->hostData + m.colOffset, pm.colData, sizeof(Tanto_R_Attribute) * nverts);
     memcpy(m.vertexBlock->hostData + m.norOffset, pm.norData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.vertexBlock->hostData + m.uvwOffset, pm.uvwData, sizeof(Tanto_R_Attribute) * nverts);
     memcpy(m.indexBlock->hostData, pm.indexData, sizeof(Tanto_R_Index) * nverts);
     
     return m;

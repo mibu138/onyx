@@ -6,14 +6,15 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     const uint32_t height,
     const VkFormat format,
     const VkImageUsageFlags usageFlags,
-    const VkImageAspectFlags aspectMask)
+    const VkImageAspectFlags aspectMask,
+    const VkFilter filter)
 {
     Tanto_V_Image image = tanto_v_CreateImage(width, height, format, usageFlags, aspectMask);
 
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-        .magFilter = VK_FILTER_NEAREST,
-        .minFilter = VK_FILTER_NEAREST,
+        .magFilter = filter,
+        .minFilter = filter,
         .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,

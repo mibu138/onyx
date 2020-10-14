@@ -4,20 +4,17 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 
 // HVC = Host Visible and Coherent
 #define MEMORY_SIZE_HOST 16777216
 #define BUFFER_SIZE_HOST 16777216 // 2 MiB
 // DL = Device Local    
-#define MEMORY_SIZE_DEV_IMAGE   268435456 // 256 MiB
-#define MEMORY_SIZE_DEV_BUFFER  268435456 // 256 MiB
+#define MEMORY_SIZE_DEV_IMAGE   524288000 // 500 MiB
+#define MEMORY_SIZE_DEV_BUFFER  52428800  // 50 MiB
 #define MAX_BLOCKS 256
 
-static VkDeviceMemory memoryDeviceLocal;
-
 static VkPhysicalDeviceMemoryProperties memoryProperties;
-
-static uint32_t curDevMemoryOffset;
 
 struct Pool {
     int count;
@@ -33,10 +30,18 @@ static struct HbPool {
     Tanto_V_BlockHostBuffer blocks[MAX_BLOCKS];
 } hbPool;
 
+typedef struct tanto_V_MemBlock {
+    VkDeviceSize    size;
+    VkDeviceSize    offset;
+    bool            inUse;
+    Tanto_V_BlockId id; // global unique identifier
+} Tanto_V_MemBlock;
+
 struct BlockChain {
     size_t            totalSize;
     size_t            count;
     size_t            cur;
+    uint32_t          nextBlockId;
     VkDeviceMemory    memory;
     Tanto_V_MemBlock  blocks[MAX_BLOCKS];
 };
@@ -95,6 +100,7 @@ static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memType
     chain->count = 1;
     chain->cur   = 0;
     chain->totalSize = memorySize;
+    chain->nextBlockId = 0;
     chain->blocks[0].inUse = false;
     chain->blocks[0].offset = 0;
     chain->blocks[0].size = memorySize;
@@ -108,10 +114,20 @@ static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memType
     V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, &chain->memory) ); 
 }
 
-static const Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
+static void freeBlockChain(struct BlockChain* chain)
 {
-    size_t cur  = chain->cur;
-    const size_t init = chain->cur;
+    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
+    chain->cur = 0;
+    chain->count = 0;
+    chain->totalSize = 0;
+    vkFreeMemory(device, chain->memory, NULL);
+}
+
+static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
+{
+    //size_t cur  = chain->cur;
+    size_t cur  = 0;
+    const size_t init = cur;
     const size_t count = chain->count;
     assert( size < chain->totalSize );
     assert( count > 0 );
@@ -123,10 +139,15 @@ static const Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t 
     }
     // found a block not in use and with enough size
     // split the block
-    size_t new = chain->count++;
-    assert( new < MAX_BLOCKS );
     Tanto_V_MemBlock* curBlock = &chain->blocks[cur];
+    if (curBlock->size == size && curBlock->offset % alignment == 0) // just reuse this block;
+    {
+        printf("Re-using block\n");
+        return curBlock;
+    }
+    size_t new = chain->count++;
     Tanto_V_MemBlock* newBlock = &chain->blocks[new];
+    assert( new < MAX_BLOCKS );
     assert( newBlock->inUse == false );
     VkDeviceSize alignedOffset = curBlock->offset;
     if (alignedOffset % alignment != 0) // not aligned
@@ -138,14 +159,31 @@ static const Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t 
     curBlock->size   = size;
     curBlock->offset = alignedOffset;
     curBlock->inUse = true;
+    curBlock->id = chain->nextBlockId++;
     chain->cur = cur;
     return curBlock;
 }
 
+static bool initializedBlockChain;
+
+static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
+{
+    assert( id < chain->nextBlockId);
+    const size_t blockCount = chain->count;
+    int blockIndex = 0;
+    for ( ; blockIndex < blockCount; blockIndex++) 
+    {
+        if (chain->blocks[blockIndex].id == id)
+            break;
+    }
+    assert( blockIndex < blockCount ); // block must not have come from this chain
+    Tanto_V_MemBlock* block = &chain->blocks[blockIndex];
+    printf("Freeing block id: %d\n", id);
+    block->inUse = false;
+}
+
 void tanto_v_InitMemory(void)
 {
-    curDevMemoryOffset = 0;
-
     uint32_t hostVisibleCoherentTypeIndex;
     int deviceLocalTypeIndex;
 
@@ -204,8 +242,12 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
 
     initHbPool(bhbFlags, hostVisibleCoherentTypeIndex, &hbPool);
-    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, &diBlockChain);
-    initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, &dbBlockChain);
+    if (!initializedBlockChain)
+    {
+        initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, &diBlockChain);
+        initializedBlockChain = true;
+    }
+    //initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, &dbBlockChain);
 }
 
 Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHostAligned(const size_t size, const uint32_t alignment)
@@ -269,15 +311,6 @@ uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags pr
     return ~0u;
 }
 
-void tanto_v_BindImageToMemory(const VkImage image, const uint32_t size)
-{
-    //static bool imageBound = false;
-    //assert (!imageBound);
-    assert( curDevMemoryOffset < MEMORY_SIZE_DEV_IMAGE );
-    vkBindImageMemory(device, image, memoryDeviceLocal, curDevMemoryOffset);
-    curDevMemoryOffset += size;
-}
-
 Tanto_V_Image tanto_v_CreateImage(
         const uint32_t width, 
         const uint32_t height,
@@ -313,7 +346,7 @@ Tanto_V_Image tanto_v_CreateImage(
     printf("Requesting image of size %ld\n", memReqs.size);
 
     const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &diBlockChain);
-    image.memBlock = block;
+    image.memBlockId = block->id;
 
     vkBindImageMemory(device, image.handle, diBlockChain.memory, block->offset);
 
@@ -334,7 +367,19 @@ Tanto_V_Image tanto_v_CreateImage(
 
     V_ASSERT( vkCreateImageView(device, &viewInfo, NULL, &image.view) );
 
+    image.sampler = VK_NULL_HANDLE;
+
     return image;
+}
+
+void tanto_v_DestroyImage(Tanto_V_Image image)
+{
+    printf("Destroy image called\n");
+    if (image.sampler != VK_NULL_HANDLE)
+        vkDestroySampler(device, image.sampler, NULL);
+    vkDestroyImageView(device, image.view, NULL);
+    vkDestroyImage(device, image.handle, NULL);
+    freeBlock(&diBlockChain, image.memBlockId);
 }
 
 void tanto_v_CleanUpMemory()
@@ -342,5 +387,4 @@ void tanto_v_CleanUpMemory()
     vkUnmapMemory(device, hbPool.pool.memory);
     vkDestroyBuffer(device, hbPool.buffer, NULL);
     vkFreeMemory(device, hbPool.pool.memory, NULL);
-    vkFreeMemory(device, memoryDeviceLocal, NULL);
 };
