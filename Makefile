@@ -69,7 +69,7 @@ all: lib tags
 shaders: $(SHADERS)
 
 clean: 
-	rm -f $(O)/* $(LIB)/* $(BIN)/*
+	rm -f $(O)/* $(LIB)/$(LIBNAME) $(BIN)/*
 
 tags:
 	ctags -R .

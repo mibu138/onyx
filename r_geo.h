@@ -10,13 +10,13 @@ typedef uint32_t Tanto_R_Index;
 
 typedef struct {
     uint32_t  vertexCount;
-    Tanto_V_BlockHostBuffer*  vertexBlock;
+    Tanto_V_BufferRegion  vertexBlock;
     VkDeviceSize posOffset;
     VkDeviceSize colOffset;
     VkDeviceSize norOffset;
     VkDeviceSize uvwOffset;
     uint32_t  indexCount;
-    Tanto_V_BlockHostBuffer*  indexBlock;
+    Tanto_V_BufferRegion  indexBlock;
 } Tanto_R_Mesh;
 
 typedef struct {

@@ -7,28 +7,13 @@
 #include <vulkan/vulkan_core.h>
 
 // HVC = Host Visible and Coherent
-#define MEMORY_SIZE_HOST 16777216
-#define BUFFER_SIZE_HOST 16777216 // 2 MiB
 // DL = Device Local    
-#define MEMORY_SIZE_DEV_IMAGE   524288000 // 500 MiB
+#define MEMORY_SIZE_HOST        52428800  
 #define MEMORY_SIZE_DEV_BUFFER  52428800  // 50 MiB
+#define MEMORY_SIZE_DEV_IMAGE   524288000 // 500 MiB
 #define MAX_BLOCKS 256
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
-
-struct Pool {
-    int count;
-    int bytesAvailable;
-    int curOffset;
-    VkDeviceMemory memory;
-};
-
-static struct HbPool {
-    struct Pool pool;
-    uint8_t* hostData;
-    VkBuffer buffer;
-    Tanto_V_BlockHostBuffer blocks[MAX_BLOCKS];
-} hbPool;
 
 typedef struct tanto_V_MemBlock {
     VkDeviceSize    size;
@@ -43,57 +28,22 @@ struct BlockChain {
     size_t            cur;
     uint32_t          nextBlockId;
     VkDeviceMemory    memory;
+    VkBuffer          buffer;
     Tanto_V_MemBlock  blocks[MAX_BLOCKS];
 };
 
+static struct BlockChain hbBlockChain;
 static struct BlockChain diBlockChain;
 static struct BlockChain dbBlockChain;
 
-static void initPool(const VkDeviceSize size, const uint32_t memTypeIndex, struct Pool* pool)
-{
-    pool->count = 0;
-    pool->bytesAvailable = size;
-    pool->curOffset = 0;
-
-    const VkMemoryAllocateInfo allocInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize = size,
-        .memoryTypeIndex = memTypeIndex
-    };
-
-    V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, &pool->memory) );
-}
-
-static void initHbPool(const VkBufferUsageFlags usageFlags, const uint32_t memTypeIndex, struct HbPool* pool)
-{
-    VkBufferCreateInfo ci = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .usage = usageFlags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue determined by first use
-        .size = BUFFER_SIZE_HOST
-    };
-
-    V_ASSERT( vkCreateBuffer(device, &ci, NULL, &pool->buffer) );
-    //
-    // VkMemoryRequirements reqs;
-    // vkGetBufferMemoryRequirements(device, pool->buffer, &reqs);
-    // we dont need to check the reqs. spec states that 
-    // any buffer created without SPARSITY flags will 
-    // support being bound to host visible | host coherent
-
-    initPool(BUFFER_SIZE_HOST, memTypeIndex, &pool->pool);
-
-    V_ASSERT( vkBindBufferMemory(device, pool->buffer, pool->pool.memory, 0) );
-
-    V_ASSERT( vkMapMemory(device, pool->pool.memory, 0, BUFFER_SIZE_HOST, 0, (void**)&pool->hostData) );
-}
+static bool initializedBlockChain;
 
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
     printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
 }
 
-static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memTypeIndex, struct BlockChain* chain)
+static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memTypeIndex, const VkBufferUsageFlags bufferUsageFlags, struct BlockChain* chain)
 {
     memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
@@ -112,6 +62,22 @@ static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memType
     };
 
     V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, &chain->memory) ); 
+
+    if (bufferUsageFlags)
+    {
+        VkBufferCreateInfo ci = {
+            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+            .usage = bufferUsageFlags,
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue determined by first use
+            .size = memorySize 
+        };
+
+        V_ASSERT( vkCreateBuffer(device, &ci, NULL, &chain->buffer) );
+
+        V_ASSERT( vkBindBufferMemory(device, chain->buffer, chain->memory, 0) );
+    }
+    else
+        chain->buffer = VK_NULL_HANDLE;
 }
 
 static void freeBlockChain(struct BlockChain* chain)
@@ -120,6 +86,8 @@ static void freeBlockChain(struct BlockChain* chain)
     chain->cur = 0;
     chain->count = 0;
     chain->totalSize = 0;
+    if (chain->buffer != VK_NULL_HANDLE)
+        vkDestroyBuffer(device, chain->buffer, NULL);
     vkFreeMemory(device, chain->memory, NULL);
 }
 
@@ -163,8 +131,6 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     chain->cur = cur;
     return curBlock;
 }
-
-static bool initializedBlockChain;
 
 static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
 {
@@ -241,46 +207,45 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
          VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
 
-    initHbPool(bhbFlags, hostVisibleCoherentTypeIndex, &hbPool);
+    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, &hbBlockChain);
     if (!initializedBlockChain)
     {
-        initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, &diBlockChain);
+        initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, &diBlockChain);
         initializedBlockChain = true;
     }
-    //initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, &dbBlockChain);
 }
 
-Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHostAligned(const size_t size, const uint32_t alignment)
+Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
+        const size_t size, const uint32_t alignment, const Tanto_V_MemoryType memType)
 {
     assert( size % 4 == 0 ); // only allow for word-sized blocks
-    assert( size < hbPool.pool.bytesAvailable);
-    assert( hbPool.pool.count < MAX_BLOCKS );
-    if (hbPool.pool.curOffset % alignment != 0)
-        hbPool.pool.curOffset = (hbPool.pool.curOffset / alignment + 1) * alignment;
-    Tanto_V_BlockHostBuffer* pBlock = &hbPool.blocks[hbPool.pool.count];
-    pBlock->hostData = hbPool.hostData + hbPool.pool.curOffset;
-    pBlock->vBuffer = &hbPool.buffer;
-    pBlock->size = size;
-    pBlock->vOffset = hbPool.pool.curOffset;
-    pBlock->isMapped = true;
+    Tanto_V_MemBlock* block;
+    switch (memType) 
+    {
+        case TANTO_V_MEMORY_HOST_TYPE: block = requestBlock(size, alignment, &hbBlockChain); break;
+        case TANTO_V_MEMORY_DEVICE_TYPE: block = requestBlock(size, alignment, &dbBlockChain); break;
+    }
 
-    hbPool.pool.bytesAvailable -= size;
-    hbPool.pool.curOffset+= size;
-    hbPool.pool.count++;
-    // we really do need to be worrying about alignment here.
-    // anything that is not a multiple of 4 bytes will have issues.
-    // there is VERY GOOD CHANCE that there are other alignment
-    // issues to consider.
-    //
-    // we should probably divide up the buffer into Chunks, where
-    // all the blocks in a chunk contain the same kind of element
-    // (a chunk for vertices, a chunk for indices, a chunk for 
-    // uniform matrices, etc).
+    Tanto_V_BufferRegion region;
+    region.offset = block->offset;
+    region.memBlockId = block->id;
+    region.size = block->size;
 
-    return pBlock;
+    if (memType == TANTO_V_MEMORY_HOST_TYPE)
+    {
+        region.buffer = hbBlockChain.buffer;
+        vkMapMemory(device, hbBlockChain.memory, block->offset, size, 0, (void**)&region.hostData);
+    }
+    else
+    {
+        region.buffer = VK_NULL_HANDLE;
+        region.hostData = NULL;
+    }
+
+    return region;
 }
 
-Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHost(const size_t size, const VkBufferUsageFlags flags)
+Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size, const VkBufferUsageFlags flags)
 {
     uint32_t alignment;
     // the order of this if statements matters. it garuantees the maximum
@@ -295,7 +260,7 @@ Tanto_V_BlockHostBuffer* tanto_v_RequestBlockHost(const size_t size, const VkBuf
         // must satisfy alignment requirements for uniform buffers
         alignment = 0x40;
     }
-    return tanto_v_RequestBlockHostAligned(size, alignment);
+    return tanto_v_RequestBufferRegionAligned(size, alignment, TANTO_V_MEMORY_HOST_TYPE);
 }
 
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
@@ -384,7 +349,6 @@ void tanto_v_DestroyImage(Tanto_V_Image image)
 
 void tanto_v_CleanUpMemory()
 {
-    vkUnmapMemory(device, hbPool.pool.memory);
-    vkDestroyBuffer(device, hbPool.buffer, NULL);
-    vkFreeMemory(device, hbPool.pool.memory, NULL);
+    freeBlockChain(&hbBlockChain);
+    freeBlockChain(&diBlockChain);
 };

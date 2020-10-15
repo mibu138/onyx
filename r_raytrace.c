@@ -169,14 +169,14 @@ void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
 
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = *mesh->vertexBlock->vBuffer,
+        .buffer = mesh->vertexBlock.buffer,
     };
 
-    const VkDeviceAddress vertAddr  = vkGetBufferDeviceAddress(device, &addrInfo) + mesh->vertexBlock->vOffset;
+    const VkDeviceAddress vertAddr  = vkGetBufferDeviceAddress(device, &addrInfo) + mesh->vertexBlock.offset;
 
-    addrInfo.buffer = *mesh->indexBlock->vBuffer;
+    addrInfo.buffer = mesh->indexBlock.buffer;
     
-    const VkDeviceAddress indexAddr = vkGetBufferDeviceAddress(device, &addrInfo) + mesh->indexBlock->vOffset;
+    const VkDeviceAddress indexAddr = vkGetBufferDeviceAddress(device, &addrInfo) + mesh->indexBlock.offset;
 
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,

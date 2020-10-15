@@ -8,19 +8,19 @@ Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
     Tanto_R_Mesh m = {};
     size_t nverts = pm.vertexCount;
     m.vertexCount = nverts;
-    m.vertexBlock = tanto_v_RequestBlockHost(nverts * sizeof(Tanto_R_Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m.vertexBlock = tanto_v_RequestBufferRegion(nverts * sizeof(Tanto_R_Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     m.posOffset   = nverts * sizeof(Tanto_R_Attribute) * 0;
     m.colOffset   = nverts * sizeof(Tanto_R_Attribute) * 1;
     m.norOffset   = nverts * sizeof(Tanto_R_Attribute) * 2;
     m.uvwOffset   = nverts * sizeof(Tanto_R_Attribute) * 3;
-    m.indexBlock  = tanto_v_RequestBlockHost(nverts * sizeof(Tanto_R_Index), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m.indexBlock  = tanto_v_RequestBufferRegion(nverts * sizeof(Tanto_R_Index), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     m.indexCount  = nverts;
 
-    memcpy(m.vertexBlock->hostData + m.posOffset, pm.posData, sizeof(Tanto_R_Attribute) * nverts);
-    memcpy(m.vertexBlock->hostData + m.colOffset, pm.colData, sizeof(Tanto_R_Attribute) * nverts);
-    memcpy(m.vertexBlock->hostData + m.norOffset, pm.norData, sizeof(Tanto_R_Attribute) * nverts);
-    memcpy(m.vertexBlock->hostData + m.uvwOffset, pm.uvwData, sizeof(Tanto_R_Attribute) * nverts);
-    memcpy(m.indexBlock->hostData, pm.indexData, sizeof(Tanto_R_Index) * nverts);
+    memcpy(m.vertexBlock.hostData + m.posOffset, pm.posData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.vertexBlock.hostData + m.colOffset, pm.colData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.vertexBlock.hostData + m.norOffset, pm.norData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.vertexBlock.hostData + m.uvwOffset, pm.uvwData, sizeof(Tanto_R_Attribute) * nverts);
+    memcpy(m.indexBlock.hostData, pm.indexData, sizeof(Tanto_R_Index) * nverts);
     
     return m;
 }
@@ -30,10 +30,10 @@ Tanto_R_Mesh tanto_r_CreateMesh(uint32_t vertexCount, uint32_t indexCount)
     Tanto_R_Mesh mesh;
     mesh.vertexCount = vertexCount;
     mesh.indexCount  = indexCount;
-    mesh.vertexBlock = tanto_v_RequestBlockHost(sizeof(Tanto_R_Vertex) * mesh.vertexCount, 
+    mesh.vertexBlock = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Vertex) * mesh.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
-    mesh.indexBlock  = tanto_v_RequestBlockHost(sizeof(Tanto_R_Index) * mesh.indexCount, 
+    mesh.indexBlock  = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * mesh.indexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     mesh.posOffset = 0 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
@@ -48,11 +48,11 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     Tanto_R_Mesh mesh = tanto_r_CreateMesh(vertCount, indexCount);
-    Tanto_R_Attribute* pPositions = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.posOffset);
-    Tanto_R_Attribute* pColors    = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.colOffset);
-    Tanto_R_Attribute* pNormals   = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.norOffset);
-    Tanto_R_Attribute* pUvws      = (Tanto_R_Attribute*)(mesh.vertexBlock->hostData + mesh.uvwOffset);
-    Tanto_R_Index*  indices       = (Tanto_R_Index*)mesh.indexBlock->hostData;
+    Tanto_R_Attribute* pPositions = (Tanto_R_Attribute*)(mesh.vertexBlock.hostData + mesh.posOffset);
+    Tanto_R_Attribute* pColors    = (Tanto_R_Attribute*)(mesh.vertexBlock.hostData + mesh.colOffset);
+    Tanto_R_Attribute* pNormals   = (Tanto_R_Attribute*)(mesh.vertexBlock.hostData + mesh.norOffset);
+    Tanto_R_Attribute* pUvws      = (Tanto_R_Attribute*)(mesh.vertexBlock.hostData + mesh.uvwOffset);
+    Tanto_R_Index*  indices       = (Tanto_R_Index*)mesh.indexBlock.hostData;
 
     //memset(indices, 0, sizeof(Tanto_R_Index) * mesh.indexCount);
     //memset(positions, 0, sizeof(Tanto_R_Vertex) * mesh.vertexCount);
