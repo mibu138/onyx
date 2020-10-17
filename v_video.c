@@ -210,7 +210,169 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
     return devices[1];
 }
 
-static void initDevice(void)
+static void initDeviceNew(void)
+{
+    physicalDevice = retrievePhysicalDevice();
+    VkResult r;
+    uint32_t qfcount;
+
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, NULL);
+
+    VkQueueFamilyProperties qfprops[qfcount];
+
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, qfprops);
+
+    for (int i = 0; i < qfcount; i++) 
+    {
+        VkQueryControlFlags flags = qfprops[i].queueFlags;
+        V1_PRINT("Queue Family %d: count: %d flags: ", i, qfprops[i].queueCount);
+        if (flags & VK_QUEUE_GRAPHICS_BIT)  V1_PRINT(" Graphics ");
+        if (flags & VK_QUEUE_COMPUTE_BIT)   V1_PRINT(" Compute ");
+        if (flags & VK_QUEUE_TRANSFER_BIT)  V1_PRINT(" Tranfer ");
+        V1_PRINT("\n");
+    }
+
+    graphicsQueueFamilyIndex = 0; // because we know this
+    assert( TANTO_G_QUEUE_COUNT < qfprops[graphicsQueueFamilyIndex].queueCount );
+
+    const float priorities[TANTO_G_QUEUE_COUNT] = {1.0, 1.0, 1.0, 1.0};
+
+    const VkDeviceQueueCreateInfo qci[] = { 
+        { 
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = graphicsQueueFamilyIndex,
+            .queueCount = TANTO_G_QUEUE_COUNT,
+            .pQueuePriorities = priorities,
+        }
+    };
+
+    uint32_t propCount;
+    r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, NULL);
+    assert(r == VK_SUCCESS);
+    VkExtensionProperties properties[propCount];
+    r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, properties);
+    assert(r == VK_SUCCESS);
+
+    #if VERBOSE > 1
+    V1_PRINT("Device Extensions available: \n");
+    for (int i = 0; i < propCount; i++) 
+    {
+        V1_PRINT("Name: %s    Spec Version: %d\n", properties[i].extensionName, properties[i].specVersion);    
+    }
+    #endif
+
+    VkPhysicalDeviceRayTracingPropertiesKHR rayTracingProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR,
+    };
+
+    VkPhysicalDeviceProperties2 phsicalDeviceProperties2 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+        .pNext = &rayTracingProps,
+    };
+
+
+    if (tanto_v_config.rayTraceEnabled)
+    {
+        vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
+        rtProperties = rayTracingProps;
+    }
+
+    const char* extensionsRT[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_EXTENSION_NAME,
+        //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+        //VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+    };
+
+    const char* extensionsReg[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    // Vulkan 1.0 features are specified in the 
+    // features member of deviceFeatures. 
+    // Newer features are enabled by chaining them 
+    // on to the pNext member of deviceFeatures. 
+    
+    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
+        .pNext = NULL
+    };
+
+    VkPhysicalDeviceRayTracingFeaturesKHR rtFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR,
+        .pNext = &devAddressFeatures
+    };
+
+    VkPhysicalDeviceFeatures2 deviceFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+    };
+
+    if (tanto_v_config.rayTraceEnabled)
+        deviceFeatures.pNext = &rtFeatures;
+    else
+        deviceFeatures.pNext = NULL;
+
+    vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+
+    #if VERBOSE > 1
+    {
+        VkBool32* rtMembers = &rtFeatures.rayTracing;
+        const char* memberNames[9] = {
+            "rayTracing", 
+            "rayTracingShaderGroupHandleCaptureReplay",
+            "rayTracingShaderGroupHandleCaptureReplayMixed",
+            "rayTracingAccelerationStructureCaptureReplay",
+            "rayTracingIndirectTraceRays",
+            "rayTracingIndirectAccelerationStructureBuild",
+            "rayTracingHostAccelerationStructureCommands",
+            "rayQuery",
+            "rayTracingPrimitiveCulling"
+        };
+        for (int i = 0; i < 9; i++) 
+        {
+            printf("%s available: %s\n", memberNames[i], rtMembers[i] ? "TRUE" : "FALSE");
+        }
+    } 
+    #endif
+
+    assert( VK_TRUE == deviceFeatures.features.fillModeNonSolid );
+
+    VkPhysicalDeviceFeatures enabledFeatures = {
+        .fillModeNonSolid = VK_TRUE,
+        .wideLines = VK_TRUE,
+        .largePoints = VK_TRUE,
+    };
+
+    deviceFeatures.features = enabledFeatures; // only enable a subset of available features
+
+    VkDeviceCreateInfo dci = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .enabledLayerCount = 0,
+        .ppEnabledLayerNames = NULL,
+        .pEnabledFeatures = NULL, // not used in newer vulkan versions
+        .pQueueCreateInfos = qci,
+        .queueCreateInfoCount = TANTO_ARRAY_SIZE(qci),
+    };
+
+    if (tanto_v_config.rayTraceEnabled)
+    {
+        dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsRT);
+        dci.ppEnabledLayerNames = extensionsRT;
+    }
+    else
+    {
+        dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsReg);
+        dci.ppEnabledLayerNames = extensionsReg;
+    }
+
+    r = vkCreateDevice(physicalDevice, &dci, NULL, &device);
+    assert(r == VK_SUCCESS);
+    V1_PRINT("Device created successfully.\n");
+}
+
+static void initDeviceOld(void)
 {
     physicalDevice = retrievePhysicalDevice();
     VkResult r;
@@ -352,6 +514,171 @@ static void initDevice(void)
     V1_PRINT("Device created successfully.\n");
 }
 
+static void initDevice(void)
+{
+    physicalDevice = retrievePhysicalDevice();
+    VkResult r;
+    uint32_t qfcount;
+
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, NULL);
+
+    VkQueueFamilyProperties qfprops[qfcount];
+
+    vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, qfprops);
+
+    for (int i = 0; i < qfcount; i++) 
+    {
+        VkQueryControlFlags flags = qfprops[i].queueFlags;
+        V1_PRINT("Queue Family %d: count: %d flags: ", i, qfprops[i].queueCount);
+        if (flags & VK_QUEUE_GRAPHICS_BIT)  V1_PRINT(" Graphics ");
+        if (flags & VK_QUEUE_COMPUTE_BIT)   V1_PRINT(" Compute ");
+        if (flags & VK_QUEUE_TRANSFER_BIT)  V1_PRINT(" Tranfer ");
+        V1_PRINT("\n");
+    }
+
+    graphicsQueueFamilyIndex = 0; // because we know this
+    assert( TANTO_G_QUEUE_COUNT < qfprops[graphicsQueueFamilyIndex].queueCount );
+
+    const float priorities[TANTO_G_QUEUE_COUNT] = {1.0, 1.0, 1.0, 1.0};
+
+    const VkDeviceQueueCreateInfo qci[] = { 
+        { 
+            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+            .queueFamilyIndex = graphicsQueueFamilyIndex,
+            .queueCount = TANTO_G_QUEUE_COUNT,
+            .pQueuePriorities = priorities,
+        }
+    };
+
+    uint32_t propCount;
+    r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, NULL);
+    assert(r == VK_SUCCESS);
+    VkExtensionProperties properties[propCount];
+    r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, properties);
+    assert(r == VK_SUCCESS);
+
+    #if VERBOSE > 1
+    V1_PRINT("Device Extensions available: \n");
+    for (int i = 0; i < propCount; i++) 
+    {
+        V1_PRINT("Name: %s    Spec Version: %d\n", properties[i].extensionName, properties[i].specVersion);    
+    }
+    #endif
+
+    VkPhysicalDeviceRayTracingPropertiesKHR rayTracingProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR,
+    };
+
+    VkPhysicalDeviceProperties2 phsicalDeviceProperties2 = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+    };
+
+    if (tanto_v_config.rayTraceEnabled)
+        phsicalDeviceProperties2.pNext = &rayTracingProps;
+    else
+        phsicalDeviceProperties2.pNext = NULL;
+
+    vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
+
+    if (tanto_v_config.rayTraceEnabled)
+        rtProperties = rayTracingProps;
+
+    const char* extensionsRT[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_EXTENSION_NAME,
+        //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+        //VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+    };
+
+    const char* extensionsReg[] = {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME
+    };
+
+    // Vulkan 1.0 features are specified in the 
+    // features member of deviceFeatures. 
+    // Newer features are enabled by chaining them 
+    // on to the pNext member of deviceFeatures. 
+    
+    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
+        .pNext = NULL
+    };
+
+    VkPhysicalDeviceRayTracingFeaturesKHR rtFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR,
+        .pNext = &devAddressFeatures
+    };
+
+    VkPhysicalDeviceFeatures2 deviceFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+    };
+
+    if (tanto_v_config.rayTraceEnabled)
+        deviceFeatures.pNext = &rtFeatures;
+    else
+        deviceFeatures.pNext = NULL;
+
+    vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
+
+    #if VERBOSE > 1
+    {
+        VkBool32* rtMembers = &rtFeatures.rayTracing;
+        const char* memberNames[9] = {
+            "rayTracing", 
+            "rayTracingShaderGroupHandleCaptureReplay",
+            "rayTracingShaderGroupHandleCaptureReplayMixed",
+            "rayTracingAccelerationStructureCaptureReplay",
+            "rayTracingIndirectTraceRays",
+            "rayTracingIndirectAccelerationStructureBuild",
+            "rayTracingHostAccelerationStructureCommands",
+            "rayQuery",
+            "rayTracingPrimitiveCulling"
+        };
+        for (int i = 0; i < 9; i++) 
+        {
+            printf("%s available: %s\n", memberNames[i], rtMembers[i] ? "TRUE" : "FALSE");
+        }
+    } 
+    #endif
+
+    assert( VK_TRUE == deviceFeatures.features.fillModeNonSolid );
+
+    VkPhysicalDeviceFeatures enabledFeatures = {
+        .fillModeNonSolid = VK_TRUE,
+        .wideLines = VK_TRUE,
+        .largePoints = VK_TRUE,
+    };
+
+    deviceFeatures.features = enabledFeatures; // only enable a subset of available features
+
+    VkDeviceCreateInfo dci = {
+        .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .enabledLayerCount = 0,
+        .pNext = &deviceFeatures,
+        .ppEnabledLayerNames = NULL,
+        .pEnabledFeatures = NULL, // not used in newer vulkan versions
+        .pQueueCreateInfos = qci,
+        .queueCreateInfoCount = TANTO_ARRAY_SIZE(qci),
+    };
+
+    if (tanto_v_config.rayTraceEnabled)
+    {
+        dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsRT);
+        dci.ppEnabledExtensionNames = extensionsRT;
+    }
+    else
+    {
+        dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsReg);
+        dci.ppEnabledExtensionNames = extensionsReg;
+    }
+
+    r = vkCreateDevice(physicalDevice, &dci, NULL, &device);
+    assert(r == VK_SUCCESS);
+    V1_PRINT("Device created successfully.\n");
+}
+
 static void initQueues(void)
 {
     for (int i = 0; i < TANTO_G_QUEUE_COUNT; i++) 
@@ -446,6 +773,7 @@ static void initSwapchain(void)
 
 const VkInstance* tanto_v_Init(void)
 {
+    tanto_v_config.rayTraceEnabled = true;
     nativeSurface = VK_NULL_HANDLE;
     initVkInstance();
     initDebugMessenger();

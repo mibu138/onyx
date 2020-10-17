@@ -454,11 +454,16 @@ void tanto_r_InitRayTracing(void)
     initCmdPool();
 }
 
-void tanto_r_RayTraceCleanUp(void)
+void tanto_r_RayTraceDestroyAccelStructs(void)
 {
     vkDestroyAccelerationStructureKHR(device, topLevelAS, NULL);
     vkDestroyAccelerationStructureKHR(device, bottomLevelAS, NULL);
     vkFreeMemory(device, memoryTlas, NULL);
     vkFreeMemory(device, memoryBlas, NULL);
+}
+
+void tanto_r_RayTraceCleanUp(void)
+{
+    tanto_r_RayTraceDestroyAccelStructs();
     vkDestroyCommandPool(device, rtCmdPool, NULL);
 }

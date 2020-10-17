@@ -53,7 +53,7 @@ Tanto_V_Image tanto_v_CreateImage(
 
 void tanto_v_DestroyImage(Tanto_V_Image image);
 
-void tanto_v_BindImageToMemory(const VkImage, const uint32_t size);
+void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion region);
 
 void tanto_v_CleanUpMemory(void);
 

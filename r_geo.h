@@ -10,13 +10,13 @@ typedef uint32_t Tanto_R_Index;
 
 typedef struct {
     uint32_t  vertexCount;
-    Tanto_V_BufferRegion  vertexBlock;
+    Tanto_V_BufferRegion vertexBlock;
     VkDeviceSize posOffset;
     VkDeviceSize colOffset;
     VkDeviceSize norOffset;
     VkDeviceSize uvwOffset;
     uint32_t  indexCount;
-    Tanto_V_BufferRegion  indexBlock;
+    Tanto_V_BufferRegion indexBlock;
 } Tanto_R_Mesh;
 
 typedef struct {
@@ -40,5 +40,7 @@ Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh);
 Tanto_R_Mesh tanto_r_CreateMesh(uint32_t vertexCount, uint32_t indexCount);
 
 Tanto_R_Mesh tanto_r_CreateCube(void);
+
+void tanto_r_FreeMesh(Tanto_R_Mesh mesh);
 
 #endif /* end of include guard: R_GEO_H */

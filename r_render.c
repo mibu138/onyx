@@ -9,7 +9,6 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
-#include <vulkan/vulkan_core.h>
 
 
 VkRenderPass   swapchainRenderPass;
@@ -196,7 +195,8 @@ void tanto_r_Init(void)
     initRenderPasses();
     initFrames();
     initFrameBuffers();
-    tanto_r_InitRayTracing();
+    if (tanto_v_config.rayTraceEnabled)
+        tanto_r_InitRayTracing();
 }
 
 void tanto_r_WaitOnQueueSubmit(void)
@@ -260,7 +260,8 @@ void tanto_r_PresentFrame(void)
 
 void tanto_r_CleanUp(void)
 {
-    tanto_r_RayTraceCleanUp();
+    if (tanto_v_config.rayTraceEnabled)
+        tanto_r_RayTraceCleanUp();
     tanto_r_CleanUpPipelines();
     vkDestroyRenderPass(device, swapchainRenderPass, NULL);
     vkDestroyRenderPass(device, offscreenRenderPass, NULL);

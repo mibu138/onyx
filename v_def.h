@@ -2,9 +2,16 @@
 #define TANTO_V_DEF_H
 
 #include "v_vulkan.h"
+#include <stdbool.h>
 
 #define TANTO_FRAME_COUNT 2
 #define TANTO_G_QUEUE_COUNT 4
+
+typedef struct {
+    bool rayTraceEnabled;
+} Tanto_V_Config;
+
+extern Tanto_V_Config tanto_v_config;
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateAccelerationStructureKHR(
         VkDevice device, 

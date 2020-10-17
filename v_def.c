@@ -12,6 +12,8 @@ static PFN_vkCreateRayTracingPipelinesKHR                  pfn_vkCreateRayTracin
 static PFN_vkGetRayTracingShaderGroupHandlesKHR            pfn_vkGetRayTracingShaderGroupHandlesKHR;
 static PFN_vkCmdTraceRaysKHR                               pfn_vkCmdTraceRaysKHR;
 
+Tanto_V_Config tanto_v_config;
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateAccelerationStructureKHR(
         VkDevice device, 
         const VkAccelerationStructureCreateInfoKHR *pCreateInfo, 
@@ -110,6 +112,8 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
 
 void tanto_v_LoadFunctions(const VkDevice* device)
 {
+    if (!tanto_v_config.rayTraceEnabled)
+        return;
     pfn_vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)
         vkGetDeviceProcAddr(*device, "vkCreateAccelerationStructureKHR");
     pfn_vkGetAccelerationStructureMemoryRequirementsKHR = (PFN_vkGetAccelerationStructureMemoryRequirementsKHR)

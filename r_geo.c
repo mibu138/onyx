@@ -1,4 +1,5 @@
 #include "r_geo.h"
+#include "v_memory.h"
 #include <string.h>
 
 const int CW = 1;
@@ -34,7 +35,7 @@ Tanto_R_Mesh tanto_r_CreateMesh(uint32_t vertexCount, uint32_t indexCount)
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     mesh.indexBlock  = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * mesh.indexCount, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT|
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
     mesh.posOffset = 0 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
     mesh.colOffset = 1 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
@@ -197,4 +198,10 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
             indices[face * 6 + 5] = 4 * face + 3;
         }
     return mesh;
+}
+
+void tanto_r_FreeMesh(Tanto_R_Mesh mesh)
+{
+    tanto_v_FreeBufferRegion(mesh.vertexBlock);
+    tanto_v_FreeBufferRegion(mesh.indexBlock);
 }
