@@ -15,16 +15,20 @@ typedef uint32_t Tanto_V_BlockId;
 //} Tanto_V_BlockHostBuffer;
 
 typedef enum {
-    TANTO_V_MEMORY_HOST_TYPE,
+    TANTO_V_MEMORY_HOST_GRAPHICS_TYPE,
+    TANTO_V_MEMORY_HOST_TRANSFER_TYPE,
     TANTO_V_MEMORY_DEVICE_TYPE,
 } Tanto_V_MemoryType;
 
+struct BlockChain;
+
 typedef struct {
-    VkDeviceSize    size;
-    VkDeviceSize    offset;
-    VkBuffer        buffer;
-    uint8_t*        hostData; // if hostData not null, its mapped
-    Tanto_V_BlockId memBlockId;
+    VkDeviceSize           size;
+    VkDeviceSize           offset;
+    VkBuffer               buffer;
+    uint8_t*               hostData; // if hostData not null, its mapped
+    Tanto_V_BlockId        memBlockId;
+    struct BlockChain*     pChain;
 } Tanto_V_BufferRegion;
 
 typedef struct {
@@ -37,10 +41,10 @@ typedef struct {
 void tanto_v_InitMemory(void);
 
 Tanto_V_BufferRegion tanto_v_RequestBufferRegion(size_t size, 
-        const VkBufferUsageFlags);
+        const VkBufferUsageFlags, const Tanto_V_MemoryType);
 
 Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
-        const size_t size, const uint32_t alignment, const Tanto_V_MemoryType);
+        const size_t size, uint32_t alignment, const Tanto_V_MemoryType);
 
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties);
 

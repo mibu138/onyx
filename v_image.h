@@ -7,6 +7,10 @@
 
 #include "v_memory.h"
 
+typedef enum {
+    TANTO_V_IMAGE_FILE_PNG_TYPE
+} Tanto_V_ImageFileType;
+
 Tanto_V_Image tanto_v_CreateImageAndSampler(
     const uint32_t width, 
     const uint32_t height,

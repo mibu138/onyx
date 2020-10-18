@@ -1,5 +1,7 @@
 #include "v_image.h"
 #include "v_video.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "thirdparty/stb_image.h"
 
 Tanto_V_Image tanto_v_CreateImageAndSampler(
     const uint32_t width, 
@@ -89,4 +91,10 @@ void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageL
     tanto_v_SubmitToQueueWait(&cmdBuf, TANTO_V_QUEUE_GRAPHICS_TYPE, 0);
 
     vkDestroyCommandPool(device, cmdPool, NULL);
+}
+
+void tanto_v_SaveImage(const Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
+{
+    assert( fileType == TANTO_V_IMAGE_FILE_PNG_TYPE );
+
 }

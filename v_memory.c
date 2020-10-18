@@ -8,9 +8,10 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST        52428800  
-#define MEMORY_SIZE_DEV_BUFFER  52428800  // 50 MiB
-#define MEMORY_SIZE_DEV_IMAGE   5000000000  // 500 MiB
+#define MEMORY_SIZE_HOST          52428800  
+#define MEMORY_SIZE_DEV_BUFFER    52428800  // 50 MiB
+#define MEMORY_SIZE_DEV_IMAGE     0x80000000 // ~2 GB
+#define MEMORY_SIZE_HOST_TRANSFER 0x80000000 // ~2 GB
 #define MAX_BLOCKS 256
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -23,21 +24,21 @@ typedef struct tanto_V_MemBlock {
 } Tanto_V_MemBlock;
 
 struct BlockChain {
-    VkDeviceSize      totalSize;
-    uint32_t          count;
-    uint32_t          cur;
-    uint32_t          nextBlockId;
-    VkDeviceMemory    memory;
-    VkBuffer          buffer;
-    uint8_t*          hostData;
-    Tanto_V_MemBlock  blocks[MAX_BLOCKS];
+    VkDeviceSize       totalSize;
+    VkDeviceSize       defaultAlignment;
+    uint32_t           count;
+    uint32_t           cur;
+    uint32_t           nextBlockId;
+    VkDeviceMemory     memory;
+    VkBuffer           buffer;
+    VkBufferUsageFlags bufferFlags;
+    uint8_t*           hostData;
+    Tanto_V_MemBlock   blocks[MAX_BLOCKS];
 };
 
-static struct BlockChain hbBlockChain;
-static struct BlockChain diBlockChain;
-static struct BlockChain dbBlockChain;
-
-static bool initializedBlockChain;
+static struct BlockChain blockChainHostGraphics;
+static struct BlockChain blockChainHostTransfer;
+static struct BlockChain blockChainDeviceImage;
 
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
@@ -58,7 +59,10 @@ static void printBlockChainInfo(const struct BlockChain* chain)
     printf("\n");
 }
 
-static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memTypeIndex, const VkBufferUsageFlags bufferUsageFlags, struct BlockChain* chain)
+static void initBlockChain(
+        const VkDeviceSize memorySize, 
+        const uint32_t memTypeIndex, 
+        const VkBufferUsageFlags bufferUsageFlags, struct BlockChain* chain)
 {
     memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
@@ -66,6 +70,8 @@ static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memType
     chain->cur   = 0;
     chain->totalSize = memorySize;
     chain->nextBlockId = 0;
+    chain->defaultAlignment = 0;
+    chain->bufferFlags = bufferUsageFlags;
     chain->blocks[0].inUse = false;
     chain->blocks[0].offset = 0;
     chain->blocks[0].size = memorySize;
@@ -94,6 +100,8 @@ static void initBlockChain(const VkDeviceSize memorySize, const uint32_t memType
         VkMemoryRequirements memReqs;
 
         vkGetBufferMemoryRequirements(device, chain->buffer, &memReqs);
+
+        chain->defaultAlignment = memReqs.alignment;
 
         printf("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
 
@@ -235,46 +243,50 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
          VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
 
-    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, &hbBlockChain);
-    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, &diBlockChain);
+    VkBufferUsageFlags hostTransferFlags = 
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, &blockChainHostGraphics);
+    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, &blockChainDeviceImage);
+    initBlockChain(MEMORY_SIZE_HOST_TRANSFER, hostVisibleCoherentTypeIndex, hostTransferFlags, &blockChainHostTransfer);
 }
 
 Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
         const size_t size, 
-        const uint32_t alignment, const Tanto_V_MemoryType memType)
+        uint32_t alignment, const Tanto_V_MemoryType memType)
 {
     assert( size % 4 == 0 ); // only allow for word-sized blocks
-    Tanto_V_MemBlock* block;
+    Tanto_V_MemBlock*  block;
+    struct BlockChain* chain;
     switch (memType) 
     {
-        case TANTO_V_MEMORY_HOST_TYPE: block = requestBlock(size, alignment, &hbBlockChain); break;
-        case TANTO_V_MEMORY_DEVICE_TYPE: block = requestBlock(size, alignment, &dbBlockChain); break;
+        case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: chain = &blockChainHostGraphics; break;
+        case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: chain = &blockChainHostTransfer; break;
+        default: block = NULL; assert(0);
     }
 
+    if (0 == alignment)
+        alignment = chain->defaultAlignment;
+
+    block = requestBlock(size, alignment, chain); 
     Tanto_V_BufferRegion region;
     region.offset = block->offset;
     region.memBlockId = block->id;
     region.size = block->size;
+    region.buffer = chain->buffer;
+    region.hostData = chain->hostData + block->offset;
+    region.pChain = chain;
 
-    if (memType == TANTO_V_MEMORY_HOST_TYPE)
-    {
-        region.buffer = hbBlockChain.buffer;
-        region.hostData = hbBlockChain.hostData + block->offset;
-    }
-    else
-    {
-        region.buffer = VK_NULL_HANDLE;
-        region.hostData = NULL;
-    }
-
-    printBlockChainInfo(&hbBlockChain);
+    printBlockChainInfo(&blockChainHostGraphics);
 
     return region;
 }
 
-Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size, const VkBufferUsageFlags flags)
+Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size, 
+        const VkBufferUsageFlags flags, const Tanto_V_MemoryType memType)
 {
-    uint32_t alignment = 0x40;
+    uint32_t alignment = 0;
     // the order of this if statements matters. it garuantees the maximum
     // alignment is chose if multiple flags are present
     if ( VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
@@ -287,7 +299,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size, const VkBuff
         // must satisfy alignment requirements for uniform buffers
         alignment = 0x40;
     }
-    return tanto_v_RequestBufferRegionAligned(size, alignment, TANTO_V_MEMORY_HOST_TYPE);
+    return tanto_v_RequestBufferRegionAligned(size, alignment, memType);
 }
 
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
@@ -337,10 +349,10 @@ Tanto_V_Image tanto_v_CreateImage(
 
     printf("Requesting image of size %ld\n", memReqs.size);
 
-    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &diBlockChain);
+    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
     image.memBlockId = block->id;
 
-    vkBindImageMemory(device, image.handle, diBlockChain.memory, block->offset);
+    vkBindImageMemory(device, image.handle, blockChainDeviceImage.memory, block->offset);
 
     VkImageViewCreateInfo viewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -371,16 +383,17 @@ void tanto_v_DestroyImage(Tanto_V_Image image)
         vkDestroySampler(device, image.sampler, NULL);
     vkDestroyImageView(device, image.view, NULL);
     vkDestroyImage(device, image.handle, NULL);
-    freeBlock(&diBlockChain, image.memBlockId);
+    freeBlock(&blockChainDeviceImage, image.memBlockId);
 }
 
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion region)
 {
-    freeBlock(&hbBlockChain, region.memBlockId);
+    freeBlock(region.pChain, region.memBlockId);
 }
 
 void tanto_v_CleanUpMemory()
 {
-    freeBlockChain(&hbBlockChain);
-    freeBlockChain(&diBlockChain);
+    freeBlockChain(&blockChainHostGraphics);
+    freeBlockChain(&blockChainDeviceImage);
+    freeBlockChain(&blockChainHostTransfer);
 };

@@ -9,12 +9,17 @@ Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
     Tanto_R_Mesh m = {};
     size_t nverts = pm.vertexCount;
     m.vertexCount = nverts;
-    m.vertexBlock = tanto_v_RequestBufferRegion(nverts * sizeof(Tanto_R_Vertex), VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m.vertexBlock = tanto_v_RequestBufferRegion(
+            nverts * sizeof(Tanto_R_Vertex), 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     m.posOffset   = nverts * sizeof(Tanto_R_Attribute) * 0;
     m.colOffset   = nverts * sizeof(Tanto_R_Attribute) * 1;
     m.norOffset   = nverts * sizeof(Tanto_R_Attribute) * 2;
     m.uvwOffset   = nverts * sizeof(Tanto_R_Attribute) * 3;
-    m.indexBlock  = tanto_v_RequestBufferRegion(nverts * sizeof(Tanto_R_Index), VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+    m.indexBlock  = tanto_v_RequestBufferRegion(nverts * sizeof(Tanto_R_Index), 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     m.indexCount  = nverts;
 
     memcpy(m.vertexBlock.hostData + m.posOffset, pm.posData, sizeof(Tanto_R_Attribute) * nverts);
@@ -33,10 +38,12 @@ Tanto_R_Mesh tanto_r_CreateMesh(uint32_t vertexCount, uint32_t indexCount)
     mesh.indexCount  = indexCount;
     mesh.vertexBlock = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Vertex) * mesh.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     mesh.indexBlock  = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * mesh.indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT|
-            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT);
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     mesh.posOffset = 0 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
     mesh.colOffset = 1 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
     mesh.norOffset = 2 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
