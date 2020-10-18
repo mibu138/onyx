@@ -15,7 +15,8 @@ VkRenderPass   swapchainRenderPass;
 VkRenderPass   offscreenRenderPass;
 
 const VkFormat presentColorFormat = VK_FORMAT_R8G8B8A8_SRGB;
-const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+//const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+const VkFormat offscreenColorFormat = VK_FORMAT_R8G8B8A8_SNORM;
 const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
 Tanto_R_Frame  frames[TANTO_FRAME_COUNT];

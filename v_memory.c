@@ -10,7 +10,7 @@
 // DL = Device Local    
 #define MEMORY_SIZE_HOST        52428800  
 #define MEMORY_SIZE_DEV_BUFFER  52428800  // 50 MiB
-#define MEMORY_SIZE_DEV_IMAGE   2048576000  // 500 MiB
+#define MEMORY_SIZE_DEV_IMAGE   5000000000  // 500 MiB
 #define MAX_BLOCKS 256
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -23,7 +23,7 @@ typedef struct tanto_V_MemBlock {
 } Tanto_V_MemBlock;
 
 struct BlockChain {
-    uint32_t          totalSize;
+    VkDeviceSize      totalSize;
     uint32_t          count;
     uint32_t          cur;
     uint32_t          nextBlockId;
@@ -47,7 +47,7 @@ static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 static void printBlockChainInfo(const struct BlockChain* chain)
 {
     printf("BlockChain Info:\n");
-    printf("totalSize: %d\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
+    printf("totalSize: %ld\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
     printf("memory: %p\t buffer: %p\t hostData: %p\n", chain->memory, chain->buffer, chain->hostData);
     printf("Blocks: \n");
     for (int i = 0; i < chain->count; i++) 
