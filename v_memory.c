@@ -10,7 +10,7 @@
 // DL = Device Local    
 #define MEMORY_SIZE_HOST        52428800  
 #define MEMORY_SIZE_DEV_BUFFER  52428800  // 50 MiB
-#define MEMORY_SIZE_DEV_IMAGE   524288000 // 500 MiB
+#define MEMORY_SIZE_DEV_IMAGE   2048576000  // 500 MiB
 #define MAX_BLOCKS 256
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;

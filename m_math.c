@@ -78,6 +78,23 @@ Vec3 m_Add_Vec3(const Vec3* a, const Vec3* b)
         a->x[2] + b->x[2]};
 }
 
+Vec3 m_Sub_Vec3(const Vec3* a, const Vec3* b)
+{
+    return (Vec3){
+        a->x[0] - b->x[0],
+        a->x[1] - b->x[1],
+        a->x[2] - b->x[2]};
+}
+
+Vec3 m_Cross(const Vec3 *a, const Vec3 *b)
+{
+    Vec3 v;
+    v.x[0] = a->x[1] * b->x[2] - a->x[2] * b->x[1];
+    v.x[1] = a->x[2] * b->x[0] - a->x[0] * b->x[2];
+    v.x[2] = a->x[0] * b->x[1] - a->x[1] * b->x[0];
+    return v;
+}
+
 Vec3 m_Mult_Mat4Vec3(const Mat4* m, const Vec3* v)
 {
     Vec3 out;
@@ -103,6 +120,30 @@ Mat4 m_Mult_Mat4(const Mat4* a, const Mat4* b)
                 out.x[i][j] += a->x[i][k] * b->x[k][j];
         }
     return out;
+}
+
+Mat4 m_BuildRotate(const float angle, const Vec3* axis)
+{
+    const float x = axis->x[0];
+    const float y = axis->x[1];
+    const float z = axis->x[2];
+    const float a = angle;
+    const Vec3 col1 = {
+        cos(a) + x*x*(1 - cos(a)),
+        x*y*(1 - cos(a)) + z*sin(a),
+        z*x*(1 - cos(a)) - y*sin(a)
+    };
+    const Vec3 col2 = {
+        x*y*(1 - cos(a)) - z*sin(a),
+        cos(a) + y*y*(1 - cos(a)),
+        z*y*(1 - cos(a)) + x*sin(a)
+    };
+    const Vec3 col3 = {
+        x*z*(1 - cos(a)) + y*sin(a),
+        y*z*(1 - cos(a)) - x*sin(a),
+        cos(a) + z*z*(1 - cos(a))
+    };
+    return m_BuildFromBasis_Mat4(col1.x, col2.x, col3.x);
 }
 
 Mat4 m_RotateY_Mat4(const float angle, const Mat4* m)
@@ -140,6 +181,32 @@ Mat4 m_Translate_Mat4(const Vec3 t, const Mat4 *m)
         t.x[0], t.x[1], t.x[2], 1
     };
     return m_Mult_Mat4(&trans, m);
+}
+
+Mat4 m_BuildFromBasis_Mat4(const float x[3], const float y[3], const float z[3])
+{
+    const Mat4 m = (Mat4){
+        x[0], x[1], x[2], 0,
+        y[0], y[1], y[2], 0,
+        z[0], z[1], z[2], 0,
+        0,       0,    0, 1
+    };
+    return m;
+}
+
+Mat4 m_LookAt(const Vec3* pos, const Vec3* target, const Vec3* up)
+{
+    Vec3 temp = m_Sub_Vec3(target, pos);
+    const Vec3 dir = m_Normalize_Vec3(&temp);
+    temp = m_Cross(&dir, up);
+    const Vec3 x = m_Normalize_Vec3(&temp);
+    temp = m_Cross(&x, &dir);
+    const Vec3 y = m_Normalize_Vec3(&temp);
+    const Vec3 z = m_Scale_Vec3(-1, &dir);
+    Mat4 m = m_BuildFromBasis_Mat4(x.x, y.x, z.x);
+    m = m_Transpose_Mat4(&m);
+    m = m_Translate_Mat4(m_Scale_Vec3(-1, pos), &m);
+    return m;
 }
 
 void m_ScaleUniform_Mat4(const float s, Mat4 *m)

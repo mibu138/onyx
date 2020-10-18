@@ -773,7 +773,6 @@ static void initSwapchain(void)
 
 const VkInstance* tanto_v_Init(void)
 {
-    tanto_v_config.rayTraceEnabled = true;
     nativeSurface = VK_NULL_HANDLE;
     initVkInstance();
     initDebugMessenger();
