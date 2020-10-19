@@ -35,7 +35,10 @@ typedef struct {
     VkImage           handle;
     VkImageView       view;
     VkSampler         sampler;
+    VkDeviceSize      size; // size in bytes. taken from GetMemReqs
+    VkExtent3D        extent;
     Tanto_V_BlockId   memBlockId;
+    VkImageLayout     layout;
 } Tanto_V_Image;
 
 void tanto_v_InitMemory(void);

@@ -24,6 +24,7 @@
 // these values are arbitrary
 #define TANTO_KEY_E     101
 #define TANTO_KEY_Q     102
+#define TANTO_KEY_P     103
 #define TANTO_KEY_CTRL  24
 #define TANTO_KEY_ESC   27
 #define TANTO_KEY_R     140

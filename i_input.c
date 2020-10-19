@@ -35,6 +35,7 @@ static Tanto_I_EventData getKeyCode(xcb_key_press_event_t* event)
         case XK_d:         data.keyCode = TANTO_KEY_D; break;
         case XK_e:         data.keyCode = TANTO_KEY_E; break;
         case XK_q:         data.keyCode = TANTO_KEY_Q; break;
+        case XK_p:         data.keyCode = TANTO_KEY_P; break;
         case XK_space:     data.keyCode = TANTO_KEY_SPACE; break;
         case XK_Control_L: data.keyCode = TANTO_KEY_CTRL; break;
         case XK_Escape:    data.keyCode = TANTO_KEY_ESC; break;

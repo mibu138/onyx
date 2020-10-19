@@ -23,6 +23,7 @@ DEPS =  \
     v_def.h      \
     v_memory.h   \
 	v_image.h    \
+	v_command.h  \
     r_render.h   \
     r_pipeline.h \
 	r_raytrace.h \
@@ -39,6 +40,7 @@ OBJS =  \
 	$(O)/v_def.o      \
     $(O)/v_memory.o   \
 	$(O)/v_image.o    \
+	$(O)/v_command.o  \
     $(O)/r_render.o   \
     $(O)/r_pipeline.o \
 	$(O)/r_raytrace.o \

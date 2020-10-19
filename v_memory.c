@@ -278,7 +278,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     region.hostData = chain->hostData + block->offset;
     region.pChain = chain;
 
-    printBlockChainInfo(&blockChainHostGraphics);
+    printBlockChainInfo(chain);
 
     return region;
 }
@@ -351,6 +351,10 @@ Tanto_V_Image tanto_v_CreateImage(
 
     const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
     image.memBlockId = block->id;
+    image.size = memReqs.size;
+    image.extent.depth = 1;
+    image.extent.width = width;
+    image.extent.height = height;
 
     vkBindImageMemory(device, image.handle, blockChainDeviceImage.memory, block->offset);
 
