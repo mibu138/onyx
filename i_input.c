@@ -21,7 +21,7 @@ static int     eventTail;
 static Tanto_I_SubscriberFn subscribers[MAX_SUBSCRIBERS];
 static int subscriberCount;
 
-static Tanto_I_EventData getKeyCode(xcb_key_press_event_t* event)
+static Tanto_I_EventData getKeyData(xcb_key_press_event_t* event)
 {
     // XCB documentation is fucking horrible. fucking last parameter is called col. wtf? 
     // no clue what that means. ZERO documentation on this function. trash.
@@ -36,6 +36,7 @@ static Tanto_I_EventData getKeyCode(xcb_key_press_event_t* event)
         case XK_e:         data.keyCode = TANTO_KEY_E; break;
         case XK_q:         data.keyCode = TANTO_KEY_Q; break;
         case XK_p:         data.keyCode = TANTO_KEY_P; break;
+        case XK_i:         data.keyCode = TANTO_KEY_I; break;
         case XK_space:     data.keyCode = TANTO_KEY_SPACE; break;
         case XK_Control_L: data.keyCode = TANTO_KEY_CTRL; break;
         case XK_Escape:    data.keyCode = TANTO_KEY_ESC; break;
@@ -45,12 +46,15 @@ static Tanto_I_EventData getKeyCode(xcb_key_press_event_t* event)
     return data;
 }
 
-static Tanto_I_EventData getMouseCoords(const xcb_generic_event_t* event)
+static Tanto_I_EventData getMouseData(const xcb_generic_event_t* event)
 {
     xcb_motion_notify_event_t* motion = (xcb_motion_notify_event_t*)event;
     Tanto_I_EventData data;
-    data.mouseCoords.x = motion->event_x;
-    data.mouseCoords.y = motion->event_y;
+    data.mouseData.x = motion->event_x;
+    data.mouseData.y = motion->event_y;
+    if (motion->detail & XCB_BUTTON_MASK_1) data.mouseData.buttonCode = TANTO_MOUSE_LEFT; 
+    if (motion->detail & XCB_BUTTON_MASK_3) data.mouseData.buttonCode = TANTO_MOUSE_RIGHT;
+    if (motion->detail & XCB_BUTTON_MASK_2) data.mouseData.buttonCode = TANTO_MOUSE_MID; 
     return data;
 }
 
@@ -78,7 +82,7 @@ void tanto_i_GetEvents(void)
         {
             case XCB_KEY_PRESS: 
                 event.type = TANTO_I_KEYDOWN; 
-                Tanto_I_EventData data = getKeyCode((xcb_key_press_event_t*)xEvent);
+                Tanto_I_EventData data = getKeyData((xcb_key_press_event_t*)xEvent);
                 if (data.keyCode == 0) goto end;
                 event.data = data;
                 break;
@@ -90,7 +94,7 @@ void tanto_i_GetEvents(void)
                 // result in the same thing, and wheter it is worthwhile 
                 // accounting for that
                 event.type = TANTO_I_KEYUP;
-                data = getKeyCode((xcb_key_press_event_t*)xEvent);
+                data = getKeyData((xcb_key_press_event_t*)xEvent);
                 if (data.keyCode == 0) goto end;
                 event.data = data;
                 // need to see if this is actually an auto repeat
@@ -99,7 +103,7 @@ void tanto_i_GetEvents(void)
                 {
                     Tanto_I_Event event2;
                     uint8_t type = XCB_EVENT_RESPONSE_TYPE(next);
-                    event2.data = getKeyCode((xcb_key_press_event_t*)next);
+                    event2.data = getKeyData((xcb_key_press_event_t*)next);
                     if (type == XCB_KEY_PRESS 
                             && event2.data.keyCode == event.data.keyCode)
                     {
@@ -119,15 +123,15 @@ void tanto_i_GetEvents(void)
                 break;
             case XCB_BUTTON_PRESS:
                 event.type = TANTO_I_MOUSEDOWN;
-                event.data = getMouseCoords(xEvent);
+                event.data = getMouseData(xEvent);
                 break;
             case XCB_BUTTON_RELEASE:
                 event.type = TANTO_I_MOUSEUP;
-                event.data = getMouseCoords(xEvent);
+                event.data = getMouseData(xEvent);
                 break;
             case XCB_MOTION_NOTIFY:
                 event.type = TANTO_I_MOTION;
-                event.data = getMouseCoords(xEvent);
+                event.data = getMouseData(xEvent);
                 break;
             default: return;
         }

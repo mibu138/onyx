@@ -4,13 +4,14 @@
 #include <stdint.h>
 
 typedef struct {
-    int16_t x;
-    int16_t y;
-} Tanto_I_MouseCoords;
+    int16_t  x;
+    int16_t  y;
+    uint8_t  buttonCode;
+} Tanto_I_MouseData;
 
 typedef union {
-    uint32_t keyCode;
-    Tanto_I_MouseCoords mouseCoords;
+    uint32_t          keyCode;
+    Tanto_I_MouseData mouseData;
 } Tanto_I_EventData;
 
 typedef enum {

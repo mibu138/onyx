@@ -3,6 +3,19 @@
 #include <math.h>
 #include <assert.h>
 
+
+#define CROSS(dest,v1,v2) \
+    dest[0]=v1[1]*v2[2]-v1[2]*v2[1]; \
+    dest[1]=v1[2]*v2[0]-v1[0]*v2[2]; \
+    dest[2]=v1[0]*v2[1]-v1[1]*v2[0];
+
+#define DOT(v1,v2) (v1[0]*v2[0]+v1[1]*v2[1]+v1[2]*v2[2])
+
+#define SUB(dest,v1,v2) \
+    dest[0]=v1[0]-v2[0]; \
+    dest[1]=v1[1]-v2[1]; \
+    dest[2]=v1[2]-v2[2];
+
 static void m_Mult_Mat2Vec2(const Mat2* m, Vec2* v)
 {
     float x = m->x00 * v->x + m->x01 * v->y;
@@ -86,6 +99,13 @@ Vec3 m_Sub_Vec3(const Vec3* a, const Vec3* b)
         a->x[2] - b->x[2]};
 }
 
+float m_Dot(const Vec3* a, const Vec3* b)
+{
+    return a->x[0] * b->x[0] 
+         + a->x[1] * b->x[1] 
+         + a->x[2] * b->x[2];
+}
+
 Vec3 m_Cross(const Vec3 *a, const Vec3 *b)
 {
     Vec3 v;
@@ -102,6 +122,20 @@ Vec3 m_Mult_Mat4Vec3(const Mat4* m, const Vec3* v)
     {
         out.x[i] = 0.0;
         for (int j = 0; j < 3; j++) 
+        {
+            out.x[i] += m->x[j][i] * v->x[j];
+        }
+    }
+    return out;
+}
+
+Vec4 m_Mult_Mat4Vec4(const Mat4* m, const Vec4* v)
+{
+    Vec4 out;
+    for (int i = 0; i < 4; i++) 
+    {
+        out.x[i] = 0.0;
+        for (int j = 0; j < 4; j++) 
         {
             out.x[i] += m->x[j][i] * v->x[j];
         }
@@ -312,6 +346,11 @@ float m_Length_Vec3(const Vec3* v)
     return sqrt(v->x[0] * v->x[0] + v->x[1] * v->x[1] + v->x[2] * v->x[2]);
 }
 
+float m_Length_Vec4(const Vec4* v)
+{
+    return sqrt(v->x[0] * v->x[0] + v->x[1] * v->x[1] + v->x[2] * v->x[2] + v->x[3] * v->x[3]);
+}
+
 Vec3 m_Scale_Vec3(const float s, const Vec3* v)
 {
     return (Vec3){v->x[0] * s, v->x[1] * s, v->x[2] * s};
@@ -322,6 +361,13 @@ Vec3 m_Normalize_Vec3(const Vec3* v)
     const float m = m_Length_Vec3(v);
     assert(m != 0.0);
     return (Vec3){v->x[0] / m, v->x[1] / m, v->x[2] / m};
+}
+
+Vec4 m_Normalize_Vec4(const Vec4* v)
+{
+    const float m = m_Length_Vec4(v);
+    assert(m != 0.0);
+    return (Vec4){v->x[0] / m, v->x[1] / m, v->x[2] / m, v->x[3] / m};
 }
 
 Mat4 m_Invert4x4(const Mat4* const mat)
@@ -455,3 +501,33 @@ Mat4 m_Invert4x4(const Mat4* const mat)
     }
     return out;
 }
+
+#define EPSILON 0.000001
+// Moller & Trumbore triangle intersection algorithm
+// this culls all triangles facing away
+int m_IntersectTriangle(const Vec3* orig, const Vec3* dir, 
+        const Vec3* vert0, const Vec3* vert1, const Vec3* vert2,
+        float* t, float* u, float* v)
+{
+    const Vec3 edge1 = m_Sub_Vec3(vert1, vert0);
+    const Vec3 edge2 = m_Sub_Vec3(vert2, vert0);
+    const Vec3 pvec  = m_Cross(dir, &edge2);
+    const float det  = m_Dot(&edge1, &pvec);
+    if (det < EPSILON) 
+        return 0;
+    const Vec3 tvec  = m_Sub_Vec3(orig, vert0);
+    *u = m_Dot(&tvec, &pvec);
+    if (*u < 0.0 || *u > det) // may have branch detection issues
+        return 0; 
+    const Vec3 qvec  = m_Cross(&tvec, &edge1);
+    *v = m_Dot(dir, &qvec);
+    if (*v < 0.0 || *u + *v > det) 
+        return 0;
+    *t = m_Dot(&edge2, &qvec);
+    const float inv_det = 1.0 / det;
+    *t *= inv_det;
+    *u *= inv_det;
+    *v *= inv_det;
+    return 1;
+}
+
