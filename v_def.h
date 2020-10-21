@@ -9,6 +9,7 @@
 
 typedef struct {
     bool rayTraceEnabled;
+    bool validationEnabled;
 } Tanto_V_Config;
 
 extern Tanto_V_Config tanto_v_config;

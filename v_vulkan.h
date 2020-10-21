@@ -6,7 +6,12 @@
 #include <vulkan/vulkan.h>
 #include <assert.h>
 
+#ifndef NDEBUG
 #define V_ASSERT(expr) (assert( VK_SUCCESS == expr ) )
+#else
+#define V_ASSERT(expr) (expr)
+#endif
+
 
 #define TANTO_WINDOW_WIDTH  1000
 #define TANTO_WINDOW_HEIGHT 1000

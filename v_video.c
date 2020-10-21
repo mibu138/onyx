@@ -125,7 +125,7 @@ static void initVkInstance(void)
         VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT
     };
 
-    const VkValidationFeaturesEXT extraValidation = {
+    VkValidationFeaturesEXT extraValidation = {
         .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
         .disabledValidationFeatureCount = 0,
         .enabledValidationFeatureCount = sizeof(valfeatures) / sizeof(VkValidationFeatureEnableEXT),
@@ -136,6 +136,7 @@ static void initVkInstance(void)
         "VK_LAYER_KHRONOS_validation",
         "VK_LAYER_LUNARG_monitor"
     };
+
     const char* enabledExtensions[] = {
         "VK_KHR_surface",
         "VK_KHR_xcb_surface",
@@ -144,7 +145,7 @@ static void initVkInstance(void)
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
     };
 
-    const VkInstanceCreateInfo instanceInfo = {
+    VkInstanceCreateInfo instanceInfo = {
         .enabledLayerCount = sizeof(enabledLayers) / sizeof(char*),
         .enabledExtensionCount = sizeof(enabledExtensions) / sizeof(char*),
         .ppEnabledExtensionNames = enabledExtensions,
@@ -153,6 +154,11 @@ static void initVkInstance(void)
         .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext = &extraValidation,
     };
+
+    if (!tanto_v_config.validationEnabled)
+    {
+        instanceInfo.enabledLayerCount = 0; // disables layers
+    }
 
     VkResult result = vkCreateInstance(&instanceInfo, NULL, &instance);
     assert(result == VK_SUCCESS);
@@ -457,7 +463,8 @@ const VkInstance* tanto_v_Init(void)
 {
     nativeSurface = VK_NULL_HANDLE;
     initVkInstance();
-    initDebugMessenger();
+    if (tanto_v_config.validationEnabled)
+        initDebugMessenger();
     initDevice();
     tanto_v_LoadFunctions(&device);
     initQueues();

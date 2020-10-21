@@ -8,7 +8,7 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST          52428800  
+#define MEMORY_SIZE_HOST          0x80000000 // ~2 GB
 #define MEMORY_SIZE_DEV_BUFFER    52428800  // 50 MiB
 #define MEMORY_SIZE_DEV_IMAGE     0x80000000 // ~2 GB
 #define MEMORY_SIZE_HOST_TRANSFER 0x80000000 // ~2 GB
@@ -130,7 +130,7 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
 {
     //size_t cur  = chain->cur;
     size_t cur  = 0;
-    const size_t init = cur;
+    size_t init = cur;
     const size_t count = chain->count;
     assert( size < chain->totalSize );
     assert( count > 0 );
@@ -186,8 +186,8 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
 
 void tanto_v_InitMemory(void)
 {
-    uint32_t hostVisibleCoherentTypeIndex;
-    int deviceLocalTypeIndex;
+    uint32_t hostVisibleCoherentTypeIndex = 0;
+    uint32_t deviceLocalTypeIndex = 0;
 
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
@@ -257,8 +257,8 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
         uint32_t alignment, const Tanto_V_MemoryType memType)
 {
     assert( size % 4 == 0 ); // only allow for word-sized blocks
-    Tanto_V_MemBlock*  block;
-    struct BlockChain* chain;
+    Tanto_V_MemBlock*  block = NULL;
+    struct BlockChain* chain = NULL;
     switch (memType) 
     {
         case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: chain = &blockChainHostGraphics; break;

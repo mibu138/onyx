@@ -531,3 +531,12 @@ int m_IntersectTriangle(const Vec3* orig, const Vec3* dir,
     return 1;
 }
 
+Vec3 m_Lerp_Vec3(const Vec3* a, const Vec3* b, const float t)
+{
+    assert(t >= 0.0 && t <= 1.0);
+    Vec3 v;
+    v.x[0] = a->x[0] * (1.0 - t) + b->x[0] * t;
+    v.x[1] = a->x[1] * (1.0 - t) + b->x[1] * t;
+    v.x[2] = a->x[2] * (1.0 - t) + b->x[2] * t;
+    return v;
+}

@@ -52,9 +52,9 @@ static Tanto_I_EventData getMouseData(const xcb_generic_event_t* event)
     Tanto_I_EventData data;
     data.mouseData.x = motion->event_x;
     data.mouseData.y = motion->event_y;
-    if (motion->detail & XCB_BUTTON_MASK_1) data.mouseData.buttonCode = TANTO_MOUSE_LEFT; 
-    if (motion->detail & XCB_BUTTON_MASK_3) data.mouseData.buttonCode = TANTO_MOUSE_RIGHT;
-    if (motion->detail & XCB_BUTTON_MASK_2) data.mouseData.buttonCode = TANTO_MOUSE_MID; 
+    if (motion->detail == 1) data.mouseData.buttonCode = TANTO_MOUSE_LEFT; 
+    else if (motion->detail == 2) data.mouseData.buttonCode = TANTO_MOUSE_MID; 
+    else if (motion->detail == 3) data.mouseData.buttonCode = TANTO_MOUSE_RIGHT;
     return data;
 }
 

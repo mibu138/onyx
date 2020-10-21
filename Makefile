@@ -63,7 +63,7 @@ SHADERS =                         \
 debug: CFLAGS += -g -DVERBOSE=1
 debug: all
 
-release: CFLAGS += -DNDEBUG -O2
+release: CFLAGS += -DNDEBUG -O3 
 release: all
 
 all: lib tags
