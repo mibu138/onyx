@@ -22,7 +22,7 @@ typedef enum {
     TANTO_I_MOTION
 } Tanto_I_EventType;
 
-typedef struct {
+typedef struct Tanto_I_Event {
     Tanto_I_EventType type;
     Tanto_I_EventData data;
 } Tanto_I_Event;

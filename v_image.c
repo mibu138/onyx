@@ -142,6 +142,8 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
 
     tanto_v_SubmitToQueueWait(&cmd.buffer, TANTO_V_QUEUE_GRAPHICS_TYPE, 3); //arbitrary index
 
+    vkDestroyCommandPool(device, cmd.handle, NULL);
+
     tanto_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout, image);
 
     const char* filepath = "/home/michaelb/Pictures/TANTO_IMG.jpg";
