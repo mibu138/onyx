@@ -1,6 +1,7 @@
 #include "v_memory.h"
 #include "v_video.h"
 #include "t_def.h"
+#include "v_command.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -8,10 +9,10 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST          0x80000000 // ~2 GB
-#define MEMORY_SIZE_DEV_BUFFER    52428800  // 50 MiB
-#define MEMORY_SIZE_DEV_IMAGE     0x80000000 // ~2 GB
-#define MEMORY_SIZE_HOST_TRANSFER 0x80000000 // ~2 GB
+#define MEMORY_SIZE_HOST          0x40000000 // 
+#define MEMORY_SIZE_DEV_BUFFER    0x40000000 // 
+#define MEMORY_SIZE_DEV_IMAGE     0x10000000 // 
+#define MEMORY_SIZE_HOST_TRANSFER 0x10000000 // 
 #define MAX_BLOCKS 256
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -38,6 +39,7 @@ struct BlockChain {
 
 static struct BlockChain blockChainHostGraphics;
 static struct BlockChain blockChainHostTransfer;
+static struct BlockChain blockChainDeviceGraphics;
 static struct BlockChain blockChainDeviceImage;
 
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
@@ -62,7 +64,9 @@ static void printBlockChainInfo(const struct BlockChain* chain)
 static void initBlockChain(
         const VkDeviceSize memorySize, 
         const uint32_t memTypeIndex, 
-        const VkBufferUsageFlags bufferUsageFlags, struct BlockChain* chain)
+        const VkBufferUsageFlags bufferUsageFlags, 
+        const bool mapBuffer,
+        struct BlockChain* chain)
 {
     memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
@@ -105,7 +109,10 @@ static void initBlockChain(
 
         printf("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
 
-        V_ASSERT( vkMapMemory(device, chain->memory, 0, VK_WHOLE_SIZE, 0, (void**)&chain->hostData) );
+        if (mapBuffer)
+            V_ASSERT( vkMapMemory(device, chain->memory, 0, VK_WHOLE_SIZE, 0, (void**)&chain->hostData) );
+        else 
+            chain->hostData = NULL;
     }
     else
     {
@@ -241,15 +248,26 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-         VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR;
+         VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR |
+         VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VkBufferUsageFlags hostTransferFlags = 
         VK_BUFFER_USAGE_TRANSFER_DST_BIT |
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, &blockChainHostGraphics);
-    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, &blockChainDeviceImage);
-    initBlockChain(MEMORY_SIZE_HOST_TRANSFER, hostVisibleCoherentTypeIndex, hostTransferFlags, &blockChainHostTransfer);
+    VkBufferUsageFlags devBufFlags = 
+         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
+         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
+         VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
+         VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR |
+         VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, true, &blockChainHostGraphics);
+    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, false, &blockChainDeviceImage);
+    initBlockChain(MEMORY_SIZE_HOST_TRANSFER, hostVisibleCoherentTypeIndex, hostTransferFlags, true, &blockChainHostTransfer);
+    initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, devBufFlags, false, &blockChainDeviceGraphics);
 }
 
 Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
@@ -263,6 +281,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     {
         case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: chain = &blockChainHostGraphics; break;
         case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: chain = &blockChainHostTransfer; break;
+        case TANTO_V_MEMORY_DEVICE_TYPE:        chain = &blockChainDeviceGraphics; break;
         default: block = NULL; assert(0);
     }
 
@@ -393,6 +412,31 @@ void tanto_v_DestroyImage(Tanto_V_Image image)
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion region)
 {
     freeBlock(region.pChain, region.memBlockId);
+}
+
+Tanto_V_BufferRegion tanto_v_TransferToDevice(Tanto_V_BufferRegion srcRegion)
+{
+    assert( srcRegion.pChain == &blockChainHostGraphics ); // only chain it makes sense to transfer from
+    Tanto_V_BufferRegion destRegion = tanto_v_RequestBufferRegion(srcRegion.size, 0, TANTO_V_MEMORY_DEVICE_TYPE);
+
+    Tanto_V_CommandPool cmdPool = tanto_v_RequestOneTimeUseCommand(0); // arbitrary index;
+
+    VkBufferCopy copy;
+    copy.srcOffset = srcRegion.offset;
+    copy.dstOffset = destRegion.offset;
+    copy.size      = srcRegion.size;
+
+    vkCmdCopyBuffer(cmdPool.buffer, srcRegion.buffer, destRegion.buffer, 1, &copy);
+
+    vkEndCommandBuffer(cmdPool.buffer);
+
+    tanto_v_SubmitToQueueWait(&cmdPool.buffer, TANTO_V_QUEUE_GRAPHICS_TYPE, 0);
+
+    vkDestroyCommandPool(device, cmdPool.handle, NULL);
+
+    tanto_v_FreeBufferRegion(srcRegion);
+
+    return destRegion;
 }
 
 void tanto_v_CleanUpMemory()

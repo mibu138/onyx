@@ -27,6 +27,13 @@ Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
     memcpy(m.vertexBlock.hostData + m.norOffset, pm.norData, sizeof(Tanto_R_Attribute) * nverts);
     memcpy(m.vertexBlock.hostData + m.uvwOffset, pm.uvwData, sizeof(Tanto_R_Attribute) * nverts);
     memcpy(m.indexBlock.hostData, pm.indexData, sizeof(Tanto_R_Index) * nverts);
+
+    // the new stuff
+
+    tanto_v_TransferToDevice(m.vertexBlock);
+    tanto_v_TransferToDevice(m.indexBlock);
+
+    // 
     
     return m;
 }
@@ -204,6 +211,12 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
             indices[face * 6 + 4] = 4 * face + 2;
             indices[face * 6 + 5] = 4 * face + 3;
         }
+
+    // the new stuff
+    tanto_v_TransferToDevice(mesh.vertexBlock);
+    tanto_v_TransferToDevice(mesh.indexBlock);
+    //
+
     return mesh;
 }
 
