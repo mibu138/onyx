@@ -58,11 +58,11 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask);
 
-Tanto_V_BufferRegion tanto_v_TransferToDevice(Tanto_V_BufferRegion srcRegion);
+void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion);
 
 void tanto_v_DestroyImage(Tanto_V_Image image);
 
-void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion region);
+void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion);
 
 void tanto_v_CleanUpMemory(void);
 

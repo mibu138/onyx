@@ -25,6 +25,7 @@ typedef struct tanto_V_MemBlock {
 } Tanto_V_MemBlock;
 
 struct BlockChain {
+    char               name[16]; // for debugging
     VkDeviceSize       totalSize;
     VkDeviceSize       defaultAlignment;
     uint32_t           count;
@@ -49,7 +50,7 @@ static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 
 static void printBlockChainInfo(const struct BlockChain* chain)
 {
-    printf("BlockChain Info:\n");
+    printf("BlockChain %s:\n", chain->name);
     printf("totalSize: %ld\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
     printf("memory: %p\t buffer: %p\t hostData: %p\n", chain->memory, chain->buffer, chain->hostData);
     printf("Blocks: \n");
@@ -66,6 +67,7 @@ static void initBlockChain(
         const uint32_t memTypeIndex, 
         const VkBufferUsageFlags bufferUsageFlags, 
         const bool mapBuffer,
+        const char* name,
         struct BlockChain* chain)
 {
     memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
@@ -79,6 +81,8 @@ static void initBlockChain(
     chain->blocks[0].inUse = false;
     chain->blocks[0].offset = 0;
     chain->blocks[0].size = memorySize;
+    assert( strlen(name) < 16 );
+    strcpy(chain->name, name);
 
     const VkMemoryAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
@@ -187,7 +191,7 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
     }
     assert( blockIndex < blockCount ); // block must not have come from this chain
     Tanto_V_MemBlock* block = &chain->blocks[blockIndex];
-    printf("Freeing block id: %d\n", id);
+    printf("Freeing block id: %d in block chain %s\n", id, chain->name);
     block->inUse = false;
 }
 
@@ -264,10 +268,10 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR |
          VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
-    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, true, &blockChainHostGraphics);
-    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, false, &blockChainDeviceImage);
-    initBlockChain(MEMORY_SIZE_HOST_TRANSFER, hostVisibleCoherentTypeIndex, hostTransferFlags, true, &blockChainHostTransfer);
-    initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, devBufFlags, false, &blockChainDeviceGraphics);
+    initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, true, "hostGraphic", &blockChainHostGraphics);
+    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, false, "devImage", &blockChainDeviceImage);
+    initBlockChain(MEMORY_SIZE_HOST_TRANSFER, hostVisibleCoherentTypeIndex, hostTransferFlags, true, "hostTransfer", &blockChainHostTransfer);
+    initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, devBufFlags, false, "devGraphic", &blockChainDeviceGraphics);
 }
 
 Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
@@ -297,6 +301,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     region.hostData = chain->hostData + block->offset;
     region.pChain = chain;
 
+    printf("Requesting buffer region!!\n");
     printBlockChainInfo(chain);
 
     return region;
@@ -409,17 +414,20 @@ void tanto_v_DestroyImage(Tanto_V_Image image)
     freeBlock(&blockChainDeviceImage, image.memBlockId);
 }
 
-void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion region)
+void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
 {
-    freeBlock(region.pChain, region.memBlockId);
+    printf("Freeing buffer region!!\n");
+    freeBlock(pRegion->pChain, pRegion->memBlockId);
+    memset(pRegion, 0, sizeof(Tanto_V_BufferRegion));
 }
 
-Tanto_V_BufferRegion tanto_v_TransferToDevice(Tanto_V_BufferRegion srcRegion)
+void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
 {
+    const Tanto_V_BufferRegion srcRegion = *pRegion;
     assert( srcRegion.pChain == &blockChainHostGraphics ); // only chain it makes sense to transfer from
     Tanto_V_BufferRegion destRegion = tanto_v_RequestBufferRegion(srcRegion.size, 0, TANTO_V_MEMORY_DEVICE_TYPE);
 
-    Tanto_V_CommandPool cmdPool = tanto_v_RequestOneTimeUseCommand(0); // arbitrary index;
+    Tanto_V_CommandPool cmdPool = tanto_v_RequestOneTimeUseCommand(); // arbitrary index;
 
     VkBufferCopy copy;
     copy.srcOffset = srcRegion.offset;
@@ -428,15 +436,11 @@ Tanto_V_BufferRegion tanto_v_TransferToDevice(Tanto_V_BufferRegion srcRegion)
 
     vkCmdCopyBuffer(cmdPool.buffer, srcRegion.buffer, destRegion.buffer, 1, &copy);
 
-    vkEndCommandBuffer(cmdPool.buffer);
+    tanto_v_SubmitOneTimeCommandAndWait(&cmdPool, 0);
 
-    tanto_v_SubmitToQueueWait(&cmdPool.buffer, TANTO_V_QUEUE_GRAPHICS_TYPE, 0);
+    tanto_v_FreeBufferRegion(pRegion);
 
-    vkDestroyCommandPool(device, cmdPool.handle, NULL);
-
-    tanto_v_FreeBufferRegion(srcRegion);
-
-    return destRegion;
+    *pRegion = destRegion;
 }
 
 void tanto_v_CleanUpMemory()

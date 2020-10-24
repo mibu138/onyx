@@ -30,8 +30,8 @@ Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
 
     // the new stuff
 
-    tanto_v_TransferToDevice(m.vertexBlock);
-    tanto_v_TransferToDevice(m.indexBlock);
+    tanto_v_TransferToDevice(&m.vertexBlock);
+    tanto_v_TransferToDevice(&m.indexBlock);
 
     // 
     
@@ -213,8 +213,8 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
         }
 
     // the new stuff
-    tanto_v_TransferToDevice(mesh.vertexBlock);
-    tanto_v_TransferToDevice(mesh.indexBlock);
+    tanto_v_TransferToDevice(&mesh.vertexBlock);
+    tanto_v_TransferToDevice(&mesh.indexBlock);
     //
 
     return mesh;
@@ -222,6 +222,6 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
 
 void tanto_r_FreeMesh(Tanto_R_Mesh mesh)
 {
-    tanto_v_FreeBufferRegion(mesh.vertexBlock);
-    tanto_v_FreeBufferRegion(mesh.indexBlock);
+    tanto_v_FreeBufferRegion(&mesh.vertexBlock);
+    tanto_v_FreeBufferRegion(&mesh.indexBlock);
 }

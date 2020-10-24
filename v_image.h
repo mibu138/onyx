@@ -23,4 +23,6 @@ void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageL
 
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType);
 
+void tanto_v_ClearColorImage(Tanto_V_Image* image);
+
 #endif /* end of include guard: TANTO_V_IMAGE_H */

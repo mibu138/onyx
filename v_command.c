@@ -1,14 +1,18 @@
 #include "v_command.h"
 #include "v_video.h"
+#include <vulkan/vulkan_core.h>
 
-Tanto_V_CommandPool tanto_v_RequestOneTimeUseCommand(const uint32_t queueIndex)
+Tanto_V_CommandPool tanto_v_RequestOneTimeUseCommand()
 {
     Tanto_V_CommandPool pool;
 
+    pool.queueFamily = TANTO_V_QUEUE_GRAPHICS_TYPE;
+
     VkCommandPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-        .queueFamilyIndex = queueIndex,
+        .queueFamilyIndex = pool.queueFamily,
     };
+
 
     vkCreateCommandPool(device, &poolInfo, NULL, &pool.handle);
 
@@ -29,4 +33,13 @@ Tanto_V_CommandPool tanto_v_RequestOneTimeUseCommand(const uint32_t queueIndex)
     vkBeginCommandBuffer(pool.buffer, &beginInfo);
 
     return pool;
+}
+
+void tanto_v_SubmitOneTimeCommandAndWait(Tanto_V_CommandPool* pool, const uint32_t queueIndex)
+{
+    vkEndCommandBuffer(pool->buffer);
+
+    tanto_v_SubmitToQueueWait(&pool->buffer, pool->queueFamily, queueIndex);
+
+    vkDestroyCommandPool(device, pool->handle, NULL);
 }

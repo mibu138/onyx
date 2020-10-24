@@ -106,7 +106,7 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
     Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(
             image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
 
-    Tanto_V_CommandPool cmd = tanto_v_RequestOneTimeUseCommand(graphicsQueueFamilyIndex);
+    Tanto_V_CommandPool cmd = tanto_v_RequestOneTimeUseCommand();
 
     VkImageLayout origLayout = image->layout;
     tanto_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
@@ -138,11 +138,7 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
     printf("Copying complete.\n");
     printf("Writing out to jpg...\n");
 
-    vkEndCommandBuffer(cmd.buffer);
-
-    tanto_v_SubmitToQueueWait(&cmd.buffer, TANTO_V_QUEUE_GRAPHICS_TYPE, 3); //arbitrary index
-
-    vkDestroyCommandPool(device, cmd.handle, NULL);
+    tanto_v_SubmitOneTimeCommandAndWait(&cmd, 0);
 
     tanto_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout, image);
 
@@ -154,7 +150,31 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
             4, region.hostData, 100);
     assert( 0 != r );
 
-    tanto_v_FreeBufferRegion(region);
+    tanto_v_FreeBufferRegion(&region);
 
     printf("Image saved to %s!\n", filepath);
+}
+
+void tanto_v_ClearColorImage(Tanto_V_Image* image)
+{
+    Tanto_V_CommandPool pool = tanto_v_RequestOneTimeUseCommand();
+
+    VkClearColorValue clearColor = {
+        .float32[0] = 0,
+        .float32[1] = 0,
+        .float32[2] = 0,
+        .float32[3] = 0,
+    };
+
+    VkImageSubresourceRange range = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseArrayLayer = 0,
+        .baseMipLevel = 0,
+        .layerCount = 1,
+        .levelCount = 1
+    };
+
+    vkCmdClearColorImage(pool.buffer, image->handle, image->layout, &clearColor, 1, &range);
+
+    tanto_v_SubmitOneTimeCommandAndWait(&pool, 0);
 }

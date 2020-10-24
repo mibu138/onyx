@@ -26,6 +26,7 @@
 #define TANTO_KEY_Q     102
 #define TANTO_KEY_P     103
 #define TANTO_KEY_I     104
+#define TANTO_KEY_C     105
 #define TANTO_KEY_CTRL  24
 #define TANTO_KEY_ESC   27
 #define TANTO_KEY_R     140
