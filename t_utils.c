@@ -1,6 +1,7 @@
 #include "t_utils.h"
 #include <stdio.h>
 #include <stdint.h>
+#include <string.h>
 
 void printVec2(const Vec2* vec)
 {
@@ -67,4 +68,46 @@ void bitprint(const void* const thing, const size_t bitcount)
             putchar('0');
     }
     putchar('\n');
+}
+
+void timerStart(Tanto_Timer* t)
+{
+    clock_gettime(t->clockId, &t->startTime);
+}
+
+void timerStop(Tanto_Timer* t)
+{
+    clock_gettime(t->clockId, &t->endTime);
+}
+
+void tanto_TimerInit(Tanto_Timer* t)
+{
+    memset(t, 0, sizeof(Tanto_Timer));
+    t->clockId = CLOCK_MONOTONIC;
+}
+
+void tanto_LoopStatsInit(Tanto_LoopStats* stats)
+{
+    memset(stats, 0, sizeof(Tanto_LoopStats));
+    stats->longestFrame = UINT32_MAX;
+}
+
+void tanto_LoopStatsUpdate(const Tanto_Timer* t, Tanto_LoopStats* s)
+{
+    s->nsDelta  = (t->endTime.tv_sec * 1000000000 + t->endTime.tv_nsec) - (t->startTime.tv_sec * 1000000000 + t->startTime.tv_nsec);
+    s->nsTotal += s->nsDelta;
+
+    if (s->nsDelta > s->longestFrame) s->longestFrame = s->nsDelta;
+    if (s->nsDelta < s->shortestFrame) s->shortestFrame = s->nsDelta;
+
+    s->frameCount++;
+}
+
+void tanto_LoopSleep(const Tanto_LoopStats* s, const uint32_t nsTarget)
+{
+    struct timespec diffTime;
+    diffTime.tv_nsec = nsTarget > s->nsDelta ? nsTarget - s->nsDelta : 0;
+    diffTime.tv_sec  = 0;
+    // we could use the second parameter to handle interrupts and signals
+    nanosleep(&diffTime, NULL);
 }

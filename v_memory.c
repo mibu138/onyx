@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 #include <vulkan/vulkan_core.h>
 
 // HVC = Host Visible and Coherent
@@ -150,6 +151,11 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     {
         cur = (cur + 1) % count;
         assert( cur != init ); // looped around. no blocks suitable.
+        if (cur == init) 
+        {
+            printf("Request Block: memory allocation failed.\n");
+            exit(0);
+        }
     }
     // found a block not in use and with enough size
     // split the block

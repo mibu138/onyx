@@ -14,9 +14,10 @@
 VkRenderPass   swapchainRenderPass;
 VkRenderPass   offscreenRenderPass;
 
+// TODO: we should implement a way to specify the offscreen format
 const VkFormat presentColorFormat = VK_FORMAT_R8G8B8A8_SRGB;
-//const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-const VkFormat offscreenColorFormat = VK_FORMAT_R8G8B8A8_SNORM;
+const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+//const VkFormat offscreenColorFormat = VK_FORMAT_R8G8B8A8_SNORM;
 const VkFormat depthFormat = VK_FORMAT_D32_SFLOAT;
 
 Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
@@ -24,7 +25,6 @@ uint32_t       curFrameIndex;
 
 static void initFrames(void)
 {
-    VkResult r;
     const VkCommandPoolCreateInfo cmdPoolCi = {
         .queueFamilyIndex = graphicsQueueFamilyIndex,
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
@@ -32,8 +32,7 @@ static void initFrames(void)
 
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
-        r = vkCreateCommandPool(device, &cmdPoolCi, NULL, &frames[i].commandPool);
-        assert(r == VK_SUCCESS);
+        V_ASSERT( vkCreateCommandPool(device, &cmdPoolCi, NULL, &frames[i].commandPool) );
 
         const VkCommandBufferAllocateInfo allocInfo = {
             .commandBufferCount = 1,
@@ -42,25 +41,22 @@ static void initFrames(void)
             .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
         };
 
-        r = vkAllocateCommandBuffers(device, &allocInfo, &frames[i].commandBuffer);
+        V_ASSERT( vkAllocateCommandBuffers(device, &allocInfo, &frames[i].commandBuffer) );
         // spec states that the last parm is an array of commandBuffers... hoping a pointer
         // to a single one works just as well
-        assert( VK_SUCCESS == r );
 
         const VkSemaphoreCreateInfo semaCi = {
             .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
         };
 
-        r = vkCreateSemaphore(device, &semaCi, NULL, &frames[i].semaphore);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &frames[i].semaphore) );
 
         const VkFenceCreateInfo fenceCi = {
             .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
             .flags = VK_FENCE_CREATE_SIGNALED_BIT
         };
 
-        r = vkCreateFence(device, &fenceCi, NULL, &frames[i].fence);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkCreateFence(device, &fenceCi, NULL, &frames[i].fence) );
 
         frames[i].index = i;
         frames[i].pImage = &swapchainImages[i];
@@ -81,8 +77,7 @@ static void initFrames(void)
             .image = *frames[i].pImage,
         };
 
-        r = vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].imageView);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].imageView) );
 
         frames[i].renderPass = &swapchainRenderPass;
     }
@@ -154,21 +149,18 @@ static void initRenderPasses(void)
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
     };
 
-    VkResult r = vkCreateRenderPass(device, &ci, NULL, &offscreenRenderPass);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, &offscreenRenderPass) );
 
     subpass.pDepthStencilAttachment = NULL;
     ci.attachmentCount = 1;
     attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
     attachments[0].format      = swapFormat;
 
-    r = vkCreateRenderPass(device, &ci, NULL, &swapchainRenderPass);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, &swapchainRenderPass) );
 }
 
 static void initFrameBuffers(void)
 {
-    VkResult r;
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         const VkImageView attachments[] = {
@@ -185,8 +177,7 @@ static void initFrameBuffers(void)
             .pAttachments = attachments,
         };
 
-        r = vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer) );
     }
 }
 
@@ -207,23 +198,19 @@ void tanto_r_WaitOnQueueSubmit(void)
 
 Tanto_R_Frame* tanto_r_RequestFrame(void)
 {
-    VkResult r;
     uint32_t i = frameCounter % TANTO_FRAME_COUNT;
-    r = vkAcquireNextImageKHR(device, 
+    V_ASSERT( vkAcquireNextImageKHR(device, 
             swapchain, 
             UINT64_MAX, 
             imageAcquiredSemaphores[i], 
             VK_NULL_HANDLE, 
-            &curFrameIndex);
-    assert(VK_SUCCESS == r);
+            &curFrameIndex) );
     frameCounter++;
     return &frames[curFrameIndex];
 }
 
 void tanto_r_PresentFrame(void)
 {
-    VkResult res;
-
     VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
     VkSubmitInfo si = {
@@ -240,8 +227,7 @@ void tanto_r_PresentFrame(void)
     vkWaitForFences(device, 1, &frames[curFrameIndex].fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &frames[curFrameIndex].fence);
 
-    res = vkQueueSubmit(graphicsQueues[0], 1, &si, frames[curFrameIndex].fence);
-    assert( VK_SUCCESS == res );
+    V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, frames[curFrameIndex].fence) );
 
     VkResult r;
     const VkPresentInfoKHR info = {
@@ -254,9 +240,8 @@ void tanto_r_PresentFrame(void)
         .pImageIndices = &curFrameIndex,
     };
 
-    res = vkQueuePresentKHR(presentQueue, &info);
+    V_ASSERT( vkQueuePresentKHR(presentQueue, &info) );
     assert( VK_SUCCESS == r );
-    assert( VK_SUCCESS == res );
 }
 
 void tanto_r_CleanUp(void)

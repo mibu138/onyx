@@ -160,8 +160,7 @@ static void initVkInstance(void)
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
 
-    VkResult result = vkCreateInstance(&instanceInfo, NULL, &instance);
-    assert(result == VK_SUCCESS);
+    V_ASSERT( vkCreateInstance(&instanceInfo, NULL, &instance) );
     V1_PRINT("Successfully initialized Vulkan instance.\n");
 }
 
@@ -190,19 +189,16 @@ static void initDebugMessenger(void)
 
     PFN_vkCreateDebugUtilsMessengerEXT func = (PFN_vkCreateDebugUtilsMessengerEXT)fn;
 
-    VkResult r = func(instance, 
-            &ci, NULL, &debugMessenger);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( func(instance, 
+            &ci, NULL, &debugMessenger) );
 }
 
 static VkPhysicalDevice retrievePhysicalDevice(void)
 {
     uint32_t physdevcount;
-    VkResult r = vkEnumeratePhysicalDevices(instance, &physdevcount, NULL);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkEnumeratePhysicalDevices(instance, &physdevcount, NULL) );
     VkPhysicalDevice devices[physdevcount];
-    r = vkEnumeratePhysicalDevices(instance, &physdevcount, devices);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkEnumeratePhysicalDevices(instance, &physdevcount, devices) );
     VkPhysicalDeviceProperties props[physdevcount];
     V1_PRINT("Physical device count: %d\n", physdevcount);
     V1_PRINT("Physical device names:\n");
@@ -218,7 +214,6 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
 static void initDevice(void)
 {
     physicalDevice = retrievePhysicalDevice();
-    VkResult r;
     uint32_t qfcount;
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, NULL);
@@ -252,11 +247,9 @@ static void initDevice(void)
     };
 
     uint32_t propCount;
-    r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, NULL);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, NULL) );
     VkExtensionProperties properties[propCount];
-    r = vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, properties);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, properties) );
 
     #if VERBOSE > 1
     V1_PRINT("Device Extensions available: \n");
@@ -375,8 +368,7 @@ static void initDevice(void)
         dci.ppEnabledExtensionNames = extensionsReg;
     }
 
-    r = vkCreateDevice(physicalDevice, &dci, NULL, &device);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkCreateDevice(physicalDevice, &dci, NULL, &device) );
     V1_PRINT("Device created successfully.\n");
 }
 
@@ -397,8 +389,7 @@ static void initSwapchain(void)
     assert(supported == VK_TRUE);
 
     VkSurfaceCapabilitiesKHR capabilities;
-    VkResult r = vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, *pSurface, &capabilities);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, *pSurface, &capabilities) );
 
     uint32_t formatsCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, NULL);
@@ -440,20 +431,17 @@ static void initSwapchain(void)
         .oldSwapchain = VK_NULL_HANDLE
     };
 
-    r = vkCreateSwapchainKHR(device, &ci, NULL, &swapchain);
-    assert(VK_SUCCESS == r);
+    V_ASSERT( vkCreateSwapchainKHR(device, &ci, NULL, &swapchain) );
 
     uint32_t imageCount;
-    r = vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL);
-    assert(VK_SUCCESS == r);
+    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL) );
     assert(TANTO_FRAME_COUNT == imageCount);
-    r = vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages);
-    assert(VK_SUCCESS == r);
+    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages) );
 
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        r = vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]);
+        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
     }
 
     V1_PRINT("Swapchain created successfully.\n");
@@ -480,8 +468,7 @@ void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window)
         .window = window,
     };
 
-    VkResult r = vkCreateXcbSurfaceKHR(instance, &ci, NULL, &nativeSurface);
-    assert(r == VK_SUCCESS);
+    V_ASSERT( vkCreateXcbSurfaceKHR(instance, &ci, NULL, &nativeSurface) );
     V1_PRINT("Surface created successfully.\n");
     pSurface = &nativeSurface;
 }
@@ -507,17 +494,13 @@ void tanto_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Tanto_V_QueueTyp
         .pCommandBuffers = cmdBuf
     };
 
-    VkResult r;
-    r = vkQueueSubmit(graphicsQueues[index], 1, &info, VK_NULL_HANDLE);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkQueueSubmit(graphicsQueues[index], 1, &info, VK_NULL_HANDLE) );
 }
 
 void tanto_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Tanto_V_QueueType type, const uint32_t queueIndex)
 {
-    VkResult r;
     tanto_v_SubmitToQueue(buffer, type, queueIndex);
-    r = vkQueueWaitIdle(graphicsQueues[queueIndex]);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkQueueWaitIdle(graphicsQueues[queueIndex]) );
 }
 
 void tanto_v_CleanUp(void)

@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
+#include <stdlib.h>
 
 VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
@@ -19,12 +20,20 @@ enum shaderStageType { VERT, FRAG };
 
 static void initShaderModule(const char* filepath, VkShaderModule* module)
 {
-    VkResult r;
     int fr;
     FILE* fp;
     fp = fopen(filepath, "rb");
-    assert(fp);
+    if (fp == 0)
+    {
+        printf("Failed to open %s\n", filepath);
+        exit(0);
+    }
     fr = fseek(fp, 0, SEEK_END);
+    if (fr != 0)
+    {
+        printf("Seek failed on %s\n", filepath);
+        exit(0);
+    }
     assert( fr == 0 ); // success 
     size_t codeSize = ftell(fp);
     rewind(fp);
@@ -39,8 +48,7 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
         .pCode = (uint32_t*)code,
     };
 
-    r = vkCreateShaderModule(device, &shaderInfo, NULL, module);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
 }
 
 static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
@@ -318,12 +326,19 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .stencilTestEnable = VK_FALSE,
     };
 
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+    switch (plInfo->payload.rasterInfo.renderPassType)
+    {
+        case TANTO_R_RENDER_PASS_OFFSCREEN_TYPE: renderPass = offscreenRenderPass; break;
+        case TANTO_R_RENDER_PASS_SWAPCHAIN_TYPE: renderPass = swapchainRenderPass; break;
+    }
+
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .basePipelineIndex = 0, // not used
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
-        .renderPass = offscreenRenderPass,
+        .renderPass = renderPass,
         .layout = pipelineLayouts[plInfo->layoutId],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
@@ -453,12 +468,19 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
         .stencilTestEnable = VK_FALSE,
     };
 
+    VkRenderPass renderPass = VK_NULL_HANDLE;
+    switch (plInfo->payload.rasterInfo.renderPassType)
+    {
+        case TANTO_R_RENDER_PASS_OFFSCREEN_TYPE: renderPass = offscreenRenderPass; break;
+        case TANTO_R_RENDER_PASS_SWAPCHAIN_TYPE: renderPass = swapchainRenderPass; break;
+    }
+
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .basePipelineIndex = 0, // not used
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
-        .renderPass = swapchainRenderPass,
+        .renderPass = renderPass,
         .layout = pipelineLayouts[plInfo->layoutId],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
@@ -518,6 +540,13 @@ void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const i
         V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &descriptorSetLayouts[set.id]));
     }
 
+    // were not allowed to specify a count of 0
+    dcUbo = dcUbo > 0 ? dcUbo : 1;
+    dcAs  = dcAs > 0  ? dcAs  : 1;
+    dcSi  = dcSi > 0  ? dcSi  : 1;
+    dcSb  = dcSb > 0  ? dcSb  : 1;
+    dcCis = dcCis > 0 ? dcCis : 1;
+
     const VkDescriptorPoolSize poolSizes[] = {{
             .descriptorCount = dcUbo,
             .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
@@ -564,11 +593,11 @@ void tanto_r_InitPipelineLayouts(const Tanto_R_PipelineLayout *const layouts, co
         assert(layout.pushConstantCount < TANTO_MAX_PUSH_CONSTANTS);
 
         const int dsCount = layout.descriptorSetCount;
-        assert(dsCount > 0 && dsCount < TANTO_MAX_DESCRIPTOR_SETS);
+        //assert(dsCount > 0 && dsCount < TANTO_MAX_DESCRIPTOR_SETS);
 
         VkDescriptorSetLayout descSetLayouts[dsCount];
 
-        for (int j = 0; j < count; j++) 
+        for (int j = 0; j < dsCount ; j++) 
         {
             descSetLayouts[j] = descriptorSetLayouts[layout.descriptorSetIds[j]];
         }

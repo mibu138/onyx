@@ -27,7 +27,6 @@ static VkDeviceMemory  memoryTlas; //hacking this for now
 
 static void allocObjectMemory(const VkAccelerationStructureKHR* accelStruct, VkDeviceMemory* memory)
 {
-    VkResult r;
     VkAccelerationStructureMemoryRequirementsInfoKHR memInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_MEMORY_REQUIREMENTS_INFO_KHR,
         .accelerationStructure = *accelStruct,
@@ -51,8 +50,7 @@ static void allocObjectMemory(const VkAccelerationStructureKHR* accelStruct, VkD
                 VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
     };
 
-    r = vkAllocateMemory(device, &memAlloc, NULL, memory);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkAllocateMemory(device, &memAlloc, NULL, memory) );
 }
 
 static void createScratchBuffer(const VkAccelerationStructureKHR* accelStruct, ScratchBuffer* scratchBuffer)
@@ -115,9 +113,7 @@ static void initCmdPool(void)
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
     };
 
-    VkResult r;
-    r = vkCreateCommandPool(device, &cmdPoolCi, NULL, &rtCmdPool);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateCommandPool(device, &cmdPoolCi, NULL, &rtCmdPool) );
 
     const VkCommandBufferAllocateInfo allocInfo = {
         .commandBufferCount = 1,
@@ -126,14 +122,11 @@ static void initCmdPool(void)
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
     };
 
-    r = vkAllocateCommandBuffers(device, &allocInfo, rtCmdBuffers);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkAllocateCommandBuffers(device, &allocInfo, rtCmdBuffers) );
 }
 
 void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
 {
-    VkResult r;
-
     const VkAccelerationStructureCreateGeometryTypeInfoKHR asCreate = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_GEOMETRY_TYPE_INFO_KHR,
         .geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR,
@@ -152,8 +145,7 @@ void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
         .pGeometryInfos  = &asCreate
     };
 
-    r = vkCreateAccelerationStructureKHR(device, &accelStructInfo, NULL, &bottomLevelAS);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateAccelerationStructureKHR(device, &accelStructInfo, NULL, &bottomLevelAS) );
 
     allocObjectMemory(&bottomLevelAS, &memoryBlas);
 
@@ -164,8 +156,7 @@ void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
         .memoryOffset = 0,
     };
 
-    r = vkBindAccelerationStructureMemoryKHR(device, 1, &bind);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkBindAccelerationStructureMemoryKHR(device, 1, &bind) );
 
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -276,9 +267,7 @@ void tanto_r_BuildTlas(void)
         .pGeometryInfos = &geometryCreate,
     };
 
-    VkResult r;
-    r = vkCreateAccelerationStructureKHR(device, &asCreateInfo, NULL, &topLevelAS);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkCreateAccelerationStructureKHR(device, &asCreateInfo, NULL, &topLevelAS) );
 
     // allocate and bind memory
 
@@ -291,8 +280,7 @@ void tanto_r_BuildTlas(void)
         .memoryOffset = 0,
     };
 
-    r = vkBindAccelerationStructureMemoryKHR(device, 1, &bind);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkBindAccelerationStructureMemoryKHR(device, 1, &bind) );
 
     ScratchBuffer scratchBuffer;
 
@@ -339,8 +327,7 @@ void tanto_r_BuildTlas(void)
             .pQueueFamilyIndices = &graphicsQueueFamilyIndex,
         };
 
-        r = vkCreateBuffer(device, &bufferInfo, NULL, &instBuffer);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkCreateBuffer(device, &bufferInfo, NULL, &instBuffer) );
 
         VkMemoryRequirements memReqs;
 
@@ -353,15 +340,13 @@ void tanto_r_BuildTlas(void)
             .allocationSize = memReqs.size
         };
 
-        r = vkAllocateMemory(device, &memAlloc, NULL, &instMemory);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkAllocateMemory(device, &memAlloc, NULL, &instMemory) );
 
         vkBindBufferMemory(device, instBuffer, instMemory, 0);
 
         void* data;
 
-        r = vkMapMemory(device, instMemory, 0, memReqs.size, 0, &data);
-        assert( VK_SUCCESS == r );
+        V_ASSERT( vkMapMemory(device, instMemory, 0, memReqs.size, 0, &data) );
 
         memcpy(data, &instance, 1 * sizeof(instance));
 
@@ -419,8 +404,7 @@ void tanto_r_BuildTlas(void)
 
     const VkAccelerationStructureBuildOffsetInfoKHR* pBuildOffset = &buildOffsetInfo;
 
-    r = vkBeginCommandBuffer(rtCmdBuffers[0], &cmdBegin);
-    assert( VK_SUCCESS == r );
+    V_ASSERT( vkBeginCommandBuffer(rtCmdBuffers[0], &cmdBegin) );
 
     vkCmdBuildAccelerationStructureKHR(rtCmdBuffers[0], 1, &topAsInfo, &pBuildOffset);
 
