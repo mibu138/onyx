@@ -59,7 +59,7 @@ static void initFrames(void)
         V_ASSERT( vkCreateFence(device, &fenceCi, NULL, &frames[i].fence) );
 
         frames[i].index = i;
-        frames[i].pImage = &swapchainImages[i];
+        frames[i].frameBuffer.colorAttachment.handle = swapchainImages[i];
 
         VkImageSubresourceRange ssr = {
             .baseArrayLayer = 0,
@@ -74,12 +74,28 @@ static void initFrames(void)
             .subresourceRange = ssr,
             .format = swapFormat,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .image = *frames[i].pImage,
+            .image = frames[i].frameBuffer.colorAttachment.handle,
         };
 
-        V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].imageView) );
+        V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].frameBuffer.colorAttachment.view) );
 
-        frames[i].renderPass = &swapchainRenderPass;
+        frames[i].frameBuffer.renderPass = swapchainRenderPass;
+
+        const VkImageView attachments[] = {
+            frames[i].frameBuffer.colorAttachment.view,
+        };
+
+        const VkFramebufferCreateInfo ci = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .layers = 1,
+            .renderPass = frames[i].frameBuffer.renderPass,
+            .width = TANTO_WINDOW_WIDTH,
+            .height = TANTO_WINDOW_HEIGHT,
+            .attachmentCount = 1,
+            .pAttachments = attachments,
+        };
+
+        V_ASSERT( vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer.handle) );
     }
     V1_PRINT("Frames successfully initialized.\n");
 }
@@ -159,34 +175,11 @@ static void initRenderPasses(void)
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, &swapchainRenderPass) );
 }
 
-static void initFrameBuffers(void)
-{
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
-    {
-        const VkImageView attachments[] = {
-            frames[i].imageView,
-        };
-
-        const VkFramebufferCreateInfo ci = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .layers = 1,
-            .renderPass = *frames->renderPass,
-            .width = TANTO_WINDOW_WIDTH,
-            .height = TANTO_WINDOW_HEIGHT,
-            .attachmentCount = 1,
-            .pAttachments = attachments,
-        };
-
-        V_ASSERT( vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer) );
-    }
-}
-
 void tanto_r_Init(void)
 {
     curFrameIndex = 0;
     initRenderPasses();
     initFrames();
-    initFrameBuffers();
     if (tanto_v_config.rayTraceEnabled)
         tanto_r_InitRayTracing();
 }
@@ -254,8 +247,8 @@ void tanto_r_CleanUp(void)
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroyFence(device, frames[i].fence, NULL);
-        vkDestroyImageView(device, frames[i].imageView, NULL);
-        vkDestroyFramebuffer(device, frames[i].frameBuffer, NULL);
+        vkDestroyImageView(device, frames[i].frameBuffer.colorAttachment.view, NULL);
+        vkDestroyFramebuffer(device, frames[i].frameBuffer.handle, NULL);
         vkDestroySemaphore(device, frames[i].semaphore, NULL);
         vkDestroyCommandPool(device, frames[i].commandPool, NULL);
     }

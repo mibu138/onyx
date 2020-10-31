@@ -12,19 +12,16 @@ typedef struct {
     VkFramebuffer   handle;
     Tanto_V_Image   colorAttachment;
     Tanto_V_Image   depthAttachment;
-    VkRenderPass*   pRenderPass;
+    VkRenderPass    renderPass;
 } Tanto_R_FrameBuffer;
 
 typedef struct frame {
-    VkCommandPool   commandPool;
-    VkCommandBuffer commandBuffer;
-    VkSemaphore     semaphore;
-    VkFence         fence;
-    VkImage*        pImage;
-    VkImageView     imageView;
-    VkFramebuffer   frameBuffer;
-    VkRenderPass*   renderPass;
-    uint32_t        index;
+    VkCommandPool       commandPool;
+    VkCommandBuffer     commandBuffer;
+    VkSemaphore         semaphore;
+    VkFence             fence;
+    Tanto_R_FrameBuffer frameBuffer;
+    uint32_t            index;
 } Tanto_R_Frame;
 
 typedef Tanto_V_Image Tanto_R_Image; //for now 
