@@ -77,7 +77,7 @@ static void initBlockChain(
     chain->cur   = 0;
     chain->totalSize = memorySize;
     chain->nextBlockId = 0;
-    chain->defaultAlignment = 0;
+    chain->defaultAlignment = 4;
     chain->bufferFlags = bufferUsageFlags;
     chain->blocks[0].inUse = false;
     chain->blocks[0].offset = 0;
@@ -110,7 +110,7 @@ static void initBlockChain(
 
         vkGetBufferMemoryRequirements(device, chain->buffer, &memReqs);
 
-        chain->defaultAlignment = memReqs.alignment;
+        //chain->defaultAlignment = memReqs.alignment;
 
         printf("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
 
@@ -321,13 +321,14 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size,
     // alignment is chose if multiple flags are present
     if ( VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
     {
-        alignment = 0x10;
+        alignment = deviceProperties.limits.minStorageBufferOffsetAlignment;
         // must satisfy alignment requirements for storage buffers
     }
-    if ( VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags)
+    if ( VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags && 
+            alignment < deviceProperties.limits.minUniformBufferOffsetAlignment)
     {
         // must satisfy alignment requirements for uniform buffers
-        alignment = 0x40;
+        alignment = deviceProperties.limits.minUniformBufferOffsetAlignment;
     }
     return tanto_v_RequestBufferRegionAligned(size, alignment, memType);
 }
@@ -350,9 +351,13 @@ Tanto_V_Image tanto_v_CreateImage(
         const uint32_t height,
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
-        const VkImageAspectFlags aspectMask)
+        const VkImageAspectFlags aspectMask,
+        const VkSampleCountFlags sampleCount)
 {
     assert( width * height < MEMORY_SIZE_DEV_IMAGE );
+
+    assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
+    assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
 
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -361,7 +366,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .extent = {width, height, 1},
         .mipLevels = 1,
         .arrayLayers = 1,
-        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .samples = sampleCount,
         .tiling = VK_IMAGE_TILING_OPTIMAL,
         .usage = usageFlags,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,

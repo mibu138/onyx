@@ -23,6 +23,8 @@ extern VkSwapchainKHR   swapchain;
 extern VkSemaphore    imageAcquiredSemaphores[TANTO_FRAME_COUNT];
 extern uint64_t       frameCounter;
 
+extern VkPhysicalDeviceProperties deviceProperties;
+
 const VkInstance* tanto_v_Init(void);
 void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window);
 void tanto_v_InitSwapchain(VkSurfaceKHR* surface);

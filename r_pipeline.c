@@ -159,6 +159,8 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
     VkShaderModule vertModule;
     VkShaderModule fragModule;
 
+    const Tanto_R_PipelineRasterInfo rasterInfo = plInfo->payload.rasterInfo;
+
     initShaderModule(plInfo->payload.rasterInfo.vertShader, &vertModule);
     initShaderModule(plInfo->payload.rasterInfo.fragShader, &fragModule);
 
@@ -179,79 +181,32 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         [1].pSpecializationInfo = NULL,
     }; // vert and frag
 
-    const VkVertexInputBindingDescription bindingDescriptionPos = {
-        .binding = 0,
-        .stride  = sizeof(Vec3), 
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-    };
-
-    const VkVertexInputBindingDescription bindingDescriptionColor = {
-        .binding = 1,
-        .stride  = sizeof(Vec3), 
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-    };
-
-    const VkVertexInputBindingDescription bindingDescriptionNormal = {
-        .binding = 2,
-        .stride  = sizeof(Vec3), 
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-    };
-
-    const VkVertexInputBindingDescription bindingDescriptionUvw = {
-        .binding = 3,
-        .stride  = sizeof(Vec3), 
-        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
-    };
-
-    const VkVertexInputAttributeDescription positionAttributeDescription = {
-        .binding = 0,
-        .location = 0, 
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = sizeof(Vec3) * 0
-    };
-
-    const VkVertexInputAttributeDescription colorAttributeDescription = {
-        .binding = 1,
-        .location = 1, 
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = sizeof(Vec3) * 0,
-    };
-
-    const VkVertexInputAttributeDescription normalAttributeDescription = {
-        .binding = 2,
-        .location = 2, 
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = sizeof(Vec3) * 0,
-    };
-
-    const VkVertexInputAttributeDescription uvwAttributeDescription = {
-        .binding = 3,
-        .location = 3, 
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = sizeof(Vec3) * 0,
-    };
-
-    VkVertexInputBindingDescription vBindDescs[4] = {
-        bindingDescriptionPos, bindingDescriptionColor, bindingDescriptionNormal, bindingDescriptionUvw
-    };
-
-    VkVertexInputAttributeDescription vAttrDescs[4] = {
-        positionAttributeDescription, colorAttributeDescription, normalAttributeDescription, uvwAttributeDescription
-    };
+    // passing all of these asserts does not garuantee the vertexDescription is correct.
+    // it simply increase the likelyhood.
+    assert(rasterInfo.vertexDescription.attributeDescriptions);
+    assert(rasterInfo.vertexDescription.bindingDescriptions);
+    assert(rasterInfo.vertexDescription.attributeCount > 0);
+    assert(rasterInfo.vertexDescription.bindingCount > 0);
 
     const VkPipelineVertexInputStateCreateInfo vertexInput = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = TANTO_ARRAY_SIZE(vBindDescs),
-        .pVertexBindingDescriptions = vBindDescs,
-        .vertexAttributeDescriptionCount = TANTO_ARRAY_SIZE(vAttrDescs),
-        .pVertexAttributeDescriptions = vAttrDescs 
+        .vertexBindingDescriptionCount =   rasterInfo.vertexDescription.bindingCount,
+        .pVertexBindingDescriptions =      rasterInfo.vertexDescription.bindingDescriptions,
+        .vertexAttributeDescriptionCount = rasterInfo.vertexDescription.attributeCount,
+        .pVertexAttributeDescriptions =    rasterInfo.vertexDescription.attributeDescriptions
     };
 
-    const VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         .primitiveRestartEnable = VK_FALSE // applies only to index calls
     };
+
+    if (rasterInfo.polygonMode == VK_POLYGON_MODE_POINT)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+
+    if (rasterInfo.polygonMode == VK_POLYGON_MODE_LINE)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
 
     const VkViewport viewport = {
         .height = TANTO_WINDOW_HEIGHT,
@@ -279,7 +234,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
         .depthClampEnable = VK_FALSE, // dunno
         .rasterizerDiscardEnable = VK_FALSE, // actually discards everything
-        .polygonMode = VK_POLYGON_MODE_FILL,
+        .polygonMode = rasterInfo.polygonMode,
         .cullMode = VK_CULL_MODE_BACK_BIT,
         .frontFace = VK_FRONT_FACE_CLOCKWISE,
         .depthBiasEnable = VK_FALSE,
@@ -431,6 +386,7 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
     const VkPipelineMultisampleStateCreateInfo multisampleState = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
+        .minSampleShading = 0.0f, 
         .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
         // TODO: alot more settings here. more to look into
     };

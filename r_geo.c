@@ -1,5 +1,6 @@
 #include "r_geo.h"
 #include "v_memory.h"
+#include "t_def.h"
 #include <string.h>
 
 const int CW = 1;
@@ -218,6 +219,190 @@ Tanto_R_Mesh tanto_r_CreateCube(void)
     //
 
     return mesh;
+}
+
+Tanto_R_Primitive tanto_r_CreateTriangle(void)
+{
+    Tanto_R_Primitive prim = {
+        .attrCount = 2,
+        .indexCount = 3, 
+        .vertexCount = 3,
+    };
+
+    prim.vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    prim.indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim.indexCount, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+
+    prim.attrOffsets[0] = posOffset;
+    prim.attrOffsets[1] = colOffset;
+
+    Tanto_R_Attribute positions[] = {
+        {0.0, 0.5, 0.0},
+        {0.5, -0.5, 0.0},
+        {-0.5, -0.5, 0.0},
+    };
+
+    Tanto_R_Attribute colors[] = {
+        {0.0, 0.9, 0.0},
+        {0.9, 0.5, 0.0},
+        {0.5, 0.3, 0.9}
+    };
+
+    Tanto_R_Index indices[] = {0, 1, 2};
+
+    memcpy(prim.vertexRegion.hostData + posOffset, positions, sizeof(positions));
+    memcpy(prim.vertexRegion.hostData + colOffset, colors, sizeof(colors));
+    memcpy(prim.indexRegion.hostData, indices, sizeof(indices));
+
+    return prim;
+}
+
+Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
+{
+    Tanto_R_Primitive prim = {
+        .attrCount = 2,
+        .indexCount = 0, 
+        .vertexCount = count,
+    };
+
+    prim.vertexRegion = tanto_v_RequestBufferRegion(
+            sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+
+    prim.attrOffsets[0] = posOffset;
+    prim.attrOffsets[1] = colOffset;
+
+    Tanto_R_Attribute* positions = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + posOffset);
+    Tanto_R_Attribute* colors    = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + colOffset);
+
+    for (int i = 0; i < count; i++) 
+    {
+        positions[i] = (Tanto_R_Attribute){0, 0, 0};  
+        colors[i] = (Tanto_R_Attribute){1, 0, 0};  
+    }
+
+    return prim;
+}
+
+Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Default(void)
+{
+    const VkVertexInputBindingDescription bindingDescriptionPos = {
+        .binding = 0,
+        .stride  = sizeof(Vec3), 
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    const VkVertexInputBindingDescription bindingDescriptionColor = {
+        .binding = 1,
+        .stride  = sizeof(Vec3), 
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    const VkVertexInputBindingDescription bindingDescriptionNormal = {
+        .binding = 2,
+        .stride  = sizeof(Vec3), 
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    const VkVertexInputBindingDescription bindingDescriptionUvw = {
+        .binding = 3,
+        .stride  = sizeof(Vec3), 
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    const VkVertexInputAttributeDescription positionAttributeDescription = {
+        .binding = 0,
+        .location = 0, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0
+    };
+
+    const VkVertexInputAttributeDescription colorAttributeDescription = {
+        .binding = 1,
+        .location = 1, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0,
+    };
+
+    const VkVertexInputAttributeDescription normalAttributeDescription = {
+        .binding = 2,
+        .location = 2, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0,
+    };
+
+    const VkVertexInputAttributeDescription uvwAttributeDescription = {
+        .binding = 3,
+        .location = 3, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0,
+    };
+
+    Tanto_R_VertexDescription vertDesc = {
+        .attributeCount = 4,
+        .bindingCount = 4,
+        .bindingDescriptions = {
+            bindingDescriptionPos, bindingDescriptionColor, 
+            bindingDescriptionNormal, bindingDescriptionUvw
+        },
+        .attributeDescriptions = {
+            positionAttributeDescription, colorAttributeDescription, 
+            normalAttributeDescription, uvwAttributeDescription
+        }
+    };
+
+    return vertDesc;
+}
+
+Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Simple(void)
+{
+    const VkVertexInputBindingDescription positionBindingDesc = {
+        .binding = 0,
+        .stride  = sizeof(Vec3),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    const VkVertexInputBindingDescription colorBidingDesc = {
+        .binding = 1,
+        .stride  = sizeof(Vec3),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX
+    };
+
+    const VkVertexInputAttributeDescription positionAttributeDescription = {
+        .binding = 0,
+        .location = 0, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0
+    };
+
+    const VkVertexInputAttributeDescription colorAttributeDescription = {
+        .binding = 1,
+        .location = 1, 
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = sizeof(Vec3) * 0,
+    };
+
+    Tanto_R_VertexDescription vertDesc = {
+        .bindingCount = 2,
+        .attributeCount = 2,
+        .bindingDescriptions = {
+           positionBindingDesc, colorBidingDesc
+        },
+        .attributeDescriptions = {
+            positionAttributeDescription, colorAttributeDescription
+        },
+    };
+
+    return vertDesc;
 }
 
 void tanto_r_FreeMesh(Tanto_R_Mesh mesh)

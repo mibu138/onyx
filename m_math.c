@@ -254,6 +254,14 @@ void m_ScaleUniform_Mat4(const float s, Mat4 *m)
     }
 }
 
+void m_ScaleNonUniform_Mat4(const Vec3 s, Mat4 *m)
+{
+    for (int i = 0; i < 3; i++) 
+    {
+        m->x[i][i] = s.x[i];
+    }
+}
+
 Mat4 m_Transpose_Mat4(const Mat4 *m)
 {
     Mat4 out;

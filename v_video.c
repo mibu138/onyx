@@ -36,6 +36,8 @@ static VkDebugUtilsMessengerEXT debugMessenger;
     
 static VkPhysicalDeviceRayTracingPropertiesKHR rtProperties;
 
+VkPhysicalDeviceProperties deviceProperties;
+
 VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
@@ -208,6 +210,7 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
         V1_PRINT("%s\n", props[i].deviceName);
     }
     V1_PRINT("Selecting Device: %s\n", props[1].deviceName);
+    deviceProperties = props[1];
     return devices[1];
 }
 
@@ -343,6 +346,7 @@ static void initDevice(void)
         .fillModeNonSolid = VK_TRUE,
         .wideLines = VK_TRUE,
         .largePoints = VK_TRUE,
+        .sampleRateShading = VK_TRUE
     };
 
     deviceFeatures.features = enabledFeatures; // only enable a subset of available features

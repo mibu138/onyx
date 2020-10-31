@@ -26,19 +26,6 @@ void printMat4(const Mat4 * m)
     }
 }
 
-//void bitprintRowLen(const void *const thing, const size_t bitcount, const size_t rowlength)
-//{
-//    int mask;
-//    for (int i = bitcount - 1; i >= 0; i--) {
-//        mask = 1 << i;   
-//        if (mask & *(uint64_t*)thing)
-//            putchar('1');
-//        else
-//            putchar('0');
-//    }
-//    putchar('\n');
-//}
-
 void bytePrint(const void* const thing, const size_t byteCount)
 {
     int mask;
@@ -70,12 +57,12 @@ void bitprint(const void* const thing, const size_t bitcount)
     putchar('\n');
 }
 
-void timerStart(Tanto_Timer* t)
+void tanto_TimerStart(Tanto_Timer* t)
 {
     clock_gettime(t->clockId, &t->startTime);
 }
 
-void timerStop(Tanto_Timer* t)
+void tanto_TimerStop(Tanto_Timer* t)
 {
     clock_gettime(t->clockId, &t->endTime);
 }

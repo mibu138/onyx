@@ -17,6 +17,7 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     const VkFormat format,
     const VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
+    const VkSampleCountFlags sampleCount,
     const VkFilter filter);
 
 void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Tanto_V_Image* image);

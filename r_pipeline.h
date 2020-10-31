@@ -2,6 +2,7 @@
 #define TANTO_R_PIPELINE_H
 
 #include "v_def.h"
+#include "r_geo.h"
 
 #define TANTO_MAX_PIPELINES 10
 #define TANTO_MAX_DESCRIPTOR_SETS 10
@@ -46,7 +47,9 @@ typedef enum {
 } Tanto_R_RenderPassType;
 
 typedef struct {
-    Tanto_R_RenderPassType renderPassType;
+    Tanto_R_RenderPassType    renderPassType;
+    Tanto_R_VertexDescription vertexDescription;
+    VkPolygonMode             polygonMode;
     char* vertShader;
     char* fragShader;
 } Tanto_R_PipelineRasterInfo;

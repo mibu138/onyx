@@ -8,9 +8,16 @@ typedef struct {
     float y;
 } Vec2;
 
-typedef struct {
+typedef union {
     float x[3];
+    struct {
+        float i;
+        float j;
+        float k;
+    };
 } Vec3;
+
+_Static_assert(sizeof(Vec3) == 12, "Bad size for Vec3. Should be exactly 3 floats wide.");
 
 typedef struct {
     float x[4];
@@ -62,6 +69,7 @@ Vec4 m_Mult_Mat4Vec4(const Mat4* m, const Vec4* v);
 Mat4 m_Translate_Mat4(const Vec3 t, const Mat4* m);
 Mat4 m_Transpose_Mat4(const Mat4* m);
 void m_ScaleUniform_Mat4(const float s, Mat4* m);
+void m_ScaleNonUniform_Mat4(const Vec3 s, Mat4 *m);
 void m_Translate(const Vec2 t, Vec2*);
 void m_Scale(const float scale, Vec2*);
 void m_Add(const Vec2, Vec2*);

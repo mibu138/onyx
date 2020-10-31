@@ -56,7 +56,8 @@ Tanto_V_Image tanto_v_CreateImage(
         const uint32_t height,
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
-        const VkImageAspectFlags aspectMask);
+        const VkImageAspectFlags aspectMask,
+        const VkSampleCountFlags sampleCount);
 
 void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion);
 
