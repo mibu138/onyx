@@ -12,6 +12,7 @@ typedef struct {
     VkFramebuffer   handle;
     Tanto_V_Image   colorAttachment;
     Tanto_V_Image   depthAttachment;
+    Tanto_V_Image   resolveAttachment;
     VkRenderPass    renderPass;
 } Tanto_R_FrameBuffer;
 
@@ -20,7 +21,7 @@ typedef struct frame {
     VkCommandBuffer     commandBuffer;
     VkSemaphore         semaphore;
     VkFence             fence;
-    Tanto_R_FrameBuffer frameBuffer;
+    Tanto_V_Image       swapImage;
     uint32_t            index;
 } Tanto_R_Frame;
 

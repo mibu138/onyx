@@ -244,7 +244,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
     const VkPipelineMultisampleStateCreateInfo multisampleState = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
         .sampleShadingEnable = VK_FALSE,
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
+        .rasterizationSamples = rasterInfo.sampleCount 
         // TODO: alot more settings here. more to look into
     };
 
@@ -281,19 +281,14 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .stencilTestEnable = VK_FALSE,
     };
 
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    switch (plInfo->payload.rasterInfo.renderPassType)
-    {
-        case TANTO_R_RENDER_PASS_OFFSCREEN_TYPE: renderPass = offscreenRenderPass; break;
-        case TANTO_R_RENDER_PASS_SWAPCHAIN_TYPE: renderPass = swapchainRenderPass; break;
-    }
+    assert(rasterInfo.renderPass != 0);
 
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .basePipelineIndex = 0, // not used
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
-        .renderPass = renderPass,
+        .renderPass = rasterInfo.renderPass,
         .layout = pipelineLayouts[plInfo->layoutId],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,
@@ -319,6 +314,8 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
+
+    const Tanto_R_PipelineRasterInfo rasterInfo = plInfo->payload.rasterInfo;
 
     initShaderModule(TANTO_SPVDIR"/post-vert.spv", &vertModule);
     initShaderModule(plInfo->payload.rasterInfo.fragShader, &fragModule);
@@ -424,19 +421,15 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
         .stencilTestEnable = VK_FALSE,
     };
 
-    VkRenderPass renderPass = VK_NULL_HANDLE;
-    switch (plInfo->payload.rasterInfo.renderPassType)
-    {
-        case TANTO_R_RENDER_PASS_OFFSCREEN_TYPE: renderPass = offscreenRenderPass; break;
-        case TANTO_R_RENDER_PASS_SWAPCHAIN_TYPE: renderPass = swapchainRenderPass; break;
-    }
+    assert(rasterInfo.renderPass != 0);
+    assert(rasterInfo.sampleCount != 0);
 
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
         .basePipelineIndex = 0, // not used
         .basePipelineHandle = 0,
         .subpass = 0, // which subpass in the renderpass do we use this pipeline with
-        .renderPass = renderPass,
+        .renderPass = rasterInfo.renderPass,
         .layout = pipelineLayouts[plInfo->layoutId],
         .pDynamicState = NULL,
         .pColorBlendState = &colorBlendState,

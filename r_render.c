@@ -60,7 +60,7 @@ static void initFrames(void)
         V_ASSERT( vkCreateFence(device, &fenceCi, NULL, &frames[i].fence) );
 
         frames[i].index = i;
-        frames[i].frameBuffer.colorAttachment.handle = swapchainImages[i];
+        frames[i].swapImage.handle = swapchainImages[i];
 
         VkImageSubresourceRange ssr = {
             .baseArrayLayer = 0,
@@ -75,28 +75,28 @@ static void initFrames(void)
             .subresourceRange = ssr,
             .format = swapFormat,
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .image = frames[i].frameBuffer.colorAttachment.handle,
+            .image = frames[i].swapImage.handle,
         };
 
-        V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].frameBuffer.colorAttachment.view) );
+        V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].swapImage.view) );
 
-        frames[i].frameBuffer.renderPass = swapchainRenderPass;
+        //frames[i].frameBuffer.renderPass = swapchainRenderPass;
 
-        const VkImageView attachments[] = {
-            frames[i].frameBuffer.colorAttachment.view,
-        };
+        //const VkImageView attachments[] = {
+        //    frames[i].frameBuffer.colorAttachment.view,
+        //};
 
-        const VkFramebufferCreateInfo ci = {
-            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-            .layers = 1,
-            .renderPass = frames[i].frameBuffer.renderPass,
-            .width = TANTO_WINDOW_WIDTH,
-            .height = TANTO_WINDOW_HEIGHT,
-            .attachmentCount = 1,
-            .pAttachments = attachments,
-        };
+        //const VkFramebufferCreateInfo ci = {
+        //    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+        //    .layers = 1,
+        //    .renderPass = frames[i].frameBuffer.renderPass,
+        //    .width = TANTO_WINDOW_WIDTH,
+        //    .height = TANTO_WINDOW_HEIGHT,
+        //    .attachmentCount = 1,
+        //    .pAttachments = attachments,
+        //};
 
-        V_ASSERT( vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer.handle) );
+        //V_ASSERT( vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer.handle) );
     }
     V1_PRINT("Frames successfully initialized.\n");
 }
@@ -179,10 +179,10 @@ static void initRenderPassesSwapOff(void)
 static void initRenderPassMSAA(VkSampleCountFlags sampleCount)
 {
     const VkAttachmentDescription attachmentColor = {
-        .format = offscreenColorFormat,
+        .format = swapFormat,
         .samples = sampleCount, // TODO look into what this means
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
         .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
     };
@@ -199,7 +199,7 @@ static void initRenderPassMSAA(VkSampleCountFlags sampleCount)
     };
 
     const VkAttachmentDescription attachmentPresent = {
-        .format = offscreenColorFormat,
+        .format = swapFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -353,8 +353,8 @@ void tanto_r_CleanUp(void)
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroyFence(device, frames[i].fence, NULL);
-        vkDestroyImageView(device, frames[i].frameBuffer.colorAttachment.view, NULL);
-        vkDestroyFramebuffer(device, frames[i].frameBuffer.handle, NULL);
+        //vkDestroyImageView(device, frames[i].frameBuffer.colorAttachment.view, NULL);
+        //vkDestroyFramebuffer(device, frames[i].frameBuffer.handle, NULL);
         vkDestroySemaphore(device, frames[i].semaphore, NULL);
         vkDestroyCommandPool(device, frames[i].commandPool, NULL);
     }

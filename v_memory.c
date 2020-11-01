@@ -259,6 +259,7 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
          VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR |
+         VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VkBufferUsageFlags hostTransferFlags = 

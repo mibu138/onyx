@@ -41,15 +41,11 @@ typedef enum {
     TANTO_R_PIPELINE_POSTPROC_TYPE
 } Tanto_R_PipelineType;
 
-typedef enum {
-    TANTO_R_RENDER_PASS_SWAPCHAIN_TYPE,
-    TANTO_R_RENDER_PASS_OFFSCREEN_TYPE
-} Tanto_R_RenderPassType;
-
 typedef struct {
-    Tanto_R_RenderPassType    renderPassType;
+    VkRenderPass              renderPass;
     Tanto_R_VertexDescription vertexDescription;
     VkPolygonMode             polygonMode;
+    VkSampleCountFlags        sampleCount;
     char* vertShader;
     char* fragShader;
 } Tanto_R_PipelineRasterInfo;
