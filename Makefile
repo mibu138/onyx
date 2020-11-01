@@ -26,6 +26,7 @@ DEPS =  \
 	v_command.h  \
     r_render.h   \
     r_pipeline.h \
+	r_renderpass.h \
 	r_raytrace.h \
 	r_geo.h      \
     i_input.h    \
@@ -43,6 +44,7 @@ OBJS =  \
 	$(O)/v_command.o  \
     $(O)/r_render.o   \
     $(O)/r_pipeline.o \
+	$(O)/r_renderpass.o \
 	$(O)/r_raytrace.o \
 	$(O)/r_geo.o      \
     $(O)/i_input.o    \
