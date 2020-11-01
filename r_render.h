@@ -28,6 +28,7 @@ typedef Tanto_V_Image Tanto_R_Image; //for now
 
 extern VkRenderPass swapchainRenderPass;
 extern VkRenderPass offscreenRenderPass;
+extern VkRenderPass msaaRenderPass;
 extern Tanto_R_Frame frames[TANTO_FRAME_COUNT];
 extern uint32_t curFrameIndex;
 extern const VkFormat offscreenColorFormat;
