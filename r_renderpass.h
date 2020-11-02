@@ -8,10 +8,10 @@
 #define TANTO_R_MAX_SUBPASSES 8
 
 typedef struct {
-    uint32_t attachmentCount;
-    uint32_t subpassCount;
-    VkAttachmentDescription* pAttachments;
-    VkSubpassDescription*    pSubpasses;
+    const uint32_t attachmentCount;
+    const uint32_t subpassCount;
+    const VkAttachmentDescription* pAttachments;
+    const VkSubpassDescription*    pSubpasses;
 } Tanto_R_RenderPassInfo;
 
 void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo* info, VkRenderPass* pRenderPass);
