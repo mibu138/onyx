@@ -154,12 +154,17 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
     }
 }
 
+#define MAX_SHADER_STAGES 4
 static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
+    VkShaderModule tessCtrlModule;
+    VkShaderModule tessEvalModule;
 
     const Tanto_R_PipelineRasterInfo rasterInfo = plInfo->payload.rasterInfo;
+
+    assert( rasterInfo.vertShader && rasterInfo.fragShader ); // must have at least these 2
 
     initShaderModule(plInfo->payload.rasterInfo.vertShader, &vertModule);
     initShaderModule(plInfo->payload.rasterInfo.fragShader, &fragModule);
@@ -168,18 +173,36 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         // TODO
     };
 
-    const VkPipelineShaderStageCreateInfo shaderStages[2] = {
-        [0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        [0].stage = VK_SHADER_STAGE_VERTEX_BIT,
-        [0].module = vertModule,
-        [0].pName = "main",
-        [0].pSpecializationInfo = NULL,
-        [1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        [1].stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-        [1].module = fragModule,
-        [1].pName = "main",
-        [1].pSpecializationInfo = NULL,
-    }; // vert and frag
+    uint8_t shaderStageCount = 2;
+    VkPipelineShaderStageCreateInfo shaderStages[MAX_SHADER_STAGES] = {0};
+    shaderStages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+    shaderStages[0].module = vertModule;
+    shaderStages[0].pName = "main";
+    shaderStages[0].pSpecializationInfo = NULL;
+    shaderStages[1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    shaderStages[1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+    shaderStages[1].module = fragModule;
+    shaderStages[1].pName = "main";
+    shaderStages[1].pSpecializationInfo = NULL;
+    if (rasterInfo.tessCtrlShader)
+    {
+        assert(rasterInfo.tessEvalShader);
+        initShaderModule(rasterInfo.tessCtrlShader, &tessCtrlModule);
+        initShaderModule(rasterInfo.tessEvalShader, &tessEvalModule);
+        shaderStages[2].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStages[2].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+        shaderStages[2].module = tessCtrlModule;
+        shaderStages[2].pName = "main";
+        shaderStages[2].pSpecializationInfo = NULL;
+        shaderStages[3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStages[3].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+        shaderStages[3].module = tessEvalModule;
+        shaderStages[3].pName = "main";
+        shaderStages[3].pSpecializationInfo = NULL;
+        shaderStageCount += 2;
+    }
+
 
     // passing all of these asserts does not garuantee the vertexDescription is correct.
     // it simply increase the likelyhood.
@@ -207,6 +230,9 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
 
     if (rasterInfo.polygonMode == VK_POLYGON_MODE_LINE)
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+
+    if (rasterInfo.tessCtrlShader)
+        inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 
     const VkViewport viewport = {
         .height = TANTO_WINDOW_HEIGHT,
@@ -281,7 +307,14 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .stencilTestEnable = VK_FALSE,
     };
 
+    const VkPipelineTessellationStateCreateInfo tesselationState = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+        .patchControlPoints = rasterInfo.tesselationPatchPoints,
+    };
+
     assert(rasterInfo.renderPass != 0);
+    assert(shaderStageCount <= MAX_SHADER_STAGES);
+    assert(shaderStageCount > 0);
 
     const VkGraphicsPipelineCreateInfo pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
@@ -296,9 +329,9 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .pMultisampleState = &multisampleState,
         .pRasterizationState = &rasterizationState,
         .pViewportState = &viewportState,
-        .pTessellationState = NULL, // may be able to do splines with this
+        .pTessellationState = &tesselationState, // may be able to do splines with this
         .flags = 0,
-        .stageCount = TANTO_ARRAY_SIZE(shaderStages),
+        .stageCount = shaderStageCount,
         .pStages = shaderStages,
         .pVertexInputState = &vertexInput,
         .pInputAssemblyState = &inputAssembly,

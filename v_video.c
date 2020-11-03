@@ -346,7 +346,8 @@ static void initDevice(void)
         .fillModeNonSolid = VK_TRUE,
         .wideLines = VK_TRUE,
         .largePoints = VK_TRUE,
-        .sampleRateShading = VK_TRUE
+        .sampleRateShading = VK_TRUE,
+        .tessellationShader = VK_TRUE
     };
 
     deviceFeatures.features = enabledFeatures; // only enable a subset of available features

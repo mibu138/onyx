@@ -46,8 +46,11 @@ typedef struct {
     Tanto_R_VertexDescription vertexDescription;
     VkPolygonMode             polygonMode;
     VkSampleCountFlags        sampleCount;
+    uint32_t                  tesselationPatchPoints;
     char* vertShader;
     char* fragShader;
+    char* tessCtrlShader;
+    char* tessEvalShader;
 } Tanto_R_PipelineRasterInfo;
 
 typedef struct {
