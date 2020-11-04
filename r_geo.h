@@ -64,6 +64,8 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void);
 
 Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count);
 
+Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
+
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Default(void);
 
 // Pos and color. 

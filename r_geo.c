@@ -293,6 +293,58 @@ Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
     return prim;
 }
 
+Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
+{
+    assert(patchSize < vertCount);
+    assert(restartOffset < patchSize);
+
+    Tanto_R_Primitive prim = {
+        .attrCount = 2,
+        .indexCount = vertCount * patchSize, // to handle maximum restartOffset
+        .vertexCount = vertCount,
+    };
+
+    prim.vertexRegion = tanto_v_RequestBufferRegion(
+            sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    prim.indexRegion = tanto_v_RequestBufferRegion(
+            sizeof(Tanto_R_Index) * prim.indexCount, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+
+    prim.attrOffsets[0] = posOffset;
+    prim.attrOffsets[1] = colOffset;
+
+    Tanto_R_Attribute* positions = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + posOffset);
+    Tanto_R_Attribute* colors    = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + colOffset);
+
+    for (int i = 0; i < vertCount; i++) 
+    {
+        positions[i] = (Tanto_R_Attribute){0, 0, 0};  
+        colors[i] = (Tanto_R_Attribute){1, 0, 0};  
+    }
+
+    Tanto_R_Index* indices = (Tanto_R_Index*)(prim.indexRegion.hostData);
+
+    for (int i = 0, vertid = 0; vertid < prim.vertexCount; ) 
+    {
+        assert(i < prim.indexCount);
+        assert(vertid <= i);
+        indices[i] = vertid++;
+        i++;
+        if (i % patchSize == 0)
+            vertid -= restartOffset;
+        assert(vertid >= 0);
+    }
+
+    return prim;
+}
+
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Default(void)
 {
     const VkVertexInputBindingDescription bindingDescriptionPos = {
