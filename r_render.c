@@ -15,6 +15,7 @@ VkRenderPass   swapchainRenderPass;
 VkRenderPass   offscreenRenderPass;
 VkRenderPass   msaaRenderPass;
 
+
 // TODO: we should implement a way to specify the offscreen format
 const VkFormat presentColorFormat = VK_FORMAT_R8G8B8A8_SRGB;
 const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
@@ -79,24 +80,6 @@ static void initFrames(void)
         };
 
         V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].swapImage.view) );
-
-        //frames[i].frameBuffer.renderPass = swapchainRenderPass;
-
-        //const VkImageView attachments[] = {
-        //    frames[i].frameBuffer.colorAttachment.view,
-        //};
-
-        //const VkFramebufferCreateInfo ci = {
-        //    .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-        //    .layers = 1,
-        //    .renderPass = frames[i].frameBuffer.renderPass,
-        //    .width = TANTO_WINDOW_WIDTH,
-        //    .height = TANTO_WINDOW_HEIGHT,
-        //    .attachmentCount = 1,
-        //    .pAttachments = attachments,
-        //};
-
-        //V_ASSERT( vkCreateFramebuffer(device, &ci, NULL, &frames[i].frameBuffer.handle) );
     }
     V1_PRINT("Frames successfully initialized.\n");
 }

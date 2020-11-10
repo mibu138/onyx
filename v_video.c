@@ -195,6 +195,7 @@ static void initDebugMessenger(void)
             &ci, NULL, &debugMessenger) );
 }
 
+#define NVIDIA_ID 0x10DE
 static VkPhysicalDevice retrievePhysicalDevice(void)
 {
     uint32_t physdevcount;
@@ -204,14 +205,18 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
     VkPhysicalDeviceProperties props[physdevcount];
     V1_PRINT("Physical device count: %d\n", physdevcount);
     V1_PRINT("Physical device names:\n");
+    int nvidiaCardIndex = -1;
     for (int i = 0; i < physdevcount; i++) 
     {
         vkGetPhysicalDeviceProperties(devices[i], &props[i]);
-        V1_PRINT("%s\n", props[i].deviceName);
+        V1_PRINT("Device %d: name: %s\t vendorID: %d", i, props[i].deviceName, props[i].vendorID);
+        if (props[i].vendorID == NVIDIA_ID) nvidiaCardIndex = i;
     }
-    V1_PRINT("Selecting Device: %s\n", props[1].deviceName);
-    deviceProperties = props[1];
-    return devices[1];
+    int selected = 0;
+    if (nvidiaCardIndex != -1) selected = nvidiaCardIndex;
+    V1_PRINT("Selecting Device: %s\n", props[selected].deviceName);
+    deviceProperties = props[selected];
+    return devices[selected];
 }
 
 static void initDevice(void)

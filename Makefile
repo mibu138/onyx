@@ -5,7 +5,7 @@ CFLAGS = -Wall -Wno-missing-braces -Wno-attributes -fPIC
 LDFLAGS = -L/opt/hfs18.0/dsolib
 INFLAGS = -I/opt/hfs18.0/toolkit/include/HAPI
 LIBS = -lm -lvulkan -lxcb -lxcb-keysyms -lHAPIL
-LIB  = /home/michaelb/lib
+LIB  = $(HOME)/lib
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
 LIBNAME = tanto

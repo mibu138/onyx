@@ -9,7 +9,7 @@
 #define TANTO_MAX_BINDINGS 10
 #define TANTO_MAX_PUSH_CONSTANTS 5
 
-#define TANTO_SPVDIR "/home/michaelb/dev/tanto/shaders/spv"
+#define TANTO_SPVDIR "./tanto/shaders/spv"
 
 extern VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 extern VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];

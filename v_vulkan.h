@@ -12,8 +12,7 @@
 #define V_ASSERT(expr) (expr)
 #endif
 
-
-#define TANTO_WINDOW_WIDTH  1000
-#define TANTO_WINDOW_HEIGHT 1000
+extern uint32_t TANTO_WINDOW_WIDTH;
+extern uint32_t TANTO_WINDOW_HEIGHT;
 
 #endif /* end of include guard: V_VULKAN_H */
