@@ -8,6 +8,9 @@ Tanto_D_XcbWindow d_XcbWindow;
 
 static const char* windowName = "floating";
 
+uint32_t TANTO_WINDOW_WIDTH  = 1000;
+uint32_t TANTO_WINDOW_HEIGHT = 1000;
+
 void tanto_d_Init(void)
 {
     int screenNum = 0;
@@ -31,13 +34,12 @@ void tanto_d_Init(void)
     //	otherwise the queue will fill up with garbage
 	values[1] = //XCB_EVENT_MASK_EXPOSURE |
 		XCB_EVENT_MASK_POINTER_MOTION |
-//		XCB_EVENT_MASK_ENTER_WINDOW |
+	//	XCB_EVENT_MASK_ENTER_WINDOW |
 		XCB_EVENT_MASK_KEY_PRESS |
         XCB_EVENT_MASK_KEY_RELEASE |
-//		XCB_EVENT_MASK_LEAVE_WINDOW |
+	//	XCB_EVENT_MASK_LEAVE_WINDOW |
 		XCB_EVENT_MASK_BUTTON_PRESS |
 		XCB_EVENT_MASK_BUTTON_RELEASE;
-//
 
     xcb_create_window(d_XcbWindow.connection, 
             XCB_COPY_FROM_PARENT,              // depth 
