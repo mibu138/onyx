@@ -17,8 +17,6 @@ typedef union {
     };
 } Vec3;
 
-_Static_assert(sizeof(Vec3) == 12, "Bad size for Vec3. Should be exactly 3 floats wide.");
-
 typedef struct {
     float x[4];
 } Vec4;

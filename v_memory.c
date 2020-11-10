@@ -12,7 +12,7 @@
 // DL = Device Local    
 #define MEMORY_SIZE_HOST          0x40000000 // 
 #define MEMORY_SIZE_DEV_BUFFER    0x40000000 // 
-#define MEMORY_SIZE_DEV_IMAGE     0x10000000 // 
+#define MEMORY_SIZE_DEV_IMAGE     0x20000000 // 
 #define MEMORY_SIZE_HOST_TRANSFER 0x10000000 // 
 #define MAX_BLOCKS 256
 
@@ -383,7 +383,7 @@ Tanto_V_Image tanto_v_CreateImage(
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(device, image.handle, &memReqs);
 
-    printf("Requesting image of size %ld\n", memReqs.size);
+    printf("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
 
     const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
     image.memBlockId = block->id;

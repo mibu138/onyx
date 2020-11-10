@@ -16,6 +16,8 @@
     dest[1]=v1[1]-v2[1]; \
     dest[2]=v1[2]-v2[2];
 
+_Static_assert(sizeof(Vec3) == 12, "Bad size for Vec3. Should be exactly 3 floats wide.");
+
 static void m_Mult_Mat2Vec2(const Mat2* m, Vec2* v)
 {
     float x = m->x00 * v->x + m->x01 * v->y;
