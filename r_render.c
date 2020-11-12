@@ -9,6 +9,7 @@
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 
 
 VkRenderPass   swapchainRenderPass;
@@ -279,17 +280,19 @@ void tanto_r_WaitOnQueueSubmit(void)
 Tanto_R_Frame* tanto_r_RequestFrame(void)
 {
     uint32_t i = frameCounter % TANTO_FRAME_COUNT;
-    V_ASSERT( vkAcquireNextImageKHR(device, 
+    VkResult r;
+    r = vkAcquireNextImageKHR(device, 
             swapchain, 
             UINT64_MAX, 
             imageAcquiredSemaphores[i], 
             VK_NULL_HANDLE, 
-            &curFrameIndex) );
+            &curFrameIndex);
+    if (VK_ERROR_OUT_OF_DATE_KHR == r) return NULL;
     frameCounter++;
     return &frames[curFrameIndex];
 }
 
-void tanto_r_PresentFrame(void)
+bool tanto_r_PresentFrame(void)
 {
     VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
@@ -320,8 +323,12 @@ void tanto_r_PresentFrame(void)
         .pImageIndices = &curFrameIndex,
     };
 
-    V_ASSERT( vkQueuePresentKHR(presentQueue, &info) );
+    VkResult presentResult;
+    presentResult = vkQueuePresentKHR(presentQueue, &info);
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+        return false;
     assert( VK_SUCCESS == r );
+    return true;
 }
 
 void tanto_r_CleanUp(void)

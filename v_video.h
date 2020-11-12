@@ -31,6 +31,7 @@ void tanto_v_InitSwapchain(VkSurfaceKHR* surface);
 void tanto_v_SubmitToQueue(const VkCommandBuffer* buffer, const Tanto_V_QueueType, const uint32_t queueIndex);
 void tanto_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Tanto_V_QueueType, const uint32_t queueIndex);
 void tanto_v_AcquireSwapImage(uint32_t* pImageIndex);
+void tanto_v_RecreateSwapchain(void);
 void tanto_v_CleanUp(void);
 
 VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void);

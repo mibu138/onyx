@@ -37,7 +37,7 @@ extern const VkFormat depthFormat;
 
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
-void           tanto_r_PresentFrame(void);
+bool           tanto_r_PresentFrame(void);
 void           tanto_r_CleanUp(void);
 Tanto_R_Frame* tanto_r_RequestFrame(void);
 

@@ -531,6 +531,12 @@ void tanto_v_CleanUp(void)
     vkDestroyInstance(instance, NULL);
 }
 
+void tanto_v_RecreateSwapchain(void)
+{
+    vkDestroySwapchainKHR(device, swapchain, NULL);
+    initSwapchain();
+}
+
 VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void)
 {
     return rtProperties;

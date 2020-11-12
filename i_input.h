@@ -9,9 +9,15 @@ typedef struct {
     uint8_t  buttonCode;
 } Tanto_I_MouseData;
 
+typedef struct {
+    uint16_t width;
+    uint16_t height;
+} Tanto_I_ResizeData;
+
 typedef union {
     uint32_t          keyCode;
     Tanto_I_MouseData mouseData;
+    Tanto_I_ResizeData resizeData;
 } Tanto_I_EventData;
 
 typedef enum {
@@ -19,7 +25,8 @@ typedef enum {
     TANTO_I_KEYUP,
     TANTO_I_MOUSEDOWN,
     TANTO_I_MOUSEUP,
-    TANTO_I_MOTION
+    TANTO_I_MOTION,
+    TANTO_I_RESIZE
 } Tanto_I_EventType;
 
 typedef struct Tanto_I_Event {
