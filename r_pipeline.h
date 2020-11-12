@@ -79,6 +79,7 @@ void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const i
 void tanto_r_InitPipelineLayouts(const Tanto_R_PipelineLayout* const layouts, const int count);
 void tanto_r_InitPipelines(const Tanto_R_PipelineInfo* const pipelineInfos, const int count);
 void tanto_r_CleanUpPipelines(void);
+void tanto_r_CleanUpJustPipelines(void);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

@@ -35,6 +35,11 @@ extern uint32_t curFrameIndex;
 extern const VkFormat offscreenColorFormat;
 extern const VkFormat depthFormat;
 
+extern VkImage        swapchainImages[TANTO_FRAME_COUNT];
+extern const VkFormat swapFormat;
+extern VkSwapchainKHR   swapchain;
+extern uint64_t       frameCounter;
+
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
 bool           tanto_r_PresentFrame(void);

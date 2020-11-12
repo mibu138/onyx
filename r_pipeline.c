@@ -612,6 +612,16 @@ void tanto_r_InitPipelines(const Tanto_R_PipelineInfo *const pipelineInfos, cons
     }
 }
 
+void tanto_r_CleanUpJustPipelines()
+{
+    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
+    {
+        if (pipelines[i])
+            vkDestroyPipeline(device, pipelines[i], NULL);
+        pipelines[i] = 0;
+    }
+}
+
 void tanto_r_CleanUpPipelines()
 {
     for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 

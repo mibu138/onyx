@@ -16,12 +16,7 @@ extern VkPhysicalDevice physicalDevice;
 extern uint32_t graphicsQueueFamilyIndex;
 extern VkQueue  graphicsQueues[TANTO_G_QUEUE_COUNT];
 extern VkQueue  presentQueue;
-
-extern VkImage        swapchainImages[TANTO_FRAME_COUNT];
-extern const VkFormat swapFormat;
-extern VkSwapchainKHR   swapchain;
-extern VkSemaphore    imageAcquiredSemaphores[TANTO_FRAME_COUNT];
-extern uint64_t       frameCounter;
+extern VkSurfaceKHR* pSurface;
 
 extern VkPhysicalDeviceProperties deviceProperties;
 

@@ -24,6 +24,96 @@ const VkFormat depthFormat          = VK_FORMAT_D32_SFLOAT;
 Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
 uint32_t       curFrameIndex;
 
+VkSwapchainKHR swapchain;
+VkImage        swapchainImages[TANTO_FRAME_COUNT];
+const VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
+
+static VkSemaphore  imageAcquiredSemaphores[TANTO_FRAME_COUNT];
+uint64_t            frameCounter;
+  
+//static void tanto_v_InitSwapchain(VkSurfaceKHR* psurface)
+//{
+//    frameCounter = 0;
+//    if (psurface)
+//        pSurface = psurface;
+//    initSwapchain();
+//}
+
+static void initSwapchain(void)
+{
+    VkBool32 supported;
+    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, *pSurface, &supported);
+
+    assert(supported == VK_TRUE);
+
+    VkSurfaceCapabilitiesKHR capabilities;
+    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, *pSurface, &capabilities) );
+
+    uint32_t formatsCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, NULL);
+    VkSurfaceFormatKHR surfaceFormats[formatsCount];
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, surfaceFormats);
+
+    V1_PRINT("Surface formats: \n");
+    for (int i = 0; i < formatsCount; i++) {
+        V1_PRINT("Format: %d   Colorspace: %d\n", surfaceFormats[i].format, surfaceFormats[i].colorSpace);
+    }
+
+    uint32_t presentModeCount;
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, NULL);
+    VkPresentModeKHR presentModes[presentModeCount];
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, presentModes);
+
+    //const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
+    const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
+
+    assert(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    V1_PRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
+
+    VkExtent2D extent = {
+        .width = TANTO_WINDOW_WIDTH,
+        .height = TANTO_WINDOW_HEIGHT
+    };
+
+    const VkSwapchainCreateInfoKHR ci = {
+        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface = *pSurface,
+        .minImageCount = 2,
+        .imageFormat = swapFormat, //50
+        .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+        //.imageExtent = capabilities.currentExtent,
+        .imageExtent = extent,
+        .imageArrayLayers = 1, // number of views in a multiview / stereo surface
+        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue sharing. see vkspec section 11.7. 
+        .queueFamilyIndexCount = 0, // dont need with exclusive sharing
+        .pQueueFamilyIndices = NULL, // ditto
+        .preTransform = capabilities.currentTransform,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, //dunno. may affect blending
+        .presentMode = presentMode,
+        .clipped = VK_FALSE, // allows pixels convered by another window to be clipped. but will mess up saving the swap image.
+        .oldSwapchain = VK_NULL_HANDLE
+    };
+
+    V_ASSERT( vkCreateSwapchainKHR(device, &ci, NULL, &swapchain) );
+
+    uint32_t imageCount;
+    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL) );
+    assert(TANTO_FRAME_COUNT == imageCount);
+    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages) );
+
+    V1_PRINT("Swapchain created successfully.\n");
+}
+
+static void initSwapchainSemaphores(void)
+{
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
+    }
+}
+
 static void initFrames(void)
 {
     const VkCommandPoolCreateInfo cmdPoolCi = {
@@ -60,6 +150,14 @@ static void initFrames(void)
         V_ASSERT( vkCreateFence(device, &fenceCi, NULL, &frames[i].fence) );
 
         frames[i].index = i;
+    }
+    V1_PRINT("Frames successfully initialized.\n");
+}
+
+static void bindFramesToSwapImages(void)
+{
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
         frames[i].swapImage.handle = swapchainImages[i];
 
         VkImageSubresourceRange ssr = {
@@ -80,7 +178,6 @@ static void initFrames(void)
 
         V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].swapImage.view) );
     }
-    V1_PRINT("Frames successfully initialized.\n");
 }
 
 static void initRenderPassesSwapOff(void)
@@ -263,11 +360,27 @@ static void initRenderPasses(void)
     initRenderPassMSAA(VK_SAMPLE_COUNT_8_BIT);
 }
 
+static void destroyFrames(void)
+{
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        vkDestroyFence(device, frames[i].fence, NULL);
+        vkDestroySemaphore(device, frames[i].semaphore, NULL);
+        vkDestroyCommandPool(device, frames[i].commandPool, NULL);
+        vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
+        vkDestroyImageView(device, frames[i].swapImage.view, NULL);
+    }
+}
+
 void tanto_r_Init(void)
 {
     curFrameIndex = 0;
+    frameCounter  = 0;
+    initSwapchain();
+    initSwapchainSemaphores();
     initRenderPasses();
     initFrames();
+    bindFramesToSwapImages();
     if (tanto_v_config.rayTraceEnabled)
         tanto_r_InitRayTracing();
 }
@@ -331,6 +444,17 @@ bool tanto_r_PresentFrame(void)
     return true;
 }
 
+void tanto_v_RecreateSwapchain(void)
+{
+    destroyFrames();
+    vkDestroySwapchainKHR(device, swapchain, NULL);
+
+    initSwapchain();
+    initSwapchainSemaphores();
+    initFrames();
+    bindFramesToSwapImages();
+}
+
 void tanto_r_CleanUp(void)
 {
     if (tanto_v_config.rayTraceEnabled)
@@ -338,12 +462,5 @@ void tanto_r_CleanUp(void)
     tanto_r_CleanUpPipelines();
     vkDestroyRenderPass(device, swapchainRenderPass, NULL);
     vkDestroyRenderPass(device, offscreenRenderPass, NULL);
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
-    {
-        vkDestroyFence(device, frames[i].fence, NULL);
-        //vkDestroyImageView(device, frames[i].frameBuffer.colorAttachment.view, NULL);
-        //vkDestroyFramebuffer(device, frames[i].frameBuffer.handle, NULL);
-        vkDestroySemaphore(device, frames[i].semaphore, NULL);
-        vkDestroyCommandPool(device, frames[i].commandPool, NULL);
-    }
+    vkDestroySwapchainKHR(device, swapchain, NULL);
 }

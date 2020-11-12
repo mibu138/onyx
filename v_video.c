@@ -23,14 +23,7 @@ VkQueue  graphicsQueues[TANTO_G_QUEUE_COUNT];
 VkQueue  presentQueue;
 
 static VkSurfaceKHR      nativeSurface;
-static VkSurfaceKHR*     pSurface;
-VkSwapchainKHR   swapchain;
-
-VkImage        swapchainImages[TANTO_FRAME_COUNT];
-const VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
-
-VkSemaphore    imageAcquiredSemaphores[TANTO_FRAME_COUNT];
-uint64_t       frameCounter;
+VkSurfaceKHR*    pSurface;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
     
@@ -391,72 +384,6 @@ static void initQueues(void)
     presentQueue = graphicsQueues[0]; // use the first queue to present
 }
 
-static void initSwapchain(void)
-{
-    VkBool32 supported;
-    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, *pSurface, &supported);
-
-    assert(supported == VK_TRUE);
-
-    VkSurfaceCapabilitiesKHR capabilities;
-    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, *pSurface, &capabilities) );
-
-    uint32_t formatsCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, NULL);
-    VkSurfaceFormatKHR surfaceFormats[formatsCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, surfaceFormats);
-
-    V1_PRINT("Surface formats: \n");
-    for (int i = 0; i < formatsCount; i++) {
-        V1_PRINT("Format: %d   Colorspace: %d\n", surfaceFormats[i].format, surfaceFormats[i].colorSpace);
-    }
-
-    uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, NULL);
-    VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, presentModes);
-
-    //const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
-    const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
-
-    assert(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    V1_PRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
-
-    const VkSwapchainCreateInfoKHR ci = {
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = *pSurface,
-        .minImageCount = 2,
-        .imageFormat = swapFormat, //50
-        .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
-        .imageExtent = capabilities.currentExtent,
-        .imageArrayLayers = 1, // number of views in a multiview / stereo surface
-        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
-        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue sharing. see vkspec section 11.7. 
-        .queueFamilyIndexCount = 0, // dont need with exclusive sharing
-        .pQueueFamilyIndices = NULL, // ditto
-        .preTransform = capabilities.currentTransform,
-        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, //dunno. may affect blending
-        .presentMode = presentMode,
-        .clipped = VK_FALSE, // allows pixels convered by another window to be clipped. but will mess up saving the swap image.
-        .oldSwapchain = VK_NULL_HANDLE
-    };
-
-    V_ASSERT( vkCreateSwapchainKHR(device, &ci, NULL, &swapchain) );
-
-    uint32_t imageCount;
-    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL) );
-    assert(TANTO_FRAME_COUNT == imageCount);
-    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages) );
-
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
-    {
-        VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
-    }
-
-    V1_PRINT("Swapchain created successfully.\n");
-}
-
 const VkInstance* tanto_v_Init(void)
 {
     nativeSurface = VK_NULL_HANDLE;
@@ -481,14 +408,6 @@ void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window)
     V_ASSERT( vkCreateXcbSurfaceKHR(instance, &ci, NULL, &nativeSurface) );
     V1_PRINT("Surface created successfully.\n");
     pSurface = &nativeSurface;
-}
-
-void tanto_v_InitSwapchain(VkSurfaceKHR* psurface)
-{
-    frameCounter = 0;
-    if (psurface)
-        pSurface = psurface;
-    initSwapchain();
 }
 
 void tanto_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Tanto_V_QueueType queueType, const uint32_t index)
@@ -519,22 +438,11 @@ void tanto_v_CleanUp(void)
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         
     tanto_v_CleanUpMemory();
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
-    {
-        vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
-    }
-    vkDestroySwapchainKHR(device, swapchain, NULL);
     if (nativeSurface != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(instance, nativeSurface, NULL);
     vkDestroyDevice(device, NULL);
     vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
     vkDestroyInstance(instance, NULL);
-}
-
-void tanto_v_RecreateSwapchain(void)
-{
-    vkDestroySwapchainKHR(device, swapchain, NULL);
-    initSwapchain();
 }
 
 VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void)
