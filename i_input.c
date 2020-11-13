@@ -68,6 +68,15 @@ static Tanto_I_EventData getResizeData(const xcb_generic_event_t* event)
     return data;
 }
 
+static Tanto_I_EventData getConfigureData(const xcb_generic_event_t* event)
+{
+    xcb_configure_notify_event_t* resize = (xcb_configure_notify_event_t*)event;
+    Tanto_I_EventData data = {0};
+    data.resizeData.height = resize->height;
+    data.resizeData.width  = resize->width;
+    return data;
+}
+
 static void postEvent(Tanto_I_Event event)
 {
     events[eventHead] = event;
@@ -146,6 +155,10 @@ void tanto_i_GetEvents(void)
             case XCB_RESIZE_REQUEST:
                 event.type = TANTO_I_RESIZE;
                 event.data = getResizeData(xEvent);
+                break;
+            case XCB_CONFIGURE_NOTIFY:
+                event.type = TANTO_I_RESIZE;
+                event.data = getConfigureData(xEvent);
                 break;
             default: return;
         }

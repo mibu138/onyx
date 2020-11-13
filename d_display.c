@@ -34,7 +34,8 @@ void tanto_d_Init(void)
     //	otherwise the queue will fill up with garbage
 	values[1] = //XCB_EVENT_MASK_EXPOSURE |
 		XCB_EVENT_MASK_POINTER_MOTION |
-        XCB_EVENT_MASK_RESIZE_REDIRECT |
+    //  XCB_EVENT_MASK_RESIZE_REDIRECT |
+        XCB_EVENT_MASK_STRUCTURE_NOTIFY |
 	//	XCB_EVENT_MASK_ENTER_WINDOW |
 		XCB_EVENT_MASK_KEY_PRESS |
         XCB_EVENT_MASK_KEY_RELEASE |

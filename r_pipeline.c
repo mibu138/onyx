@@ -51,7 +51,7 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
     V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
 }
 
-static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
+static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo, VkPipeline* pPipeline)
 {
     const int raygenCount = plInfo->payload.rayTraceInfo.raygenCount;
     const int missCount   = plInfo->payload.rayTraceInfo.missCount;
@@ -138,7 +138,7 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
         .pStages    = shaderStages
     };
 
-    V_ASSERT( vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, &pipelines[plInfo->id]) );
+    V_ASSERT( vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, pPipeline) );
 
     for (int i = 0; i < raygenCount; i++) 
     {
@@ -155,7 +155,8 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo)
 }
 
 #define MAX_SHADER_STAGES 4
-static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
+
+static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPipeline* pPipeline)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
@@ -337,13 +338,13 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo)
         .pInputAssemblyState = &inputAssembly,
     };
 
-    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelines[plInfo->id]);
+    V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pPipeline) );
 
     vkDestroyShaderModule(device, vertModule, NULL);
     vkDestroyShaderModule(device, fragModule, NULL);
 }
 
-static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
+static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo, VkPipeline* pPipeline)
 {
     VkShaderModule vertModule;
     VkShaderModule fragModule;
@@ -478,7 +479,7 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo)
         .pInputAssemblyState = &inputAssembly,
     };
 
-    vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, &pipelines[plInfo->id]);
+    V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pPipeline) );
 
     vkDestroyShaderModule(device, vertModule, NULL);
     vkDestroyShaderModule(device, fragModule, NULL);
@@ -605,20 +606,21 @@ void tanto_r_InitPipelines(const Tanto_R_PipelineInfo *const pipelineInfos, cons
         const Tanto_R_PipelineInfo plInfo = pipelineInfos[i];
         switch (plInfo.type) 
         {
-            case TANTO_R_PIPELINE_RASTER_TYPE:   createPipelineRasterization(&plInfo); break;
-            case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(&plInfo); break;
-            case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(&plInfo); break;
+            case TANTO_R_PIPELINE_RASTER_TYPE:   createPipelineRasterization(&plInfo, &pipelines[plInfo.id]); break;
+            case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(&plInfo, &pipelines[plInfo.id]); break;
+            case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(&plInfo, &pipelines[plInfo.id]); break;
         }
     }
 }
 
-void tanto_r_CleanUpJustPipelines()
+void tanto_r_CreatePipeline(const Tanto_R_PipelineInfo* const pipelineInfo, VkPipeline* pipeline)
 {
-    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
+    switch (pipelineInfo->type) 
     {
-        if (pipelines[i])
-            vkDestroyPipeline(device, pipelines[i], NULL);
-        pipelines[i] = 0;
+        case TANTO_R_PIPELINE_RASTER_TYPE: createPipelineRasterization(pipelineInfo, pipeline); break;
+        case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(pipelineInfo, pipeline); break;
+        case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(pipelineInfo, pipeline); break;
+        default: break;
     }
 }
 
