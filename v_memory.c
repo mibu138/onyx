@@ -76,12 +76,13 @@ static void initBlockChain(
     chain->count = 1;
     chain->cur   = 0;
     chain->totalSize = memorySize;
-    chain->nextBlockId = 0;
+    chain->nextBlockId = 1; 
     chain->defaultAlignment = 4;
     chain->bufferFlags = bufferUsageFlags;
     chain->blocks[0].inUse = false;
     chain->blocks[0].offset = 0;
     chain->blocks[0].size = memorySize;
+    chain->blocks[0].id = 0;
     assert( strlen(name) < 16 );
     strcpy(chain->name, name);
 
@@ -138,9 +139,8 @@ static void freeBlockChain(struct BlockChain* chain)
     vkFreeMemory(device, chain->memory, NULL);
 }
 
-static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
+static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain)
 {
-    //size_t cur  = chain->cur;
     size_t cur  = 0;
     size_t init = cur;
     const size_t count = chain->count;
@@ -150,25 +150,129 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     while (chain->blocks[cur].inUse || chain->blocks[cur].size < size)
     {
         cur = (cur + 1) % count;
-        assert( cur != init ); // looped around. no blocks suitable.
         if (cur == init) 
         {
-            printf("Request Block: memory allocation failed.\n");
-            exit(0);
+            printf("%s: no suitable block found.\n", __PRETTY_FUNCTION__);
+            return -1;
         }
     }
     // found a block not in use and with enough size
-    // split the block
-    Tanto_V_MemBlock* curBlock = &chain->blocks[cur];
+    return cur;
+}
+
+// from i = firstIndex to i = lastIndex - 1, swap block i with block i + 1
+// note this can operate on indices beyond chain->count
+static void rotateBlocks(const size_t firstIndex, const size_t lastIndex, struct BlockChain* chain)
+{
+    assert ( firstIndex >= 0 );
+    assert ( lastIndex < MAX_BLOCKS);
+    assert ( lastIndex > firstIndex );
+    for (int i = firstIndex; i < lastIndex; i++) 
+    {
+        Tanto_V_MemBlock temp = chain->blocks[i];
+        chain->blocks[i] = chain->blocks[i + 1];
+        chain->blocks[i + 1] = temp;
+    }
+}
+
+static void rotateBlockDown(const size_t fromIndex, const size_t toIndex, struct BlockChain* chain)
+{
+    assert ( toIndex >= 0 );
+    assert ( fromIndex < MAX_BLOCKS);
+    assert ( fromIndex > toIndex );
+    for (int i = fromIndex; i > toIndex; i--) 
+    {
+        Tanto_V_MemBlock temp = chain->blocks[i];
+        chain->blocks[i] = chain->blocks[i - 1];
+        chain->blocks[i - 1] = temp;
+    }
+}
+
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+static void defragment(struct BlockChain* chain)
+{
+    assert (chain->count > 1); // must have at least 2 blocks to defragment
+    V1_PRINT("Running memory defragment!!!!\n");
+    V1_PRINT("Running memory defragment!!!!\n");
+    V1_PRINT("Running memory defragment!!!!\n");
+    V1_PRINT("Running memory defragment!!!!\n");
+    V1_PRINT("Pre-defrag\n");
+    printBlockChainInfo(chain);
+    for (int i = 0; i < chain->count - 1; i++) 
+    {
+        Tanto_V_MemBlock* curr = &chain->blocks[i];   
+        Tanto_V_MemBlock* next = &chain->blocks[i + 1];   
+        if (!curr->inUse && !next->inUse)
+        {
+            // combine them together
+            const VkDeviceSize cSize   = curr->size + next->size;
+            // we could make the other id available for re-use as well
+            curr->size   = cSize;
+            // set next block to 0
+            memset(next, 0, sizeof(Tanto_V_MemBlock));
+            // rotate blocks down past i so that next goes to chain->count - 1
+            // and the block at chain->size - 1 goes to chain->count - 2
+            if (i + 1 != chain->count - 1)
+            {
+                rotateBlocks(i + 1, chain->count - 1, chain);
+            }
+            // decrement the chain count
+            chain->count--;
+            i--;
+            printf("==============\n");
+            printf("Merged Blocks!\n");
+            printf("==============\n");
+            printBlockChainInfo(chain);
+        }
+    }
+    V1_PRINT("============\n");
+    V1_PRINT("Post-defrag\n");
+    V1_PRINT("============\n");
+    printBlockChainInfo(chain);
+}
+
+static bool chainIsOrdered(const struct BlockChain* chain)
+{
+    for (int i = 0; i < chain->count - 1; i++) 
+    {
+        const Tanto_V_MemBlock* curr = &chain->blocks[i];
+        const Tanto_V_MemBlock* next = &chain->blocks[i + 1];
+        if (curr->offset > next->offset) return false;
+    }
+    return true;
+}
+
+static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
+{
+    printf("======================\n");
+    printf("%s\n", __PRETTY_FUNCTION__);
+    printf("Pre-requestBlock\n");
+    printf("======================\n");
+    printBlockChainInfo(chain);
+    const int curIndex = findAvailableBlockIndex(size, chain);
+    if (curIndex < 0) // try defragmenting. if that fails we're done.
+    {
+        defragment(chain);
+        const int curIndex = findAvailableBlockIndex(size, chain);
+        if (curIndex < 0)
+        {
+            printf("Memory allocation failed\n");
+            exit(0);
+        }
+    }
+    Tanto_V_MemBlock* curBlock = &chain->blocks[curIndex];
     if (curBlock->size == size && curBlock->offset % alignment == 0) // just reuse this block;
     {
         printf("Re-using block\n");
         curBlock->inUse = true;
         return curBlock;
     }
-    size_t new = chain->count++;
-    Tanto_V_MemBlock* newBlock = &chain->blocks[new];
-    assert( new < MAX_BLOCKS );
+    // split the block
+    const size_t newIndex = chain->count++;
+    Tanto_V_MemBlock* newBlock = &chain->blocks[newIndex];
+    assert( newIndex < MAX_BLOCKS );
     assert( newBlock->inUse == false );
     VkDeviceSize alignedOffset = curBlock->offset;
     if (alignedOffset % alignment != 0) // not aligned
@@ -177,11 +281,17 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     // take away the size lost due to alignment and the new size
     newBlock->size   = curBlock->size - offsetDiff - size;
     newBlock->offset = alignedOffset + size;
+    newBlock->id = chain->nextBlockId++;
     curBlock->size   = size;
     curBlock->offset = alignedOffset;
     curBlock->inUse = true;
-    curBlock->id = chain->nextBlockId++;
-    chain->cur = cur;
+    if (newIndex != curIndex + 1)
+        rotateBlockDown(newIndex, curIndex + 1, chain);
+    printf("======================\n");
+    printf("Post-requestBlock\n");
+    printBlockChainInfo(chain);
+    printf("======================\n");
+    assert( chainIsOrdered(chain) );
     return curBlock;
 }
 
@@ -199,6 +309,8 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
     Tanto_V_MemBlock* block = &chain->blocks[blockIndex];
     printf("Freeing block id: %d in block chain %s\n", id, chain->name);
     block->inUse = false;
+    if (strcmp(chain->name, "devImage") == 0)
+        defragment(chain);
 }
 
 void tanto_v_InitMemory(void)
