@@ -113,7 +113,7 @@ static void initBlockChain(
 
         //chain->defaultAlignment = memReqs.alignment;
 
-        printf("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
+        V1_PRINT("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
 
         if (mapBuffer)
             V_ASSERT( vkMapMemory(device, chain->memory, 0, VK_WHOLE_SIZE, 0, (void**)&chain->hostData) );
@@ -152,7 +152,7 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
         cur = (cur + 1) % count;
         if (cur == init) 
         {
-            printf("%s: no suitable block found.\n", __PRETTY_FUNCTION__);
+            V1_PRINT("%s: no suitable block found.\n", __PRETTY_FUNCTION__);
             return -1;
         }
     }
@@ -162,12 +162,12 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
 
 // from i = firstIndex to i = lastIndex - 1, swap block i with block i + 1
 // note this can operate on indices beyond chain->count
-static void rotateBlocks(const size_t firstIndex, const size_t lastIndex, struct BlockChain* chain)
+static void rotateBlockUp(const size_t fromIndex, const size_t toIndex, struct BlockChain* chain)
 {
-    assert ( firstIndex >= 0 );
-    assert ( lastIndex < MAX_BLOCKS);
-    assert ( lastIndex > firstIndex );
-    for (int i = firstIndex; i < lastIndex; i++) 
+    assert ( fromIndex >= 0 );
+    assert ( toIndex < MAX_BLOCKS);
+    assert ( toIndex > fromIndex );
+    for (int i = fromIndex; i < toIndex; i++) 
     {
         Tanto_V_MemBlock temp = chain->blocks[i];
         chain->blocks[i] = chain->blocks[i + 1];
@@ -191,15 +191,9 @@ static void rotateBlockDown(const size_t fromIndex, const size_t toIndex, struct
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-static void defragment(struct BlockChain* chain)
+static void mergeBlocks(struct BlockChain* chain)
 {
     assert (chain->count > 1); // must have at least 2 blocks to defragment
-    V1_PRINT("Running memory defragment!!!!\n");
-    V1_PRINT("Running memory defragment!!!!\n");
-    V1_PRINT("Running memory defragment!!!!\n");
-    V1_PRINT("Running memory defragment!!!!\n");
-    V1_PRINT("Pre-defrag\n");
-    printBlockChainInfo(chain);
     for (int i = 0; i < chain->count - 1; i++) 
     {
         Tanto_V_MemBlock* curr = &chain->blocks[i];   
@@ -216,21 +210,19 @@ static void defragment(struct BlockChain* chain)
             // and the block at chain->size - 1 goes to chain->count - 2
             if (i + 1 != chain->count - 1)
             {
-                rotateBlocks(i + 1, chain->count - 1, chain);
+                rotateBlockUp(i + 1, chain->count - 1, chain);
             }
             // decrement the chain count
             chain->count--;
             i--;
-            printf("==============\n");
-            printf("Merged Blocks!\n");
-            printf("==============\n");
-            printBlockChainInfo(chain);
         }
     }
-    V1_PRINT("============\n");
-    V1_PRINT("Post-defrag\n");
-    V1_PRINT("============\n");
-    printBlockChainInfo(chain);
+}
+
+// TODO: implement a proper defragment function
+static void defragment(struct BlockChain* chain)
+{
+    V1_PRINT("Empty defragment function called\n");
 }
 
 static bool chainIsOrdered(const struct BlockChain* chain)
@@ -246,15 +238,10 @@ static bool chainIsOrdered(const struct BlockChain* chain)
 
 static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
 {
-    printf("======================\n");
-    printf("%s\n", __PRETTY_FUNCTION__);
-    printf("Pre-requestBlock\n");
-    printf("======================\n");
-    printBlockChainInfo(chain);
     const int curIndex = findAvailableBlockIndex(size, chain);
     if (curIndex < 0) // try defragmenting. if that fails we're done.
     {
-        defragment(chain);
+        defragment(chain); 
         const int curIndex = findAvailableBlockIndex(size, chain);
         if (curIndex < 0)
         {
@@ -265,7 +252,6 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     Tanto_V_MemBlock* curBlock = &chain->blocks[curIndex];
     if (curBlock->size == size && curBlock->offset % alignment == 0) // just reuse this block;
     {
-        printf("Re-using block\n");
         curBlock->inUse = true;
         return curBlock;
     }
@@ -287,10 +273,6 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     curBlock->inUse = true;
     if (newIndex != curIndex + 1)
         rotateBlockDown(newIndex, curIndex + 1, chain);
-    printf("======================\n");
-    printf("Post-requestBlock\n");
-    printBlockChainInfo(chain);
-    printf("======================\n");
     assert( chainIsOrdered(chain) );
     return curBlock;
 }
@@ -307,10 +289,8 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
     }
     assert( blockIndex < blockCount ); // block must not have come from this chain
     Tanto_V_MemBlock* block = &chain->blocks[blockIndex];
-    printf("Freeing block id: %d in block chain %s\n", id, chain->name);
     block->inUse = false;
-    if (strcmp(chain->name, "devImage") == 0)
-        defragment(chain);
+    mergeBlocks(chain);
 }
 
 void tanto_v_InitMemory(void)
@@ -420,9 +400,6 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     region.hostData = chain->hostData + block->offset;
     region.pChain = chain;
 
-    printf("Requesting buffer region!!\n");
-    printBlockChainInfo(chain);
-
     return region;
 }
 
@@ -495,7 +472,7 @@ Tanto_V_Image tanto_v_CreateImage(
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(device, image.handle, &memReqs);
 
-    printf("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
+    V1_PRINT("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
 
     const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
     image.memBlockId = block->id;
@@ -530,7 +507,6 @@ Tanto_V_Image tanto_v_CreateImage(
 
 void tanto_v_DestroyImage(Tanto_V_Image image)
 {
-    printf("Destroy image called\n");
     if (image.sampler != VK_NULL_HANDLE)
         vkDestroySampler(device, image.sampler, NULL);
     vkDestroyImageView(device, image.view, NULL);
@@ -540,7 +516,6 @@ void tanto_v_DestroyImage(Tanto_V_Image image)
 
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
 {
-    printf("Freeing buffer region!!\n");
     freeBlock(pRegion->pChain, pRegion->memBlockId);
     memset(pRegion, 0, sizeof(Tanto_V_BufferRegion));
 }
