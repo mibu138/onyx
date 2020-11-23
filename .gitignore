@@ -6,3 +6,4 @@ lib/*
 shaders/spv/*
 qrenderdoc
 tags
+.cache

@@ -101,6 +101,47 @@ void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageL
     image->layout = newLayout;
 }
 
+void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
+        Tanto_V_Image* image)
+{
+    Tanto_V_CommandPool cmd = tanto_v_RequestOneTimeUseCommand();
+
+    VkImageLayout origLayout = image->layout;
+    tanto_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image);
+
+    const VkImageSubresourceLayers subRes = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseArrayLayer = 0,
+        .layerCount = 1, 
+        .mipLevel = 0,
+    };
+
+    const VkOffset3D imgOffset = {
+        .x = 0,
+        .y = 0,
+        .z = 0
+    };
+
+    const VkBufferImageCopy imgCopy = {
+        .imageOffset = imgOffset,
+        .imageExtent = image->extent,
+        .imageSubresource = subRes,
+        .bufferOffset = region->offset,
+        .bufferImageHeight = 0,
+        .bufferRowLength = 0
+    };
+
+    printf("Copying buffer to image...\n");
+    vkCmdCopyBufferToImage(cmd.buffer, region->buffer, image->handle, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopy);
+
+    tanto_v_SubmitOneTimeCommandAndWait(&cmd, 0);
+
+    tanto_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, origLayout, image);
+
+    printf("Copying complete.\n");
+}
+
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
 {
     assert( fileType == TANTO_V_IMAGE_FILE_PNG_TYPE );
@@ -136,12 +177,13 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
 
     printf("Copying image to host...\n");
     vkCmdCopyImageToBuffer(cmd.buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.buffer, 1, &imgCopy);
-    printf("Copying complete.\n");
-    printf("Writing out to jpg...\n");
 
     tanto_v_SubmitOneTimeCommandAndWait(&cmd, 0);
 
     tanto_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout, image);
+
+    printf("Copying complete.\n");
+    printf("Writing out to jpg...\n");
 
     const char* filepath = "/home/michaelb/Pictures/TANTO_IMG.jpg";
 
