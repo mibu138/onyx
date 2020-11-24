@@ -40,15 +40,15 @@ static void draw_bitmap( FT_Bitmap*  bitmap,
   }
 }
 
-#define TARGET_HEIGHT 20
-
-static void drawString(const char* string, const size_t width, const size_t height, uint8_t* buffer)
+static void drawString(const char* string, const size_t width, const size_t height, 
+        const size_t x, const size_t y, uint8_t* buffer)
 {
     pen.x = 0; pen.y = 0;
     matrix.xx = (FT_Fixed)1 * 0x10000L;
     matrix.xy = (FT_Fixed)0 * 0x10000L;
     matrix.yx = (FT_Fixed)0 * 0x10000L;
     matrix.yy = (FT_Fixed)1 * 0x10000L;
+
 
     const int len = strlen(string);
     for (int i = 0; i < len; i++) 
@@ -58,16 +58,20 @@ static void drawString(const char* string, const size_t width, const size_t heig
         error = FT_Load_Char(face, string[i], FT_LOAD_RENDER);
         assert(!error);
 
+        //assert(face->glyph->bitmap.pitch > 0); // indicates buffer starts at top left pixel
+
         draw_bitmap(&face->glyph->bitmap, 
-                face->glyph->bitmap_left, 
-                TARGET_HEIGHT - face->glyph->bitmap_top,
+                x + face->glyph->bitmap_left, 
+                y - face->glyph->bitmap_top,
                 width, height, buffer);
 
         pen.x += face->glyph->advance.x;
     }
 }
 
-Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, const char* text)
+Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, 
+        const size_t x, const size_t y,
+        const size_t fontSize, const char* text)
 {
     static bool initialized = false;
     if (!initialized)
@@ -76,7 +80,7 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, con
         assert(!error);
         error = FT_New_Face(library, "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 0, &face);
         assert(!error);
-        error = FT_Set_Pixel_Sizes(face, 0, 28);
+        error = FT_Set_Pixel_Sizes(face, 0, fontSize);
         assert(!error);
         initialized = true;
     }
@@ -85,7 +89,7 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, con
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
-            VK_FILTER_LINEAR);
+            VK_FILTER_NEAREST);
 
     tanto_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 
@@ -93,7 +97,7 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, con
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
             TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
 
-    drawString(text, 200, 32, region.hostData);
+    drawString(text, width, height, x, y, region.hostData);
 
     tanto_v_CopyBufferToImage(&region, &image);
 
