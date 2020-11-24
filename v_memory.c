@@ -517,6 +517,7 @@ void tanto_v_DestroyImage(Tanto_V_Image image)
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
 {
     freeBlock(pRegion->pChain, pRegion->memBlockId);
+    memset(pRegion->hostData, 0, pRegion->size);
     memset(pRegion, 0, sizeof(Tanto_V_BufferRegion));
 }
 
