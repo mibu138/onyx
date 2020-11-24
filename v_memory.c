@@ -13,7 +13,7 @@
 #define MEMORY_SIZE_HOST          0x40000000 // 
 #define MEMORY_SIZE_DEV_BUFFER    0x40000000 // 
 #define MEMORY_SIZE_DEV_IMAGE     0x20000000 // 
-#define MEMORY_SIZE_HOST_TRANSFER 0x10000000 // 
+#define MEMORY_SIZE_HOST_TRANSFER 0x40000000 // 
 #define MAX_BLOCKS 256
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -133,7 +133,8 @@ static void freeBlockChain(struct BlockChain* chain)
     if (chain->buffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(device, chain->buffer, NULL);
-        vkUnmapMemory(device, chain->memory);
+        if (chain->hostData != NULL)
+            vkUnmapMemory(device, chain->memory);
         chain->buffer = VK_NULL_HANDLE;
     }
     vkFreeMemory(device, chain->memory, NULL);
@@ -547,4 +548,5 @@ void tanto_v_CleanUpMemory()
     freeBlockChain(&blockChainHostGraphics);
     freeBlockChain(&blockChainDeviceImage);
     freeBlockChain(&blockChainHostTransfer);
+    freeBlockChain(&blockChainDeviceGraphics);
 };

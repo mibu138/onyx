@@ -21,7 +21,7 @@ const VkFormat presentColorFormat   = VK_FORMAT_R8G8B8A8_SRGB;
 const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 const VkFormat depthFormat          = VK_FORMAT_D32_SFLOAT;
 
-Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
+static Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
 static uint32_t     curFrameIndex;
 
 static VkSwapchainKHR      swapchain;
@@ -468,8 +468,17 @@ void tanto_r_CleanUp(void)
 {
     if (tanto_v_config.rayTraceEnabled)
         tanto_r_RayTraceCleanUp();
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
+        vkDestroySemaphore(device, frames[i].semaphore, NULL);
+        vkDestroyCommandPool(device, frames[i].commandPool, NULL);
+        vkDestroyFence(device, frames[i].fence, NULL);
+        vkDestroyImageView(device, frames[i].swapImage.view, NULL);
+    }
     tanto_r_CleanUpPipelines();
     vkDestroyRenderPass(device, swapchainRenderPass, NULL);
     vkDestroyRenderPass(device, offscreenRenderPass, NULL);
+    vkDestroyRenderPass(device, msaaRenderPass, NULL);
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
