@@ -45,6 +45,7 @@ typedef struct {
     VkRenderPass              renderPass;
     Tanto_R_VertexDescription vertexDescription;
     VkPolygonMode             polygonMode;
+    VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;
     uint32_t                  tesselationPatchPoints;
     char* vertShader;

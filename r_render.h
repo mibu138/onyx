@@ -8,14 +8,6 @@
 #define TANTO_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
 #define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
 
-typedef struct {
-    VkFramebuffer   handle;
-    Tanto_V_Image   colorAttachment;
-    Tanto_V_Image   depthAttachment;
-    Tanto_V_Image   resolveAttachment;
-    VkRenderPass    renderPass;
-} Tanto_R_FrameBuffer;
-
 typedef struct frame {
     VkCommandPool       commandPool;
     VkCommandBuffer     commandBuffer;
@@ -25,18 +17,13 @@ typedef struct frame {
     uint32_t            index;
 } Tanto_R_Frame;
 
-extern VkRenderPass swapchainRenderPass;
-extern VkRenderPass offscreenRenderPass;
-extern VkRenderPass msaaRenderPass;
-//extern Tanto_R_Frame frames[TANTO_FRAME_COUNT];
-//extern uint32_t curFrameIndex;
-extern const VkFormat offscreenColorFormat;
-extern const VkFormat depthFormat;
+VkFormat tanto_r_GetOffscreenColorFormat(void);
+VkFormat tanto_r_GetDepthFormat(void);
+VkFormat tanto_r_GetSwapFormat(void);
 
-//extern VkImage        swapchainImages[TANTO_FRAME_COUNT];
-extern const VkFormat swapFormat;
-//extern VkSwapchainKHR   swapchain;
-//extern uint64_t       frameCounter;
+VkRenderPass tanto_r_GetSwapchainRenderPass(void);
+VkRenderPass tanto_r_GetOffscreenRenderPass(void);
+VkRenderPass tanto_r_GetMSAARenderPass(void);
 
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);

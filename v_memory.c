@@ -392,6 +392,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     if (0 == alignment)
         alignment = chain->defaultAlignment;
 
+    printf("Requesting block of size %ld from chain of totalSize: %ld \n", size, chain->totalSize);
     block = requestBlock(size, alignment, chain); 
     Tanto_V_BufferRegion region;
     region.offset = block->offset;

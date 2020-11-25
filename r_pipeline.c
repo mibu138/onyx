@@ -263,7 +263,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
         .rasterizerDiscardEnable = VK_FALSE, // actually discards everything
         .polygonMode = rasterInfo.polygonMode,
         .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
+        .frontFace = rasterInfo.frontFace,
         .depthBiasEnable = VK_FALSE,
         .lineWidth = 1.0
     };

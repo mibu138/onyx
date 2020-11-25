@@ -1,6 +1,4 @@
 #include "v_command.h"
-#include "v_video.h"
-#include <vulkan/vulkan_core.h>
 
 Tanto_V_CommandPool tanto_v_RequestOneTimeUseCommand()
 {
@@ -33,6 +31,36 @@ Tanto_V_CommandPool tanto_v_RequestOneTimeUseCommand()
     vkBeginCommandBuffer(pool.buffer, &beginInfo);
 
     return pool;
+}
+
+Tanto_V_CommandPool tanto_v_RequestCommandPool(Tanto_V_QueueType queueFamilyType)
+{
+    Tanto_V_CommandPool pool;
+
+    pool.queueFamily = tanto_v_GetQueueFamilyIndex(queueFamilyType);
+
+    VkCommandPoolCreateInfo poolInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+        .queueFamilyIndex = pool.queueFamily,
+    };
+
+    vkCreateCommandPool(device, &poolInfo, NULL, &pool.handle);
+
+    VkCommandBufferAllocateInfo cmdBufInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO,
+        .commandBufferCount = 1,
+        .commandPool = pool.handle,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+    };
+
+    vkAllocateCommandBuffers(device, &cmdBufInfo, &pool.buffer);
+
+    return pool;
+}
+
+void tanto_v_SubmitAndWait(Tanto_V_CommandPool* pool, const uint32_t queueIndex)
+{
+    tanto_v_SubmitToQueueWait(&pool->buffer, pool->queueFamily, queueIndex);
 }
 
 void tanto_v_SubmitOneTimeCommandAndWait(Tanto_V_CommandPool* pool, const uint32_t queueIndex)

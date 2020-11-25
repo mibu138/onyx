@@ -345,6 +345,31 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
     return prim;
 }
 
+Tanto_R_Primitive tanto_r_CreateEmptySimplePrimitive(const uint32_t vertCount, const uint32_t indexCount)
+{
+    Tanto_R_Primitive prim = {
+        .attrCount = 2,
+        .indexCount = indexCount,
+        .vertexCount = vertCount
+    };
+
+    printf("1\n");
+    prim.vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    prim.indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim.indexCount, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    printf("2\n");
+    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+
+    prim.attrOffsets[0] = posOffset;
+    prim.attrOffsets[1] = colOffset;
+
+    return prim;
+}
+
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Default(void)
 {
     const VkVertexInputBindingDescription bindingDescriptionPos = {

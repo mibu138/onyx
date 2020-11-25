@@ -482,3 +482,11 @@ void tanto_r_CleanUp(void)
     vkDestroyRenderPass(device, msaaRenderPass, NULL);
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
+
+VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }
+VkFormat tanto_r_GetDepthFormat(void)          { return depthFormat; }
+VkFormat tanto_r_GetSwapFormat(void)           { return swapFormat; }
+
+VkRenderPass tanto_r_GetSwapchainRenderPass(void) { return swapchainRenderPass; }
+VkRenderPass tanto_r_GetOffscreenRenderPass(void) { return offscreenRenderPass; }
+VkRenderPass tanto_r_GetMSAARenderPass(void)      { return msaaRenderPass; }
