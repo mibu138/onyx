@@ -61,7 +61,7 @@ Tanto_V_Image tanto_v_CreateImage(
 
 void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion);
 
-void tanto_v_DestroyImage(Tanto_V_Image image);
+void tanto_v_FreeImage(Tanto_V_Image* image);
 
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion);
 

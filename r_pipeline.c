@@ -427,10 +427,10 @@ static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo, VkPipe
             VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
                                                                     write anything to the
                                                                     framebuffer */
-        .blendEnable = VK_FALSE, // no blending for now
-        .srcColorBlendFactor = 0,
-        .dstColorBlendFactor = 0,
-        .colorBlendOp = 0,
+        .blendEnable = VK_TRUE, // no blending for now
+        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
+        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .colorBlendOp = VK_BLEND_OP_ADD,
         .srcAlphaBlendFactor = 0,
         .dstAlphaBlendFactor = 0,
         .alphaBlendOp = 0,

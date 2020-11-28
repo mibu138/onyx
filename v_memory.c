@@ -503,17 +503,21 @@ Tanto_V_Image tanto_v_CreateImage(
     V_ASSERT( vkCreateImageView(device, &viewInfo, NULL, &image.view) );
 
     image.sampler = VK_NULL_HANDLE;
+    image.layout  = imageInfo.initialLayout;
 
     return image;
 }
 
-void tanto_v_DestroyImage(Tanto_V_Image image)
+void tanto_v_FreeImage(Tanto_V_Image* image)
 {
-    if (image.sampler != VK_NULL_HANDLE)
-        vkDestroySampler(device, image.sampler, NULL);
-    vkDestroyImageView(device, image.view, NULL);
-    vkDestroyImage(device, image.handle, NULL);
-    freeBlock(&blockChainDeviceImage, image.memBlockId);
+    if (image->sampler != VK_NULL_HANDLE)
+    {
+        vkDestroySampler(device, image->sampler, NULL);
+    }
+    vkDestroyImageView(device, image->view, NULL);
+    vkDestroyImage(device, image->handle, NULL);
+    freeBlock(&blockChainDeviceImage, image->memBlockId);
+    memset(image, 0, sizeof(Tanto_V_Image));
 }
 
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
