@@ -14,7 +14,7 @@
 #define MEMORY_SIZE_DEV_BUFFER    0x40000000 // 
 #define MEMORY_SIZE_DEV_IMAGE     0x20000000 // 
 #define MEMORY_SIZE_HOST_TRANSFER 0x40000000 // 
-#define MAX_BLOCKS 256
+#define MAX_BLOCKS 5000
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
 

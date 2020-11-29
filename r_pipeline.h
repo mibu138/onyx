@@ -45,6 +45,7 @@ typedef struct {
     VkRenderPass              renderPass;
     Tanto_R_VertexDescription vertexDescription;
     VkPolygonMode             polygonMode;
+    VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
     VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;
     uint32_t                  tesselationPatchPoints;

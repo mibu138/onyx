@@ -46,6 +46,12 @@ typedef struct {
     VkDeviceSize attrOffsets[TANTO_R_MAX_VERT_ATTRIBUTES];
 } Tanto_R_Primitive;
 
+typedef enum {
+    TANTO_R_ATTR_LAYOUT_POS_COL,
+    TANTO_R_ATTR_LAYOUT_POS_NOR,
+    TANTO_R_ATTR_LAYOUT_POS_COL_NOR_UVW,
+} Tanto_R_AttrLayout;
+
 typedef struct {
     uint32_t bindingCount;
     uint32_t attributeCount;
@@ -66,12 +72,11 @@ Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count);
 
 Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
 
-Tanto_R_Primitive tanto_r_CreateEmptySimplePrimitive(const uint32_t vertCount, const uint32_t indexCount);
+Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, const uint8_t attrCount);
 
-Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Default(void);
+Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_4Vec3(void);
 
-// Pos and color. 
-Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_Simple(void);
+Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_2Vec3(void);
 
 void tanto_r_FreeMesh(Tanto_R_Mesh mesh);
 

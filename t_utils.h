@@ -16,6 +16,7 @@
 
 void printVec2(const Vec2*);
 void printVec3(const Vec3*);
+void printVec4(const Vec4*);
 void printMat4(const Mat4*);
 void bitprintRowLen(const void *const thing, const size_t bitcount, const size_t rowlength);
 void bytePrint(const void* const thing, const size_t byteCount);
