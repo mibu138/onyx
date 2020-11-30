@@ -55,8 +55,8 @@ typedef enum {
 typedef struct {
     uint32_t bindingCount;
     uint32_t attributeCount;
-    const VkVertexInputBindingDescription   bindingDescriptions[TANTO_R_MAX_VERT_ATTRIBUTES];
-    const VkVertexInputAttributeDescription attributeDescriptions[TANTO_R_MAX_VERT_ATTRIBUTES];
+    VkVertexInputBindingDescription   bindingDescriptions[TANTO_R_MAX_VERT_ATTRIBUTES];
+    VkVertexInputAttributeDescription attributeDescriptions[TANTO_R_MAX_VERT_ATTRIBUTES];
 } Tanto_R_VertexDescription;
 
 Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh);
@@ -71,6 +71,8 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void);
 Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count);
 
 Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
+
+Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc);
 
 Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, const uint8_t attrCount);
 

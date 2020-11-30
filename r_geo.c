@@ -2,8 +2,41 @@
 #include "v_memory.h"
 #include "t_def.h"
 #include <string.h>
+#include <stdlib.h>
 
 const int CW = 1;
+
+static inline Tanto_R_Attribute* tanto_r_GetAttributeData(const Tanto_R_Primitive* prim, const uint8_t attrIndex)
+{
+    assert(prim->vertexRegion.hostData);
+    assert(attrIndex < prim->attrCount);
+    return (Tanto_R_Attribute*)(prim->vertexRegion.hostData + prim->attrOffsets[attrIndex]);
+}
+
+static inline Tanto_R_Index* tanto_r_GetIndexData(const Tanto_R_Primitive* prim)
+{
+    assert(prim->indexRegion.hostData);
+    return (Tanto_R_Index*)(prim->indexRegion.hostData);
+}
+
+static void initPrimBuffers(Tanto_R_Primitive* prim)
+{
+    assert(prim->attrCount > 0);
+    assert(prim->vertexCount > 0);
+    assert(prim->indexCount > 0);
+
+    prim->vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim->attrCount * prim->vertexCount, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    prim->indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim->indexCount, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
+    for (int i = 0; i < prim->attrCount; i++) 
+    {
+        prim->attrOffsets[i] = i * prim->vertexCount * sizeof(Tanto_R_Attribute);
+    }
+}
 
 Tanto_R_Mesh tanto_r_PreMeshToMesh(const Tanto_R_PreMesh pm)
 {
@@ -345,6 +378,50 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
     return prim;
 }
 
+Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc)
+{
+    assert(fabs(x) <= 1);
+    assert(fabs(y) <= 1);
+    //assert(width > 0 && width <= 2);
+    //assert(height > 0 && height <= 2);
+
+    Tanto_R_Primitive prim = {
+        .attrCount = 2,
+        .indexCount = 6,
+        .vertexCount = 4
+    };
+
+    initPrimBuffers(&prim);
+
+    Tanto_R_Attribute* pos = tanto_r_GetAttributeData(&prim, 0);
+    // upper left. x, y
+    pos[0] = (Vec3){x, y, 0};
+    pos[1] = (Vec3){x, y + height, 0};
+    pos[2] = (Vec3){x + width, y, 0};
+    pos[3] = (Vec3){x + width, y + height, 0};
+
+    Tanto_R_Attribute* uvw = tanto_r_GetAttributeData(&prim, 1);
+    uvw[0] = (Vec3){0, 0, 0};
+    uvw[1] = (Vec3){0, 1, 0};
+    uvw[2] = (Vec3){1, 0, 0};
+    uvw[3] = (Vec3){1, 1, 0};
+
+    Tanto_R_Index* index = tanto_r_GetIndexData(&prim);
+    index[0] = 0;
+    index[1] = 1;
+    index[2] = 2;
+    index[3] = 2;
+    index[4] = 1;
+    index[5] = 3;
+
+    if (desc)
+    {
+        *desc = tanto_r_GetVertexDescription3D_2Vec3();
+    }
+
+    return prim;
+}
+
 Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, const uint8_t attrCount)
 {
     Tanto_R_Primitive prim = {
@@ -353,17 +430,7 @@ Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32
         .vertexCount = vertCount
     };
 
-    prim.vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
-
-    prim.indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim.indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
-
-    assert(attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
-    for (int i = 0; i < attrCount; i++) 
-    {
-        prim.attrOffsets[i] = i * prim.vertexCount * sizeof(Tanto_R_Attribute);
-    }
+    initPrimBuffers(&prim);
 
     return prim;
 }
@@ -485,3 +552,4 @@ void tanto_r_FreeMesh(Tanto_R_Mesh mesh)
     tanto_v_FreeBufferRegion(&mesh.vertexBlock);
     tanto_v_FreeBufferRegion(&mesh.indexBlock);
 }
+

@@ -457,4 +457,5 @@ uint32_t tanto_v_GetQueueFamilyIndex(Tanto_V_QueueType type)
         case TANTO_V_QUEUE_GRAPHICS_TYPE: return graphicsQueueFamilyIndex;
         case TANTO_V_QUEUE_COMPUTE_TYPE:  assert(0); return -1; //not supported yet
     }
+    return -1;
 }
