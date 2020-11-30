@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <setjmp.h>
 
-#ifndef VERBOSE
+#ifndef NDEBUG
 #define VERBOSE 1
 #endif
 

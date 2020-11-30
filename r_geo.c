@@ -380,15 +380,11 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
 
 Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc)
 {
-    assert(fabs(x) <= 1);
-    assert(fabs(y) <= 1);
-    //assert(width > 0 && width <= 2);
-    //assert(height > 0 && height <= 2);
 
     Tanto_R_Primitive prim = {
         .attrCount = 2,
         .indexCount = 6,
-        .vertexCount = 4
+        .vertexCount = 4,
     };
 
     initPrimBuffers(&prim);

@@ -14,7 +14,7 @@
 #define MEMORY_SIZE_DEV_BUFFER    0x40000000 // 
 #define MEMORY_SIZE_DEV_IMAGE     0x20000000 // 
 #define MEMORY_SIZE_HOST_TRANSFER 0x40000000 // 
-#define MAX_BLOCKS 5000
+#define MAX_BLOCKS 100000
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
 
@@ -392,7 +392,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     if (0 == alignment)
         alignment = chain->defaultAlignment;
 
-    printf("Requesting block of size %ld from chain of totalSize: %ld \n", size, chain->totalSize);
+    V1_PRINT("Requesting block of size %ld from chain of totalSize: %ld \n", size, chain->totalSize);
     block = requestBlock(size, alignment, chain); 
     Tanto_V_BufferRegion region;
     region.offset = block->offset;
