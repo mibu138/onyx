@@ -77,6 +77,13 @@ void tanto_TimerInit(Tanto_Timer* t)
     t->clockId = CLOCK_MONOTONIC;
 }
 
+void tanto_PrintTime(const Tanto_Timer* t)
+{
+    const uint32_t seconds = t->endTime.tv_sec - t->startTime.tv_sec;
+    const uint32_t ns = t->endTime.tv_nsec - t->startTime.tv_nsec;
+    printf("%d.%09d\n",seconds,ns);
+}
+
 void tanto_LoopStatsInit(Tanto_LoopStats* stats)
 {
     memset(stats, 0, sizeof(Tanto_LoopStats));

@@ -33,6 +33,7 @@ struct Tanto_Timer {
 void tanto_TimerStart(Tanto_Timer* t);
 void tanto_TimerStop(Tanto_Timer* t);
 void tanto_TimerInit(Tanto_Timer* t);
+void tanto_PrintTime(const Tanto_Timer* t);
 
 typedef struct Tanto_LoopStats Tanto_LoopStats;
 
