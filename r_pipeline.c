@@ -207,10 +207,9 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
 
     // passing all of these asserts does not garuantee the vertexDescription is correct.
     // it simply increase the likelyhood.
-    assert(rasterInfo.vertexDescription.attributeDescriptions);
-    assert(rasterInfo.vertexDescription.bindingDescriptions);
-    assert(rasterInfo.vertexDescription.attributeCount > 0);
-    assert(rasterInfo.vertexDescription.bindingCount > 0);
+
+    TANTO_COND_PRINT(rasterInfo.vertexDescription.attributeCount == 0, 
+            "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.");
 
     const VkPipelineVertexInputStateCreateInfo vertexInput = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -275,26 +274,12 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
         // TODO: alot more settings here. more to look into
     };
 
-    //const VkPipelineColorBlendAttachmentState attachmentState = {
-    //    .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
-    //        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
-    //                                                                write anything to the
-    //                                                                framebuffer */
-    //    .blendEnable = VK_FALSE, // no blending for now
-    //    .srcColorBlendFactor = 0,
-    //    .dstColorBlendFactor = 0,
-    //    .colorBlendOp = 0,
-    //    .srcAlphaBlendFactor = 0,
-    //    .dstAlphaBlendFactor = 0,
-    //    .alphaBlendOp = 0,
-    //};
-
     const VkPipelineColorBlendAttachmentState attachmentState = {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
             VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
                                                                     write anything to the
                                                                     framebuffer */
-        .blendEnable = VK_TRUE, // no blending for now
+        .blendEnable = (rasterInfo.blendMode == TANTO_R_BLEND_MODE_OVER) ? VK_TRUE : VK_FALSE, // no blending for now
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .colorBlendOp = VK_BLEND_OP_ADD,
@@ -347,147 +332,6 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
         .pTessellationState = &tesselationState, // may be able to do splines with this
         .flags = 0,
         .stageCount = shaderStageCount,
-        .pStages = shaderStages,
-        .pVertexInputState = &vertexInput,
-        .pInputAssemblyState = &inputAssembly,
-    };
-
-    V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pPipeline) );
-
-    vkDestroyShaderModule(device, vertModule, NULL);
-    vkDestroyShaderModule(device, fragModule, NULL);
-}
-
-static void createPipelinePostProcess(const Tanto_R_PipelineInfo* plInfo, VkPipeline* pPipeline)
-{
-    VkShaderModule vertModule;
-    VkShaderModule fragModule;
-
-    const Tanto_R_PipelineRasterInfo rasterInfo = plInfo->payload.rasterInfo;
-
-    initShaderModule(TANTO_SPVDIR"/post-vert.spv", &vertModule);
-    initShaderModule(plInfo->payload.rasterInfo.fragShader, &fragModule);
-
-    const VkPipelineShaderStageCreateInfo shaderStages[2] = {
-        [0].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        [0].stage = VK_SHADER_STAGE_VERTEX_BIT,
-        [0].module = vertModule,
-        [0].pName = "main",
-        [0].pSpecializationInfo = NULL,
-        [1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-        [1].stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-        [1].module = fragModule,
-        [1].pName = "main",
-        [1].pSpecializationInfo = NULL,
-    }; // vert and frag
-
-    const VkPipelineVertexInputStateCreateInfo vertexInput = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-        .vertexBindingDescriptionCount = 0,
-        .pVertexBindingDescriptions = NULL,
-        .vertexAttributeDescriptionCount = 0,
-        .pVertexAttributeDescriptions = NULL
-    };
-
-    const VkPipelineInputAssemblyStateCreateInfo inputAssembly = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-        .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
-        .primitiveRestartEnable = VK_FALSE // applies only to index calls
-    };
-
-    const VkViewport viewport = {
-        .height = TANTO_WINDOW_HEIGHT,
-        .width = TANTO_WINDOW_WIDTH,
-        .x = 0,
-        .y = 0,
-        .minDepth = 0.0,
-        .maxDepth = 1.0
-    };
-
-    const VkRect2D scissor = {
-        .extent = {TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT},
-        .offset = {0, 0}
-    };
-
-    const VkPipelineViewportStateCreateInfo viewportState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-        .scissorCount = 1,
-        .pScissors = &scissor,
-        .viewportCount = 1,
-        .pViewports = &viewport,
-    };
-
-    const VkPipelineRasterizationStateCreateInfo rasterizationState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-        .depthClampEnable = VK_FALSE, // dunno
-        .rasterizerDiscardEnable = VK_FALSE, // actually discards everything
-        .polygonMode = VK_POLYGON_MODE_FILL,
-        .cullMode = VK_CULL_MODE_BACK_BIT,
-        .frontFace = VK_FRONT_FACE_CLOCKWISE,
-        .depthBiasEnable = VK_FALSE,
-        .lineWidth = 1.0
-    };
-
-    const VkPipelineMultisampleStateCreateInfo multisampleState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-        .sampleShadingEnable = VK_FALSE,
-        .minSampleShading = 0.0f, 
-        .rasterizationSamples = VK_SAMPLE_COUNT_1_BIT
-        // TODO: alot more settings here. more to look into
-    };
-
-    const VkPipelineColorBlendAttachmentState attachmentState = {
-        .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
-            VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
-                                                                    write anything to the
-                                                                    framebuffer */
-        .blendEnable = VK_TRUE, // no blending for now
-        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = 0,
-        .dstAlphaBlendFactor = 0,
-        .alphaBlendOp = 0,
-    };
-
-    const VkPipelineColorBlendStateCreateInfo colorBlendState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-        .logicOpEnable = VK_FALSE, // only for integer framebuffer formats
-        .logicOp = 0,
-        .attachmentCount = 1,
-        .pAttachments = &attachmentState /* must have independentBlending device   
-            feature enabled for these to be different. each entry would correspond 
-            to the blending for a different framebuffer. */
-    };
-
-    const VkPipelineDepthStencilStateCreateInfo depthStencilState = {
-        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-        .depthTestEnable = VK_FALSE,
-        .depthWriteEnable = VK_FALSE,
-        .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
-        .depthBoundsTestEnable = VK_FALSE, // allows you to only keep fragments within the depth bounds
-        .stencilTestEnable = VK_FALSE,
-    };
-
-    assert(rasterInfo.renderPass != 0);
-    assert(rasterInfo.sampleCount != 0);
-
-    const VkGraphicsPipelineCreateInfo pipelineInfo = {
-        .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-        .basePipelineIndex = 0, // not used
-        .basePipelineHandle = 0,
-        .subpass = 0, // which subpass in the renderpass do we use this pipeline with
-        .renderPass = rasterInfo.renderPass,
-        .layout = pipelineLayouts[plInfo->layoutId],
-        .pDynamicState = NULL,
-        .pColorBlendState = &colorBlendState,
-        .pDepthStencilState = &depthStencilState,
-        .pMultisampleState = &multisampleState,
-        .pRasterizationState = &rasterizationState,
-        .pViewportState = &viewportState,
-        .pTessellationState = NULL, // may be able to do splines with this
-        .flags = 0,
-        .stageCount = TANTO_ARRAY_SIZE(shaderStages),
         .pStages = shaderStages,
         .pVertexInputState = &vertexInput,
         .pInputAssemblyState = &inputAssembly,
@@ -622,7 +466,6 @@ void tanto_r_InitPipelines(const Tanto_R_PipelineInfo *const pipelineInfos, cons
         {
             case TANTO_R_PIPELINE_RASTER_TYPE:   createPipelineRasterization(&plInfo, &pipelines[plInfo.id]); break;
             case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(&plInfo, &pipelines[plInfo.id]); break;
-            case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(&plInfo, &pipelines[plInfo.id]); break;
         }
     }
 }
@@ -633,7 +476,6 @@ void tanto_r_CreatePipeline(const Tanto_R_PipelineInfo* const pipelineInfo, VkPi
     {
         case TANTO_R_PIPELINE_RASTER_TYPE: createPipelineRasterization(pipelineInfo, pipeline); break;
         case TANTO_R_PIPELINE_RAYTRACE_TYPE: createPipelineRayTrace(pipelineInfo, pipeline); break;
-        case TANTO_R_PIPELINE_POSTPROC_TYPE: createPipelinePostProcess(pipelineInfo, pipeline); break;
         default: break;
     }
 }
@@ -661,4 +503,9 @@ void tanto_r_CleanUpPipelines()
             vkDestroyPipeline(device, pipelines[i], NULL);
         pipelines[i] = 0;
     }
+}
+
+char* tanto_r_FullscreenTriVertShader(void)
+{
+    return TANTO_SPVDIR"/post-vert.spv";
 }

@@ -7,6 +7,11 @@
 
 #ifndef NDEBUG
 #define VERBOSE 1
+// print if condition is true
+// make sure arguments have NO side effects
+#define TANTO_COND_PRINT(condition, msg, args...) if (condition) printf("%s: "msg"\n", __PRETTY_FUNCTION__, ## args)
+#else
+#define TANTO_COND_PRINT(condition, msg, args...) ()
 #endif
 
 #if VERBOSE > 0

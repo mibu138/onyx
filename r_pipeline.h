@@ -37,9 +37,13 @@ typedef struct {
 
 typedef enum {
     TANTO_R_PIPELINE_RASTER_TYPE,
-    TANTO_R_PIPELINE_RAYTRACE_TYPE,
-    TANTO_R_PIPELINE_POSTPROC_TYPE
+    TANTO_R_PIPELINE_RAYTRACE_TYPE
 } Tanto_R_PipelineType;
+
+typedef enum {
+    TANTO_R_BLEND_MODE_NONE,
+    TANTO_R_BLEND_MODE_OVER,
+} Tanto_R_BlendMode;
 
 typedef struct {
     VkRenderPass              renderPass;
@@ -48,6 +52,7 @@ typedef struct {
     VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
     VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;
+    Tanto_R_BlendMode         blendMode;
     uint32_t                  tesselationPatchPoints;
     char* vertShader;
     char* fragShader;
@@ -82,6 +87,9 @@ void tanto_r_InitPipelineLayouts(const Tanto_R_PipelineLayout* const layouts, co
 void tanto_r_InitPipelines(const Tanto_R_PipelineInfo* const pipelineInfos, const int count);
 void tanto_r_CreatePipeline(const Tanto_R_PipelineInfo* const pipelineInfo, VkPipeline* pPipeline);
 void tanto_r_CleanUpPipelines(void);
+
+// has clockwise orientation
+char* tanto_r_FullscreenTriVertShader(void);
 
 #endif /* end of include guard: R_PIPELINE_H */
 
