@@ -4,7 +4,7 @@ GLC = glslc
 CFLAGS = -Wall -Wno-missing-braces -Wno-attributes -fPIC
 LDFLAGS = -L/opt/hfs18.0/dsolib
 INFLAGS = -I$(HOME)/dev -I/usr/include/freetype2
-LIBS = -lm -lvulkan -lxcb -lxcb-keysyms -lfreetype
+LIBS = -lm -lcarbon -lvulkan -lxcb -lxcb-keysyms -lfreetype
 LIB  = $(HOME)/lib
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
@@ -30,7 +30,6 @@ DEPS =  \
 	r_raytrace.h \
 	r_geo.h      \
     i_input.h    \
-    m_math.h     \
     t_utils.h      \
     t_def.h        \
 	t_text.h
@@ -49,7 +48,6 @@ OBJS =  \
 	$(O)/r_raytrace.o \
 	$(O)/r_geo.o      \
     $(O)/i_input.o    \
-    $(O)/m_math.o     \
     $(O)/t_utils.o      \
 	$(O)/t_text.o
 

@@ -3,7 +3,7 @@
 
 #include "v_def.h"
 #include "v_memory.h"
-#include "m_math.h"
+#include <carbon/carbon.h>
 
 #define TANTO_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
 #define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32

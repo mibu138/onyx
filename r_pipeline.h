@@ -53,6 +53,7 @@ typedef struct {
     VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;
     Tanto_R_BlendMode         blendMode;
+    VkExtent2D                viewportDim;
     uint32_t                  tesselationPatchPoints;
     char* vertShader;
     char* fragShader;

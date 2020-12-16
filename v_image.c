@@ -1,12 +1,15 @@
 #include "v_image.h"
+#include "t_def.h"
 #include "v_memory.h"
 #include "v_video.h"
 #include "v_command.h"
-#include <vulkan/vulkan_core.h>
+#include <string.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "thirdparty/stb_image.h"
 #include "thirdparty/stb_image_write.h"
+
+#define IMG_OUT_DIR "/out/images"
 
 Tanto_V_Image tanto_v_CreateImageAndSampler(
     const uint32_t width, 
@@ -142,13 +145,10 @@ void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
     printf("Copying complete.\n");
 }
 
-void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
+void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* filename)
 {
-    assert( fileType == TANTO_V_IMAGE_FILE_PNG_TYPE );
     Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(
             image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
-
-    Tanto_V_CommandPool cmd = tanto_v_RequestOneTimeUseCommand();
 
     VkImageLayout origLayout = image->layout;
     tanto_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
@@ -166,6 +166,11 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
         .z = 0
     };
 
+    TANTO_DEBUG_PRINT("Extent: %d, %d", image->extent.width, image->extent.height); 
+    TANTO_DEBUG_PRINT("Image Layout: %d", image->layout);
+    TANTO_DEBUG_PRINT("Orig Layout: %d", origLayout);
+    TANTO_DEBUG_PRINT("Image size: %ld", image->size);
+
     const VkBufferImageCopy imgCopy = {
         .imageOffset = imgOffset,
         .imageExtent = image->extent,
@@ -174,6 +179,8 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
         .bufferImageHeight = 0,
         .bufferRowLength = 0
     };
+
+    Tanto_V_CommandPool cmd = tanto_v_RequestOneTimeUseCommand();
 
     printf("Copying image to host...\n");
     vkCmdCopyImageToBuffer(cmd.buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.buffer, 1, &imgCopy);
@@ -185,17 +192,39 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType)
     printf("Copying complete.\n");
     printf("Writing out to jpg...\n");
 
-    const char* filepath = "/home/michaelb/Pictures/TANTO_IMG.jpg";
+    char strbuf[256];
+    const char* pwd = getenv("PWD");
+    assert(pwd);
+    const char* dir = IMG_OUT_DIR;
+    assert(strlen(pwd) + strlen(dir) + strlen(filename) < 256);
+    strcpy(strbuf, pwd);
+    strcat(strbuf, dir);
+    strcat(strbuf, filename);
 
-    //int r = stbi_write_png(filepath, image->extent.width, image->extent.height, 
-    //        4, region.hostData, 0);
-    int r = stbi_write_jpg(filepath, image->extent.width, image->extent.height, 
-            4, region.hostData, 100);
+    TANTO_DEBUG_PRINT("Filepath: %s", strbuf);
+
+    int r;
+    switch (fileType)
+    {
+        case TANTO_V_IMAGE_FILE_TYPE_PNG: 
+        {
+            r = stbi_write_png(strbuf, image->extent.width, image->extent.height, 
+            4, region.hostData, 0);
+            break;
+        }
+        case TANTO_V_IMAGE_FILE_TYPE_JPG:
+        {
+            r = stbi_write_jpg(strbuf, image->extent.width, image->extent.height, 
+            4, region.hostData, 0);
+            break;
+        }
+    }
+
     assert( 0 != r );
 
     tanto_v_FreeBufferRegion(&region);
 
-    printf("Image saved to %s!\n", filepath);
+    printf("Image saved to %s!\n", strbuf);
 }
 
 void tanto_v_ClearColorImage(Tanto_V_Image* image)

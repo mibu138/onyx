@@ -8,7 +8,8 @@
 #include "v_memory.h"
 
 typedef enum {
-    TANTO_V_IMAGE_FILE_PNG_TYPE
+    TANTO_V_IMAGE_FILE_TYPE_PNG,
+    TANTO_V_IMAGE_FILE_TYPE_JPG
 } Tanto_V_ImageFileType;
 
 Tanto_V_Image tanto_v_CreateImageAndSampler(
@@ -25,7 +26,7 @@ void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageL
 void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
         Tanto_V_Image* image);
 
-void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType);
+void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* name);
 
 void tanto_v_ClearColorImage(Tanto_V_Image* image);
 

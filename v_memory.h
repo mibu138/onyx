@@ -67,4 +67,9 @@ void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion);
 
 void tanto_v_CleanUpMemory(void);
 
+// application's job to destroy this buffer and free the memory
+void tanto_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
+        const uint32_t memorySize, const Tanto_V_MemoryType type, 
+        VkDeviceMemory* pMemory, VkBuffer* pBuffer);
+
 #endif /* end of include guard: V_MEMORY_H */

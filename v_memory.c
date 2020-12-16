@@ -44,6 +44,9 @@ static struct BlockChain blockChainHostTransfer;
 static struct BlockChain blockChainDeviceGraphics;
 static struct BlockChain blockChainDeviceImage;
 
+static uint32_t hostVisibleCoherentTypeIndex = 0;
+static uint32_t deviceLocalTypeIndex = 0;
+
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
     printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
@@ -296,8 +299,8 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
 
 void tanto_v_InitMemory(void)
 {
-    uint32_t hostVisibleCoherentTypeIndex = 0;
-    uint32_t deviceLocalTypeIndex = 0;
+    hostVisibleCoherentTypeIndex = 0;
+    deviceLocalTypeIndex = 0;
 
     vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
 
@@ -378,7 +381,10 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
         const size_t size, 
         uint32_t alignment, const Tanto_V_MemoryType memType)
 {
-    assert( size % 4 == 0 ); // only allow for word-sized blocks
+    if( size % 4 == 0 ) // only allow for word-sized blocks
+    {
+        TANTO_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);
+    }
     Tanto_V_MemBlock*  block = NULL;
     struct BlockChain* chain = NULL;
     switch (memType) 
@@ -399,7 +405,10 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     region.memBlockId = block->id;
     region.size = block->size;
     region.buffer = chain->buffer;
-    region.hostData = chain->hostData + block->offset;
+    if (memType != TANTO_V_MEMORY_DEVICE_TYPE)
+        region.hostData = chain->hostData + block->offset;
+    else
+        region.hostData = NULL;
     region.pChain = chain;
 
     return region;
@@ -557,3 +566,35 @@ void tanto_v_CleanUpMemory()
     freeBlockChain(&blockChainHostTransfer);
     freeBlockChain(&blockChainDeviceGraphics);
 };
+
+void tanto_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
+        const uint32_t memorySize, const Tanto_V_MemoryType type, 
+        VkDeviceMemory* pMemory, VkBuffer* pBuffer)
+{
+    uint32_t typeIndex;
+    switch (type) 
+    {
+        case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
+        case TANTO_V_MEMORY_DEVICE_TYPE:        typeIndex = deviceLocalTypeIndex; break;
+        case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
+    }
+
+    const VkMemoryAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .allocationSize = memorySize,
+        .memoryTypeIndex = typeIndex 
+    };
+
+    VkBufferCreateInfo ci = {
+        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+        .usage = bufferUsageFlags,
+        .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue determined by first use
+        .size = memorySize 
+    };
+
+    V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, pMemory) ); 
+
+    V_ASSERT( vkCreateBuffer(device, &ci, NULL, pBuffer) );
+
+    V_ASSERT( vkBindBufferMemory(device, *pBuffer, *pMemory, 0) );
+}

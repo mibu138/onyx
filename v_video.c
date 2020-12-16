@@ -459,3 +459,8 @@ uint32_t tanto_v_GetQueueFamilyIndex(Tanto_V_QueueType type)
     }
     return -1;
 }
+
+VkDevice tanto_v_GetDevice(void)
+{
+    return device;
+}

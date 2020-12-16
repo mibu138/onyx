@@ -4,14 +4,17 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <setjmp.h>
+#include <carbon/carbon.h>
 
 #ifndef NDEBUG
 #define VERBOSE 1
 // print if condition is true
 // make sure arguments have NO side effects
+#define TANTO_DEBUG_PRINT(msg, args...) printf("%s: "msg"\n", __PRETTY_FUNCTION__, ## args)
 #define TANTO_COND_PRINT(condition, msg, args...) if (condition) printf("%s: "msg"\n", __PRETTY_FUNCTION__, ## args)
 #else
 #define TANTO_COND_PRINT(condition, msg, args...) ()
+#define TANTO_DEBUG_PRINT(msg, args...) ()
 #endif
 
 #if VERBOSE > 0
@@ -35,6 +38,7 @@
 #define TANTO_KEY_CTRL  24
 #define TANTO_KEY_ESC   27
 #define TANTO_KEY_R     140
+#define TANTO_KEY_F     146
 
 #define TANTO_MOUSE_LEFT  1
 #define TANTO_MOUSE_RIGHT 2

@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "v_memory.h"
-#include "m_math.h"
+#include <carbon/carbon.h>
 
 #define TANTO_R_MAX_VERT_ATTRIBUTES 8
 

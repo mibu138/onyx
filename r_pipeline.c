@@ -1,7 +1,7 @@
 #include "r_pipeline.h"
 #include "v_video.h"
 #include "r_render.h"
-#include "m_math.h"
+#include <carbon/carbon.h>
 #include "t_def.h"
 #include "v_vulkan.h"
 #include <stdio.h>
@@ -234,9 +234,16 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
     if (rasterInfo.tessCtrlShader)
         inputAssembly.topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 
+    VkExtent2D viewportDim = rasterInfo.viewportDim;
+    if (viewportDim.width < 1) // use window size
+    {
+        viewportDim.width = TANTO_WINDOW_WIDTH;
+        viewportDim.height = TANTO_WINDOW_HEIGHT;
+    }
+
     const VkViewport viewport = {
-        .height = TANTO_WINDOW_HEIGHT,
-        .width = TANTO_WINDOW_WIDTH,
+        .height = viewportDim.height,
+        .width = viewportDim.width,
         .x = 0,
         .y = 0,
         .minDepth = 0.0,
@@ -244,7 +251,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
     };
 
     const VkRect2D scissor = {
-        .extent = {TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT},
+        .extent = {viewportDim.width, viewportDim.height},
         .offset = {0, 0}
     };
 
@@ -283,9 +290,9 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
         .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
         .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
         .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = 0,
-        .dstAlphaBlendFactor = 0,
-        .alphaBlendOp = 0,
+        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
+        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+        .alphaBlendOp = VK_BLEND_OP_ADD,
     };
 
     const VkPipelineColorBlendStateCreateInfo colorBlendState = {

@@ -82,7 +82,7 @@ Tanto_R_Mesh tanto_r_CreateMesh(uint32_t vertexCount, uint32_t indexCount)
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
             TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     mesh.indexBlock  = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * mesh.indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT|
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
             TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     mesh.posOffset = 0 * mesh.vertexCount * sizeof(Tanto_R_Attribute);
