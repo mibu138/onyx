@@ -43,6 +43,7 @@ typedef enum {
 typedef enum {
     TANTO_R_BLEND_MODE_NONE,
     TANTO_R_BLEND_MODE_OVER,
+    TANTO_R_BLEND_MODE_ERASE,
 } Tanto_R_BlendMode;
 
 typedef struct {

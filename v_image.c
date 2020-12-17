@@ -9,7 +9,7 @@
 #include "thirdparty/stb_image.h"
 #include "thirdparty/stb_image_write.h"
 
-#define IMG_OUT_DIR "/out/images"
+#define IMG_OUT_DIR "/out/images/"
 
 Tanto_V_Image tanto_v_CreateImageAndSampler(
     const uint32_t width, 

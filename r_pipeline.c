@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <vulkan/vulkan_core.h>
 
 VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
@@ -17,6 +18,26 @@ static VkDescriptorSetLayout descriptorSetLayouts[TANTO_MAX_DESCRIPTOR_SETS];
 static VkDescriptorPool      descriptorPool;
 
 enum shaderStageType { VERT, FRAG };
+
+static void setBlendModeOver(VkPipelineColorBlendAttachmentState* state)
+{
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state->colorBlendOp = VK_BLEND_OP_ADD;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state->alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
+static void setBlendModeErase(VkPipelineColorBlendAttachmentState* state)
+{
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->colorBlendOp = VK_BLEND_OP_REVERSE_SUBTRACT;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->alphaBlendOp = VK_BLEND_OP_REVERSE_SUBTRACT;
+}
 
 static void initShaderModule(const char* filepath, VkShaderModule* module)
 {
@@ -281,19 +302,20 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
         // TODO: alot more settings here. more to look into
     };
 
-    const VkPipelineColorBlendAttachmentState attachmentState = {
+    VkPipelineColorBlendAttachmentState attachmentState = {
         .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
             VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
                                                                     write anything to the
                                                                     framebuffer */
-        .blendEnable = (rasterInfo.blendMode == TANTO_R_BLEND_MODE_OVER) ? VK_TRUE : VK_FALSE, // no blending for now
-        .srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA,
-        .dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .colorBlendOp = VK_BLEND_OP_ADD,
-        .srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE,
-        .dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
-        .alphaBlendOp = VK_BLEND_OP_ADD,
+        .blendEnable = (rasterInfo.blendMode == TANTO_R_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
     };
+
+    switch (rasterInfo.blendMode)
+    {
+        case TANTO_R_BLEND_MODE_OVER:  setBlendModeOver(&attachmentState); break;
+        case TANTO_R_BLEND_MODE_ERASE: setBlendModeErase(&attachmentState); break;
+        default: break;
+    }
 
     const VkPipelineColorBlendStateCreateInfo colorBlendState = {
         .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
