@@ -115,7 +115,9 @@ static void initVkInstance(void)
     // second one is interesting, sounds like it allows
     // V1_PRINT to be called from shaders.
     const VkValidationFeatureEnableEXT valfeatures[] = {
+#ifndef NO_BEST_PRACTICE
         VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
+#endif
         //VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
         VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT
     };

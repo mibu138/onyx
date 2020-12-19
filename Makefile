@@ -65,6 +65,9 @@ SHADERS =                         \
 debug: CFLAGS += -g -DVERBOSE=1
 debug: all
 
+nbp: CFLAGS += -DNO_BEST_PRACTICE
+nbp: debug
+
 release: CFLAGS += -DNDEBUG -O3 
 release: all
 
