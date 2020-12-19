@@ -29,6 +29,6 @@ uint32_t tanto_v_GetQueueFamilyIndex(Tanto_V_QueueType type);
 VkDevice tanto_v_GetDevice(void);
 void tanto_v_CleanUp(void);
 
-VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void);
+VkPhysicalDeviceRayTracingPipelinePropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void);
 
 #endif /* end of include guard: V_VIDEO_H */

@@ -27,7 +27,7 @@ VkSurfaceKHR*    pSurface;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
     
-static VkPhysicalDeviceRayTracingPropertiesKHR rtProperties;
+static VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties;
 
 VkPhysicalDeviceProperties deviceProperties;
 
@@ -260,8 +260,8 @@ static void initDevice(void)
     }
     #endif
 
-    VkPhysicalDeviceRayTracingPropertiesKHR rayTracingProps = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PROPERTIES_KHR,
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
     };
 
     VkPhysicalDeviceProperties2 phsicalDeviceProperties2 = {
@@ -280,7 +280,9 @@ static void initDevice(void)
 
     const char* extensionsRT[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-        VK_KHR_RAY_TRACING_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
         //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
         VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
@@ -296,23 +298,23 @@ static void initDevice(void)
     // Newer features are enabled by chaining them 
     // on to the pNext member of deviceFeatures. 
     
-    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
-        .pNext = NULL
-    };
+    //VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
+    //    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
+    //    .pNext = NULL
+    //};
 
-    VkPhysicalDeviceRayTracingFeaturesKHR rtFeatures = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR,
-        .pNext = &devAddressFeatures
-    };
+    //VkPhysicalDeviceRayTracingFeaturesKHR rtFeatures = {
+    //    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR,
+    //    .pNext = &devAddressFeatures
+    //};
 
     VkPhysicalDeviceFeatures2 deviceFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
     };
 
-    if (tanto_v_config.rayTraceEnabled)
-        deviceFeatures.pNext = &rtFeatures;
-    else
+    //if (tanto_v_config.rayTraceEnabled)
+    //    deviceFeatures.pNext = &rtFeatures;
+    //else
         deviceFeatures.pNext = NULL;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
@@ -391,7 +393,7 @@ const VkInstance* tanto_v_Init(void)
     if (tanto_v_config.validationEnabled)
         initDebugMessenger();
     initDevice();
-    tanto_v_LoadFunctions(&device);
+    //tanto_v_LoadFunctions(&device);
     initQueues();
     tanto_v_InitMemory();
     return &instance;
@@ -445,7 +447,7 @@ void tanto_v_CleanUp(void)
     vkDestroyInstance(instance, NULL);
 }
 
-VkPhysicalDeviceRayTracingPropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void)
+VkPhysicalDeviceRayTracingPipelinePropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void)
 {
     return rtProperties;
 }

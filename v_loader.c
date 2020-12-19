@@ -1,6 +1,5 @@
-#include "v_def.h"
+#include "v_loader.h"
 #include <assert.h>
-#include <vulkan/vulkan_core.h>
 
 static PFN_vkCreateAccelerationStructureKHR                pfn_vkCreateAccelerationStructureKHR;
 static PFN_vkGetAccelerationStructureMemoryRequirementsKHR pfn_vkGetAccelerationStructureMemoryRequirementsKHR;

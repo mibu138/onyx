@@ -8,6 +8,7 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <vulkan/vulkan_beta.h>
 #include <vulkan/vulkan_core.h>
 
 VkPipeline       pipelines[TANTO_MAX_PIPELINES];
@@ -148,18 +149,23 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo, VkPipelin
         }
     }
 
+    const VkPipelineLibraryCreateInfoKHR library = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR,
+        .libraryCount = 0,
+    };
+
     VkRayTracingPipelineCreateInfoKHR pipelineInfo = {
         .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
-        .maxRecursionDepth = 1, 
+        .maxPipelineRayRecursionDepth = 1,
         .layout     = pipelineLayouts[plInfo->layoutId],
-        .libraries  = {VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR},
+        .pLibraryInfo = &library,
         .groupCount = TANTO_ARRAY_SIZE(shaderGroups),
         .stageCount = TANTO_ARRAY_SIZE(shaderStages),
         .pGroups    = shaderGroups,
         .pStages    = shaderStages
     };
 
-    V_ASSERT( vkCreateRayTracingPipelinesKHR(device, NULL, 1, &pipelineInfo, NULL, pPipeline) );
+    V_ASSERT( vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, 1, &pipelineInfo, NULL, pPipeline) );
 
     for (int i = 0; i < raygenCount; i++) 
     {

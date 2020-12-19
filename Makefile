@@ -38,7 +38,6 @@ DEPS =  \
 OBJS =  \
     $(O)/d_display.o  \
     $(O)/v_video.o    \
-	$(O)/v_def.o      \
     $(O)/v_memory.o   \
 	$(O)/v_image.o    \
 	$(O)/v_command.o  \
