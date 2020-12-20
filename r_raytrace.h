@@ -5,8 +5,16 @@
 #include "r_render.h"
 #include "r_geo.h"
 
-extern VkAccelerationStructureKHR bottomLevelAS;
-extern VkAccelerationStructureKHR topLevelAS;
+typedef struct {
+    VkAccelerationStructureKHR handle;
+    VkBuffer        buffer;
+    VkDeviceSize    size;
+    VkDeviceMemory  memory;
+    VkDeviceAddress address;
+} AccelerationStructure;
+
+AccelerationStructure bottomLevelAS;
+AccelerationStructure topLevelAS;
 
 void tanto_r_InitRayTracing(void);
 void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh);

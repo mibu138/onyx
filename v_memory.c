@@ -10,10 +10,10 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST          0x40000000 // 
-#define MEMORY_SIZE_DEV_BUFFER    0x40000000 // 
+#define MEMORY_SIZE_HOST          0x10000000 // 
+#define MEMORY_SIZE_DEV_BUFFER    0x20000000 // 
 #define MEMORY_SIZE_DEV_IMAGE     0x20000000 // 
-#define MEMORY_SIZE_HOST_TRANSFER 0x40000000 // 
+#define MEMORY_SIZE_HOST_TRANSFER 0x20000000 // 
 #define MAX_BLOCKS 100000
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
@@ -89,10 +89,16 @@ static void initBlockChain(
     assert( strlen(name) < 16 );
     strcpy(chain->name, name);
 
+    const VkMemoryAllocateFlagsInfo allocFlagsInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+        .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
+    };
+
     const VkMemoryAllocateInfo allocInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+        .pNext = &allocFlagsInfo,
         .allocationSize = memorySize,
-        .memoryTypeIndex = memTypeIndex 
+        .memoryTypeIndex = memTypeIndex,
     };
 
     V_ASSERT( vkAllocateMemory(device, &allocInfo, NULL, &chain->memory) ); 
@@ -354,7 +360,7 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-         VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR |
+         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
          VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
@@ -368,7 +374,7 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-         VK_BUFFER_USAGE_RAY_TRACING_BIT_KHR |
+         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
          VK_BUFFER_USAGE_TRANSFER_DST_BIT;
 
     initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, true, "hostGraphic", &blockChainHostGraphics);
@@ -381,7 +387,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
         const size_t size, 
         uint32_t alignment, const Tanto_V_MemoryType memType)
 {
-    if( size % 4 == 0 ) // only allow for word-sized blocks
+    if( size % 4 != 0 ) // only allow for word-sized blocks
     {
         TANTO_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);
     }
