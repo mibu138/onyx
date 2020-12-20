@@ -1,10 +1,11 @@
 #include "v_loader.h"
+#include "v_def.h"
 #include <assert.h>
+#include <vulkan/vulkan_core.h>
 
 static PFN_vkCreateAccelerationStructureKHR                pfn_vkCreateAccelerationStructureKHR;
-static PFN_vkGetAccelerationStructureMemoryRequirementsKHR pfn_vkGetAccelerationStructureMemoryRequirementsKHR;
-static PFN_vkBindAccelerationStructureMemoryKHR            pfn_vkBindAccelerationStructureMemoryKHR;
-static PFN_vkCmdBuildAccelerationStructureKHR              pfn_vkCmdBuildAccelerationStructureKHR;
+static PFN_vkCmdBuildAccelerationStructuresKHR             pfn_vkCmdBuildAccelerationStructuresKHR;
+static PFN_vkGetAccelerationStructureBuildSizesKHR         pfn_vkGetAccelerationStructureBuildSizesKHR;
 static PFN_vkDestroyAccelerationStructureKHR               pfn_vkDestroyAccelerationStructureKHR;
 static PFN_vkGetAccelerationStructureDeviceAddressKHR      pfn_vkGetAccelerationStructureDeviceAddressKHR;
 static PFN_vkCreateRayTracingPipelinesKHR                  pfn_vkCreateRayTracingPipelinesKHR;
@@ -23,32 +24,25 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateAccelerationStructureKHR(
     return pfn_vkCreateAccelerationStructureKHR(device, pCreateInfo, pAllocator, pAccelerationStructure);
 }
 
-VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureMemoryRequirementsKHR(
-        VkDevice device, 
-        const VkAccelerationStructureMemoryRequirementsInfoKHR *pInfo, 
-        VkMemoryRequirements2 *pMemoryRequirements)
+VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureBuildSizesKHR(
+    VkDevice                                    device,
+    VkAccelerationStructureBuildTypeKHR         buildType,
+    const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo,
+    const uint32_t*                             pMaxPrimitiveCounts,
+    VkAccelerationStructureBuildSizesInfoKHR*   pSizeInfo)
 {
-    assert(pfn_vkGetAccelerationStructureMemoryRequirementsKHR);
-    return pfn_vkGetAccelerationStructureMemoryRequirementsKHR(device, pInfo, pMemoryRequirements);
+    assert(pfn_vkGetAccelerationStructureBuildSizesKHR);
+    return pfn_vkGetAccelerationStructureBuildSizesKHR(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo);
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL vkBindAccelerationStructureMemoryKHR(
-        VkDevice device, 
-        uint32_t bindInfoCount, 
-        const VkBindAccelerationStructureMemoryInfoKHR *pBindInfos)
-{
-    assert(pfn_vkBindAccelerationStructureMemoryKHR);
-    return pfn_vkBindAccelerationStructureMemoryKHR(device, bindInfoCount, pBindInfos);
-}
-
-VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructureKHR(
+VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresKHR(
         VkCommandBuffer commandBuffer, 
         uint32_t infoCount, 
         const VkAccelerationStructureBuildGeometryInfoKHR *pInfos, 
-        const VkAccelerationStructureBuildOffsetInfoKHR *const *ppOffsetInfos)
+        const VkAccelerationStructureBuildRangeInfoKHR *const *ppRangeInfos)
 {
-    assert(pfn_vkCmdBuildAccelerationStructureKHR);
-    return pfn_vkCmdBuildAccelerationStructureKHR(commandBuffer, infoCount, pInfos, ppOffsetInfos);
+    assert(pfn_vkCmdBuildAccelerationStructuresKHR);
+    return pfn_vkCmdBuildAccelerationStructuresKHR(commandBuffer, infoCount, pInfos, ppRangeInfos);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkDestroyAccelerationStructureKHR(
@@ -70,6 +64,7 @@ VKAPI_ATTR VkDeviceAddress VKAPI_CALL vkGetAccelerationStructureDeviceAddressKHR
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateRayTracingPipelinesKHR(
         VkDevice device, 
+        VkDeferredOperationKHR deferredOperation,
         VkPipelineCache pipelineCache, 
         uint32_t createInfoCount, 
         const VkRayTracingPipelineCreateInfoKHR *pCreateInfos, 
@@ -77,7 +72,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkCreateRayTracingPipelinesKHR(
         VkPipeline *pPipelines)
 {
     assert(pfn_vkCreateRayTracingPipelinesKHR);
-    return pfn_vkCreateRayTracingPipelinesKHR(device, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
+    return pfn_vkCreateRayTracingPipelinesKHR(device, deferredOperation, pipelineCache, createInfoCount, pCreateInfos, pAllocator, pPipelines);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL vkGetRayTracingShaderGroupHandlesKHR(
@@ -94,10 +89,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetRayTracingShaderGroupHandlesKHR(
 
 VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         VkCommandBuffer commandBuffer, 
-        const VkStridedBufferRegionKHR *pRaygenShaderBindingTable, 
-        const VkStridedBufferRegionKHR *pMissShaderBindingTable, 
-        const VkStridedBufferRegionKHR *pHitShaderBindingTable, 
-        const VkStridedBufferRegionKHR *pCallableShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR *pMissShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR *pHitShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR *pCallableShaderBindingTable, 
         uint32_t width, uint32_t height, uint32_t depth)
 {
     assert(pfn_vkCmdTraceRaysKHR);
@@ -113,14 +108,12 @@ void tanto_v_LoadFunctions(const VkDevice* device)
 {
     if (!tanto_v_config.rayTraceEnabled)
         return;
+    pfn_vkGetAccelerationStructureBuildSizesKHR = (PFN_vkGetAccelerationStructureBuildSizesKHR)
+        vkGetDeviceProcAddr(*device, "vkGetAccelerationStructureBuildSizesKHR");
     pfn_vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)
         vkGetDeviceProcAddr(*device, "vkCreateAccelerationStructureKHR");
-    pfn_vkGetAccelerationStructureMemoryRequirementsKHR = (PFN_vkGetAccelerationStructureMemoryRequirementsKHR)
-        vkGetDeviceProcAddr(*device, "vkGetAccelerationStructureMemoryRequirementsKHR");
-    pfn_vkBindAccelerationStructureMemoryKHR = (PFN_vkBindAccelerationStructureMemoryKHR)
-        vkGetDeviceProcAddr(*device, "vkBindAccelerationStructureMemoryKHR");
-    pfn_vkCmdBuildAccelerationStructureKHR = (PFN_vkCmdBuildAccelerationStructureKHR)
-        vkGetDeviceProcAddr(*device, "vkCmdBuildAccelerationStructureKHR");
+    pfn_vkCmdBuildAccelerationStructuresKHR = (PFN_vkCmdBuildAccelerationStructuresKHR)
+        vkGetDeviceProcAddr(*device, "vkCmdBuildAccelerationStructuresKHR");
     pfn_vkDestroyAccelerationStructureKHR = (PFN_vkDestroyAccelerationStructureKHR)
         vkGetDeviceProcAddr(*device, "vkDestroyAccelerationStructureKHR"); 
     pfn_vkGetAccelerationStructureDeviceAddressKHR = (PFN_vkGetAccelerationStructureDeviceAddressKHR)

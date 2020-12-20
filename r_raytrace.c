@@ -143,6 +143,7 @@ void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
         .vertexFormat  = TANTO_VERT_POS_FORMAT,
         .vertexStride  = sizeof(Tanto_R_Attribute),
         .indexType     = TANTO_VERT_INDEX_TYPE,
+        .maxVertex     = mesh->vertexCount,
         .vertexData.deviceAddress = vertAddr,
         .indexData.deviceAddress = indexAddr,
         .transformData = 0
@@ -270,8 +271,14 @@ void tanto_r_BuildTlas(void)
 
         vkGetBufferMemoryRequirements(device, instBuffer, &memReqs);
 
+        const VkMemoryAllocateFlagsInfo allocFlagsInfo = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+            .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
+        };
+
         VkMemoryAllocateInfo memAlloc = {
             .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+            .pNext = &allocFlagsInfo,
             .memoryTypeIndex = tanto_v_GetMemoryType(memReqs.memoryTypeBits, 
                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
             .allocationSize = memReqs.size

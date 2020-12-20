@@ -7,7 +7,9 @@
 #include <carbon/carbon.h>
 
 #ifndef NDEBUG
+#ifndef VERBOSE
 #define VERBOSE 1
+#endif
 // print if condition is true
 // make sure arguments have NO side effects
 #define TANTO_DEBUG_PRINT(msg, args...) printf("%s: "msg"\n", __PRETTY_FUNCTION__, ## args)
@@ -35,6 +37,7 @@
 #define TANTO_KEY_P     103
 #define TANTO_KEY_I     104
 #define TANTO_KEY_C     105
+#define TANTO_KEY_U     200
 #define TANTO_KEY_CTRL  24
 #define TANTO_KEY_ESC   27
 #define TANTO_KEY_R     140

@@ -3,27 +3,24 @@
 
 #include "v_vulkan.h"
 
+VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureBuildSizesKHR(
+    VkDevice                                    device,
+    VkAccelerationStructureBuildTypeKHR         buildType,
+    const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo,
+    const uint32_t*                             pMaxPrimitiveCounts,
+    VkAccelerationStructureBuildSizesInfoKHR*   pSizeInfo);
+
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateAccelerationStructureKHR(
         VkDevice device, 
         const VkAccelerationStructureCreateInfoKHR *pCreateInfo, 
         const VkAllocationCallbacks *pAllocator, 
         VkAccelerationStructureKHR *pAccelerationStructure);
 
-VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureMemoryRequirementsKHR(
-        VkDevice device, 
-        const VkAccelerationStructureMemoryRequirementsInfoKHR *pInfo, 
-        VkMemoryRequirements2 *pMemoryRequirements);
-
-VKAPI_ATTR VkResult VKAPI_CALL vkBindAccelerationStructureMemoryKHR(
-        VkDevice device, 
-        uint32_t bindInfoCount, 
-        const VkBindAccelerationStructureMemoryInfoKHR *pBindInfos);
-
 VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructureKHR(
         VkCommandBuffer commandBuffer, 
         uint32_t infoCount, 
         const VkAccelerationStructureBuildGeometryInfoKHR *pInfos, 
-        const VkAccelerationStructureBuildOffsetInfoKHR *const *ppOffsetInfos);
+        const VkAccelerationStructureBuildRangeInfoKHR* const *ppRangeInfos);
 
 VKAPI_ATTR void VKAPI_CALL vkDestroyAccelerationStructureKHR(
         VkDevice device, 
@@ -36,6 +33,7 @@ VKAPI_ATTR VkDeviceAddress VKAPI_CALL vkGetAccelerationStructureDeviceAddressKHR
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateRayTracingPipelinesKHR(
         VkDevice device, 
+        VkDeferredOperationKHR deferredOperation,
         VkPipelineCache pipelineCache, 
         uint32_t createInfoCount, 
         const VkRayTracingPipelineCreateInfoKHR *pCreateInfos, 
@@ -52,10 +50,10 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetRayTracingShaderGroupHandlesKHR(
 
 VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         VkCommandBuffer commandBuffer, 
-        const VkStridedBufferRegionKHR *pRaygenShaderBindingTable, 
-        const VkStridedBufferRegionKHR *pMissShaderBindingTable, 
-        const VkStridedBufferRegionKHR *pHitShaderBindingTable, 
-        const VkStridedBufferRegionKHR *pCallableShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR* pRaygenShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR* pMissShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR* pHitShaderBindingTable, 
+        const VkStridedDeviceAddressRegionKHR* pCallableShaderBindingTable, 
         uint32_t width, uint32_t height, uint32_t depth);
 
 void tanto_v_LoadFunctions(const VkDevice* device);

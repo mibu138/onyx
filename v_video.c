@@ -2,6 +2,7 @@
 #include "v_memory.h"
 #include "d_display.h"
 #include "t_def.h"
+#include "v_loader.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -202,7 +203,7 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
     for (int i = 0; i < physdevcount; i++) 
     {
         vkGetPhysicalDeviceProperties(devices[i], &props[i]);
-        V1_PRINT("Device %d: name: %s\t vendorID: %d", i, props[i].deviceName, props[i].vendorID);
+        V1_PRINT("Device %d: name: %s\t vendorID: %d\n", i, props[i].deviceName, props[i].vendorID);
         if (props[i].vendorID == NVIDIA_ID) nvidiaCardIndex = i;
     }
     int selected = 0;
@@ -281,12 +282,19 @@ static void initDevice(void)
     const char* extensionsRT[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-        VK_KHR_RAY_QUERY_EXTENSION_NAME,
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
-        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME,
+        VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        // Required by VK_KHR_acceleration_structure
+        //VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-        //VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME
+        //VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
+        // Required for VK_KHR_ray_tracing_pipeline
+        //VK_KHR_SPIRV_1_4_EXTENSION_NAME,
+        // Required by VK_KHR_spirv_1_4
+        //VK_KHR_SHADER_FLOAT_CONTROLS_EXTENSION_NAME,
+        //VK_KHR_MAINTENANCE3_EXTENSION_NAME,
+        // soft requirement for VK_KHR_ray_tracing_pipeline
+        VK_KHR_PIPELINE_LIBRARY_EXTENSION_NAME
     };
 
     const char* extensionsReg[] = {
@@ -297,45 +305,59 @@ static void initDevice(void)
     // features member of deviceFeatures. 
     // Newer features are enabled by chaining them 
     // on to the pNext member of deviceFeatures. 
-    
-    //VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
-    //    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
-    //    .pNext = NULL
-    //};
 
-    //VkPhysicalDeviceRayTracingFeaturesKHR rtFeatures = {
-    //    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_FEATURES_KHR,
-    //    .pNext = &devAddressFeatures
-    //};
+    
+    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+        .pNext = NULL
+    };
+
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
+        .pNext = &devAddressFeatures
+    };
+
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR,
+        .pNext = &accelFeatures
+    };
 
     VkPhysicalDeviceFeatures2 deviceFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
     };
 
-    //if (tanto_v_config.rayTraceEnabled)
-    //    deviceFeatures.pNext = &rtFeatures;
-    //else
+    if (tanto_v_config.rayTraceEnabled)
+        deviceFeatures.pNext = &rtFeatures;
+    else
         deviceFeatures.pNext = NULL;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 
-    #if VERBOSE > 1
+    #if VERBOSE > 0
     {
-        VkBool32* rtMembers = &rtFeatures.rayTracing;
-        const char* memberNames[9] = {
-            "rayTracing", 
-            "rayTracingShaderGroupHandleCaptureReplay",
-            "rayTracingShaderGroupHandleCaptureReplayMixed",
-            "rayTracingAccelerationStructureCaptureReplay",
-            "rayTracingIndirectTraceRays",
-            "rayTracingIndirectAccelerationStructureBuild",
-            "rayTracingHostAccelerationStructureCommands",
-            "rayQuery",
-            "rayTracingPrimitiveCulling"
+        VkBool32* iter = &rtFeatures.rayTracingPipeline;
+        const char* rtMemberNames[] = {
+            "rayTracingPipeline",
+            "rayTracingPipelineShaderGroupHandleCaptureReplay",
+            "rayTracingPipelineShaderGroupHandleCaptureReplayMixed",
+            "rayTracingPipelineTraceRaysIndirect",
+            "rayTraversalPrimitiveCulling",
         };
-        for (int i = 0; i < 9; i++) 
+        int len = TANTO_ARRAY_SIZE(rtMemberNames);
+        for (int i = 0; i < len; i++) 
         {
-            printf("%s available: %s\n", memberNames[i], rtMembers[i] ? "TRUE" : "FALSE");
+            printf("%s available: %s\n", rtMemberNames[i], iter[i] ? "TRUE" : "FALSE");
+        }
+        iter = &devAddressFeatures.bufferDeviceAddress;
+        const char* daMemberNames[] = {
+            "bufferDeviceAddress",
+            "bufferDeviceAddressCaptureReplay",
+            "bufferDeviceAddressMultiDevice",
+        };
+        len = TANTO_ARRAY_SIZE(daMemberNames);
+        for (int i = 0; i < len; i++) 
+        {
+            printf("%s available: %s\n", daMemberNames[i], iter[i] ? "TRUE" : "FALSE");
         }
     } 
     #endif
@@ -364,6 +386,7 @@ static void initDevice(void)
 
     if (tanto_v_config.rayTraceEnabled)
     {
+        V1_PRINT("Ray tracing enabled...\n");
         dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsRT);
         dci.ppEnabledExtensionNames = extensionsRT;
     }
@@ -393,7 +416,7 @@ const VkInstance* tanto_v_Init(void)
     if (tanto_v_config.validationEnabled)
         initDebugMessenger();
     initDevice();
-    //tanto_v_LoadFunctions(&device);
+    tanto_v_LoadFunctions(&device);
     initQueues();
     tanto_v_InitMemory();
     return &instance;
