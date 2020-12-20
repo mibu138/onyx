@@ -370,7 +370,8 @@ static void initRenderPassMSAA(VkSampleCountFlags sampleCount)
 static void initRenderPasses(void)
 {
     initRenderPassesSwapOff();
-    initRenderPassMSAA(VK_SAMPLE_COUNT_8_BIT);
+    //TODO: fix this (causes validation error) and move it to the render pass module
+    //initRenderPassMSAA(VK_SAMPLE_COUNT_8_BIT);
 }
 
 void tanto_r_Init(void)

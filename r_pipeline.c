@@ -389,15 +389,20 @@ void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const i
         assert(set.bindingCount <= TANTO_MAX_BINDINGS);
         assert(descriptorSets[set.id] == VK_NULL_HANDLE);
         assert(set.id == i); // we ensure that the set ids increase from with i from 0. No gaps.
+        VkDescriptorBindingFlags bindFlags[set.bindingCount];
         VkDescriptorSetLayoutBinding bindings[set.bindingCount];
         for (int b = 0; b < set.bindingCount; b++) 
         {
             const uint32_t dCount = set.bindings[b].descriptorCount;
+
             bindings[b].binding = b;
             bindings[b].descriptorCount = dCount;
             bindings[b].descriptorType  = set.bindings[b].type;
             bindings[b].stageFlags      = set.bindings[b].stageFlags;
             bindings[b].pImmutableSamplers = NULL;
+
+            bindFlags[b] = set.bindings[b].bindingFlags;
+
             switch (set.bindings[b].type) 
             {
                 case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:             dcUbo += dCount; break;
@@ -408,8 +413,20 @@ void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const i
                 default: assert(false);
             }
         }
+
+        // this is only useful for texture arrays really. not sure what the performance implications
+        // are for enabling it for all descriptor sets. may want to make it an optional parameter.
+
+        VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo = {
+            .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+            .bindingCount = set.bindingCount,
+            .pBindingFlags = bindFlags
+        };
+
+
         const VkDescriptorSetLayoutCreateInfo layoutInfo = {
             .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+            .pNext = &flagsInfo,
             .bindingCount = set.bindingCount,
             .pBindings = bindings
         };

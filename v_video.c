@@ -322,14 +322,21 @@ static void initDevice(void)
         .pNext = &accelFeatures
     };
 
+    // this allows us to use only a subset of a descriptor array's elements in a draw call
+    // as well as unbounded descriptor arrays in shaders. 
+    // this is particularly useful for arrays of textures.
+    VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+        .pNext = NULL
+    };
+
     VkPhysicalDeviceFeatures2 deviceFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+        .pNext = &descIndexingFeatures
     };
 
     if (tanto_v_config.rayTraceEnabled)
-        deviceFeatures.pNext = &rtFeatures;
-    else
-        deviceFeatures.pNext = NULL;
+        descIndexingFeatures.pNext = &rtFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 

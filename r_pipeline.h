@@ -16,9 +16,10 @@ extern VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
 extern VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
 
 typedef struct {
-    uint32_t           descriptorCount;
-    VkDescriptorType   type;
-    VkShaderStageFlags stageFlags;
+    uint32_t                 descriptorCount;
+    VkDescriptorType         type;
+    VkShaderStageFlags       stageFlags;
+    VkDescriptorBindingFlags bindingFlags; //optional
 } Tanto_R_DescriptorBinding;
 
 typedef struct {
