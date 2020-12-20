@@ -29,21 +29,35 @@ static Tanto_I_EventData getKeyData(xcb_key_press_event_t* event)
     Tanto_I_EventData data;
     switch (keySym)
     {
-        case XK_w:         data.keyCode = TANTO_KEY_W; break;
         case XK_a:         data.keyCode = TANTO_KEY_A; break;
-        case XK_s:         data.keyCode = TANTO_KEY_S; break;
+        case XK_b:         data.keyCode = TANTO_KEY_B; break;
+        case XK_c:         data.keyCode = TANTO_KEY_C; break;
         case XK_d:         data.keyCode = TANTO_KEY_D; break;
         case XK_e:         data.keyCode = TANTO_KEY_E; break;
-        case XK_q:         data.keyCode = TANTO_KEY_Q; break;
-        case XK_p:         data.keyCode = TANTO_KEY_P; break;
-        case XK_i:         data.keyCode = TANTO_KEY_I; break;
-        case XK_c:         data.keyCode = TANTO_KEY_C; break;
         case XK_f:         data.keyCode = TANTO_KEY_F; break;
+        case XK_g:         data.keyCode = TANTO_KEY_G; break;
+        case XK_h:         data.keyCode = TANTO_KEY_H; break;
+        case XK_i:         data.keyCode = TANTO_KEY_I; break;
+        case XK_j:         data.keyCode = TANTO_KEY_J; break;
+        case XK_k:         data.keyCode = TANTO_KEY_K; break;
+        case XK_l:         data.keyCode = TANTO_KEY_L; break;
+        case XK_m:         data.keyCode = TANTO_KEY_M; break;
+        case XK_n:         data.keyCode = TANTO_KEY_N; break;
+        case XK_o:         data.keyCode = TANTO_KEY_O; break;
+        case XK_p:         data.keyCode = TANTO_KEY_P; break;
+        case XK_q:         data.keyCode = TANTO_KEY_Q; break;
+        case XK_r:         data.keyCode = TANTO_KEY_R; break;
+        case XK_s:         data.keyCode = TANTO_KEY_S; break;
+        case XK_t:         data.keyCode = TANTO_KEY_T; break;
         case XK_u:         data.keyCode = TANTO_KEY_U; break;
+        case XK_v:         data.keyCode = TANTO_KEY_V; break;
+        case XK_w:         data.keyCode = TANTO_KEY_W; break;
+        case XK_x:         data.keyCode = TANTO_KEY_X; break;
+        case XK_y:         data.keyCode = TANTO_KEY_Y; break;
+        case XK_z:         data.keyCode = TANTO_KEY_Z; break;
         case XK_space:     data.keyCode = TANTO_KEY_SPACE; break;
         case XK_Control_L: data.keyCode = TANTO_KEY_CTRL; break;
         case XK_Escape:    data.keyCode = TANTO_KEY_ESC; break;
-        case XK_r:         data.keyCode = TANTO_KEY_R; break;
         default: data.keyCode = 0; break;
     }
     return data;
