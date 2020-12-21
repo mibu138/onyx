@@ -15,8 +15,8 @@
 #define TANTO_DEBUG_PRINT(msg, args...) printf("%s: "msg"\n", __PRETTY_FUNCTION__, ## args)
 #define TANTO_COND_PRINT(condition, msg, args...) if (condition) printf("%s: "msg"\n", __PRETTY_FUNCTION__, ## args)
 #else
-#define TANTO_COND_PRINT(condition, msg, args...) ()
-#define TANTO_DEBUG_PRINT(msg, args...) ()
+#define TANTO_COND_PRINT(condition, msg, args...) 
+#define TANTO_DEBUG_PRINT(msg, args...) 
 #endif
 
 #if VERBOSE > 0
