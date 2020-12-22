@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "v_memory.h"
-#include <carbon/carbon.h>
+#include <coal/coal.h>
 
 #define TANTO_R_MAX_VERT_ATTRIBUTES 8
 
@@ -75,6 +75,10 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
 Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc);
 
 Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, const uint8_t attrCount);
+
+Tanto_R_Attribute* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, uint32_t index);
+
+Tanto_R_Index* tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim);
 
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_4Vec3(void);
 

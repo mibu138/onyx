@@ -6,13 +6,18 @@
 
 Tanto_D_XcbWindow d_XcbWindow;
 
-static const char* windowName = "floating";
+static char windowName[32] = "floating";
 
 uint32_t TANTO_WINDOW_WIDTH  = 1000;
 uint32_t TANTO_WINDOW_HEIGHT = 1000;
 
-void tanto_d_Init(void)
+void tanto_d_Init(const char* name)
 {
+    if (name)
+    {
+        assert(strlen(name) < 32);
+        strcpy(windowName, name);
+    }
     int screenNum = 0;
     d_XcbWindow.connection =     xcb_connect(NULL, &screenNum);
     d_XcbWindow.window     =     xcb_generate_id(d_XcbWindow.connection);

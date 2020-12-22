@@ -543,6 +543,16 @@ Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_2Vec3(void)
     return vertDesc;
 }
 
+Tanto_R_Attribute* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, uint32_t index)
+{
+    return (Tanto_R_Attribute*)(prim->vertexRegion.hostData + prim->attrOffsets[index]);
+}
+
+Tanto_R_Index* tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim)
+{
+    return (Tanto_R_Index*)prim->indexRegion.hostData;
+}
+
 void tanto_r_FreeMesh(Tanto_R_Mesh mesh)
 {
     tanto_v_FreeBufferRegion(&mesh.vertexBlock);

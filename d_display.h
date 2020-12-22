@@ -4,6 +4,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_keysyms.h>
 #include "v_vulkan.h"
+#include <stdbool.h>
 
 typedef struct {
     xcb_connection_t* connection;
@@ -12,7 +13,8 @@ typedef struct {
 
 extern Tanto_D_XcbWindow d_XcbWindow;
 
-void tanto_d_Init(void);
+// if null name will default to "floating"
+void tanto_d_Init(const char* windowName);
 void tanto_d_CleanUp(void);
 
 #endif /* end of include guard: D_INIT_H */
