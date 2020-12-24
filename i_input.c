@@ -105,6 +105,7 @@ void tanto_i_Init(void)
     eventHead = 0;
     eventTail = 0;
     pXcbKeySymbols = xcb_key_symbols_alloc(d_XcbWindow.connection);
+    printf("Tanto Input initialized.\n");
 }
 
 void tanto_i_GetEvents(void)
@@ -200,7 +201,7 @@ void tanto_i_ProcessEvents(void)
         event = &events[eventTail];   
         for (int i = 0; i < subscriberCount; i++) 
         {
-            subscribers[i](event);
+            if ( subscribers[i](event) ) break;
         }
     }
     //printf("\n");

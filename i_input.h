@@ -2,6 +2,7 @@
 #define TANTO_I_INPUT_H
 
 #include <stdint.h>
+#include <stdbool.h>
 
 typedef struct {
     int16_t  x;
@@ -34,7 +35,8 @@ typedef struct Tanto_I_Event {
     Tanto_I_EventData data;
 } Tanto_I_Event;
 
-typedef void (*Tanto_I_SubscriberFn)(const Tanto_I_Event*);
+// returning true consumes the event
+typedef bool (*Tanto_I_SubscriberFn)(const Tanto_I_Event*);
 
 void tanto_i_Init(void);
 void tanto_i_GetEvents(void);

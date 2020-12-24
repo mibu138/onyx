@@ -428,6 +428,7 @@ const VkInstance* tanto_v_Init(void)
     tanto_v_LoadFunctions(&device);
     initQueues();
     tanto_v_InitMemory();
+    printf("Tanto Video initialized.\n");
     return &instance;
 }
 

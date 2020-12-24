@@ -385,6 +385,7 @@ void tanto_r_Init(void)
     bindFramesToSwapImages();
     if (tanto_v_config.rayTraceEnabled)
         tanto_r_InitRayTracing();
+    printf("Tanto Renderer initialized.\n");
 }
 
 void tanto_r_WaitOnQueueSubmit(void)

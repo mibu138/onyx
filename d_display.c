@@ -3,6 +3,7 @@
 #include <xcb/xcb_keysyms.h>
 #include <xcb/xproto.h>
 #include <string.h>
+#include <stdio.h>
 
 Tanto_D_XcbWindow d_XcbWindow;
 
@@ -67,6 +68,7 @@ void tanto_d_Init(const char* name)
 
     xcb_map_window(d_XcbWindow.connection, d_XcbWindow.window);
     xcb_flush(d_XcbWindow.connection);
+    printf("Tanto Display initialized.\n");
 }
 
 void tanto_d_CleanUp(void)

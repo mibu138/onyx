@@ -109,3 +109,33 @@ void tanto_LoopSleep(const Tanto_LoopStats* s, const uint32_t nsTarget)
     // we could use the second parameter to handle interrupts and signals
     nanosleep(&diffTime, NULL);
 }
+
+Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS)
+{
+    Tanto_LoopData data = {
+        .targetNs = targetNs,
+        .printFps = printFps,
+        .printNs  = printNS
+    };
+
+    data.timer.clockId = CLOCK_MONOTONIC;
+    data.loopStats.longestFrame = UINT32_MAX;
+
+    return data;
+}
+
+void tanto_LoopStart(Tanto_LoopData *data)
+{
+    tanto_TimerStart(&data->timer);
+}
+
+void tanto_LoopEnd(Tanto_LoopData *data)
+{
+    tanto_TimerStop(&data->timer);
+    tanto_LoopStatsUpdate(&data->timer, &data->loopStats);
+    if (data->printFps)
+        printf("FPS: %f\n", 1000000000.0 / data->loopStats.nsDelta );
+    if (data->printNs)
+        printf("Delta NS: %ld\n", data->loopStats.nsDelta);
+    tanto_LoopSleep(&data->loopStats, data->targetNs);
+}

@@ -5,6 +5,7 @@
 #include <coal/coal.h>
 #include <time.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #define printBuffer(pBuffer, size, Type, printFn) { \
     const Type* util_pBuffer = (Type*)pBuffer; \
@@ -48,5 +49,17 @@ struct Tanto_LoopStats {
 void tanto_LoopStatsInit(Tanto_LoopStats* stats);
 void tanto_LoopStatsUpdate(const Tanto_Timer* t, Tanto_LoopStats* s);
 void tanto_LoopSleep(const Tanto_LoopStats* s, const uint32_t nsTarget);
+
+typedef struct {
+    Tanto_Timer     timer;
+    Tanto_LoopStats loopStats;
+    const uint32_t  targetNs;
+    const bool      printFps;
+    const bool      printNs;
+} Tanto_LoopData;
+
+Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS);
+void tanto_LoopStart(Tanto_LoopData* data);
+void tanto_LoopEnd(Tanto_LoopData*   data);
 
 #endif /* end of include guard: UTILS_H */
