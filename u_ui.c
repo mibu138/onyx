@@ -27,7 +27,7 @@ static inline Widget* addWidget(const int16_t x, const int16_t y,
 {
     widgets[widgetCount] = (Widget){
         .id = widgetCount,
-        .x = 0, .y = 0,
+        .x = x, .y = y,
         .width = width,
         .height = height,
         .inputHandlerFn = rfn
@@ -48,27 +48,47 @@ static inline bool clickTest(int16_t x, int16_t y, Widget* widget)
     return (xtest && ytest);
 }
 
-static inline void updateWidgetPos(const int16_t newx, const int16_t newy, Widget* widget)
+static inline void updateWidgetPos(const int16_t deltaX, const int16_t deltaY, Widget* widget)
 {
-    const int16_t deltaX = newx - widget->x;
-    const int16_t deltaY = newy - widget->y;
-    widget->x = newx;
-    widget->y = newy;
+    const int16_t newx = deltaX + dragData[widget->id].initX;
+    const int16_t newy = deltaY + dragData[widget->id].initY;
+    const int16_t dX = newx - widget->x;
+    const int16_t dY = newy - widget->y;
     for (int i = 0; i < widget->primCount; i++) 
     {
         Tanto_R_Primitive* prim = &widget->primitives[i];
         Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++) 
         {
-            pos[i].i += deltaX;
-            pos[i].j += deltaY;
+            pos[i].i += dX;
+            pos[i].j += dY;
         }
     }
-    // TODO: must update children as well
+    widget->x = newx;
+    widget->y = newy;
+
+    // update children
+    const uint8_t widgetCount = widget->widgetCount;
+    for (int i = 0; i < widgetCount; i++) 
+    {
+        updateWidgetPos(deltaX, deltaY, widget->widgets[i]);
+    }
+}
+
+static bool propogateEventToChildren(const Tanto_I_Event* event, Widget* widget)
+{
+    const uint8_t widgetCount = widget->widgetCount;
+    for (int i = 0; i < widgetCount; i++) 
+    {
+        const bool r = widget->widgets[i]->inputHandlerFn(event, widget->widgets[i]);
+        if (r) return true;
+    }
+    return false;
 }
 
 static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
 {
+    if (propogateEventToChildren(event, widget)) return true;
     const uint8_t id = widget->id;
 
     switch (event->type)
@@ -92,9 +112,9 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
             if (!dragData[id].active) return false;
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
-            const int16_t newx = dragData[id].initX + (mx - dragData[id].clickX);
-            const int16_t newy = dragData[id].initY + (my - dragData[id].clickY);
-            updateWidgetPos(newx, newy, widget);
+            const int16_t deltaX = mx - dragData[id].clickX;
+            const int16_t deltaY = my - dragData[id].clickY;
+            updateWidgetPos(deltaX, deltaY, widget);
             return true;
         }
         default: break;
@@ -104,13 +124,7 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
 
 static bool rfnPassThrough(const Tanto_I_Event* event, Widget* widget)
 {
-    const uint8_t widgetCount = widget->widgetCount;
-    for (int i = 0; i < widgetCount; i++) 
-    {
-        const bool r = widget->widgets[i]->inputHandlerFn(event, widgets->widgets[i]);
-        if (r) return true;
-    }
-    return false;
+    return propogateEventToChildren(event, widget);
 }
 
 static bool responder(const Tanto_I_Event* event)
@@ -127,9 +141,11 @@ void tanto_u_Init(void)
     printf("Tanto UI initialized.\n");
 }
 
-Tanto_U_Widget* tanto_u_CreateSimpleBox(void)
+Tanto_U_Widget* tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
+        const int16_t width, const int16_t height, Widget* parent)
 {
-    Widget* widget = addWidget(0, 0, 200, 100, rfnSimpleBox, rootWidget);
+    if (!parent) parent = rootWidget;
+    Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, parent);
 
     widget->primCount = 1;
     widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height, NULL);
