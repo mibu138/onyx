@@ -11,10 +11,6 @@
 
 #define TANTO_SPVDIR "./tanto/shaders/spv"
 
-extern VkPipeline       pipelines[TANTO_MAX_PIPELINES];
-extern VkDescriptorSet  descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
-extern VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
-
 typedef struct {
     uint32_t                 descriptorCount;
     VkDescriptorType         type;
@@ -23,18 +19,23 @@ typedef struct {
 } Tanto_R_DescriptorBinding;
 
 typedef struct {
-    int    id;
-    size_t bindingCount;
+    size_t                    bindingCount;
     Tanto_R_DescriptorBinding bindings[TANTO_MAX_BINDINGS];
-} Tanto_R_DescriptorSet;
+} Tanto_R_DescriptorSetInfo;
 
 typedef struct {
-    int id;
+    VkDescriptorPool      descriptorPool;
+    VkDescriptorSetLayout descriptorSetLayouts[TANTO_MAX_DESCRIPTOR_SETS]; 
+    VkDescriptorSet       descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
+    uint32_t              descriptorSetCount;
+} Tanto_R_Description;
+
+typedef struct {
     size_t descriptorSetCount;
-    int    descriptorSetIds[TANTO_MAX_DESCRIPTOR_SETS];
+    const VkDescriptorSetLayout* descriptorSetLayouts;
     size_t pushConstantCount;
-    VkPushConstantRange pushConstantsRanges[TANTO_MAX_PUSH_CONSTANTS];
-} Tanto_R_PipelineLayout;
+    const VkPushConstantRange* pushConstantsRanges;
+} Tanto_R_PipelineLayoutInfo;
 
 typedef enum {
     TANTO_R_PIPELINE_RASTER_TYPE,
@@ -49,6 +50,7 @@ typedef enum {
 
 typedef struct {
     VkRenderPass              renderPass;
+    VkPipelineLayout          layout;
     Tanto_R_VertexDescription vertexDescription;
     VkPolygonMode             polygonMode;
     VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
@@ -64,12 +66,13 @@ typedef struct {
 } Tanto_R_PipelineRasterInfo;
 
 typedef struct {
-    uint8_t raygenCount;
-    char**  raygenShaders;
-    uint8_t missCount;
-    char**  missShaders;
-    uint8_t chitCount;
-    char**  chitShaders;
+    VkPipelineLayout layout;
+    uint8_t          raygenCount;
+    char**           raygenShaders;
+    uint8_t          missCount;
+    char**           missShaders;
+    uint8_t          chitCount;
+    char**           chitShaders;
 } Tanto_R_PipelineRayTraceInfo;
 
 union Tanto_R_PipelineInfoPayload {
@@ -85,8 +88,10 @@ typedef struct {
 } Tanto_R_PipelineInfo;
 
 
-void tanto_r_InitDescriptorSets(const Tanto_R_DescriptorSet* const sets, const int count);
-void tanto_r_InitPipelineLayouts(const Tanto_R_PipelineLayout* const layouts, const int count);
+void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
+        Tanto_R_Description* out);
+void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
+        VkPipelineLayout pipelineLayouts[count]);
 void tanto_r_InitPipelines(const Tanto_R_PipelineInfo* const pipelineInfos, const int count);
 void tanto_r_CreatePipeline(const Tanto_R_PipelineInfo* const pipelineInfo, VkPipeline* pPipeline);
 void tanto_r_CleanUpPipelines(void);
