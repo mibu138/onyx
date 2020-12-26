@@ -1,5 +1,7 @@
 #include "u_ui.h"
 #include "tanto/r_geo.h"
+#include "tanto/r_render.h"
+#include "tanto/r_renderpass.h"
 #include "i_input.h"
 #include <stdio.h>
 
@@ -8,10 +10,8 @@
 typedef Tanto_U_Widget Widget;
 
 typedef struct {
-    int16_t initX;
-    int16_t initY;
-    int16_t clickX;
-    int16_t clickY;
+    int16_t prevX;
+    int16_t prevY;
     bool    active;
 } DragData;
 
@@ -20,6 +20,61 @@ static Widget   widgets[MAX_WIDGETS];
 static Widget*  rootWidget;
 
 static DragData dragData[MAX_WIDGETS];
+
+static VkRenderPass renderPassUI;
+
+static VkPipeline pipelineSlider;
+static VkPipeline pipelineSimpleBox;
+
+static inline void initRenderPass(void)
+{
+    const VkAttachmentDescription attachmentColor = {
+        .flags = 0,
+        .format = tanto_r_GetSwapFormat(),
+        .samples = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+    };
+
+    const VkAttachmentDescription attachments[] = {
+        attachmentColor
+    };
+
+    VkAttachmentReference colorReference = {
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    };
+
+    const VkSubpassDescription subpass = {
+        .flags                   = 0,
+        .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .inputAttachmentCount    = 0,
+        .pInputAttachments       = NULL,
+        .colorAttachmentCount    = 1,
+        .pColorAttachments       = &colorReference,
+        .pResolveAttachments     = NULL,
+        .pDepthStencilAttachment = NULL,
+        .preserveAttachmentCount = 0,
+        .pPreserveAttachments    = NULL,
+    };
+
+    Tanto_R_RenderPassInfo rpi = {
+        .attachmentCount = 1,
+        .pAttachments = attachments,
+        .subpassCount = 1,
+        .pSubpasses = &subpass,
+    };
+
+    tanto_r_CreateRenderPass(&rpi, &renderPassUI);
+}
+
+static inline void initPipelines(void)
+{
+}
 
 static inline Widget* addWidget(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, 
@@ -50,26 +105,22 @@ static inline bool clickTest(int16_t x, int16_t y, Widget* widget)
 
 static inline void updateWidgetPos(const int16_t deltaX, const int16_t deltaY, Widget* widget)
 {
-    const int16_t newx = deltaX + dragData[widget->id].initX;
-    const int16_t newy = deltaY + dragData[widget->id].initY;
-    const int16_t dX = newx - widget->x;
-    const int16_t dY = newy - widget->y;
+    widget->x += deltaX;
+    widget->y += deltaY;
     for (int i = 0; i < widget->primCount; i++) 
     {
         Tanto_R_Primitive* prim = &widget->primitives[i];
         Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++) 
         {
-            pos[i].i += dX;
-            pos[i].j += dY;
+            pos[i].i += deltaX;
+            pos[i].j += deltaY;
         }
     }
-    widget->x = newx;
-    widget->y = newy;
 
     // update children
     const uint8_t widgetCount = widget->widgetCount;
-    for (int i = 0; i < widgetCount; i++) 
+    for (int i = widgetCount - 1; i >= 0; i--) 
     {
         updateWidgetPos(deltaX, deltaY, widget->widgets[i]);
     }
@@ -78,7 +129,7 @@ static inline void updateWidgetPos(const int16_t deltaX, const int16_t deltaY, W
 static bool propogateEventToChildren(const Tanto_I_Event* event, Widget* widget)
 {
     const uint8_t widgetCount = widget->widgetCount;
-    for (int i = 0; i < widgetCount; i++) 
+    for (int i = widgetCount - 1; i >= 0 ; i--) 
     {
         const bool r = widget->widgets[i]->inputHandlerFn(event, widget->widgets[i]);
         if (r) return true;
@@ -100,10 +151,8 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
             const bool r = clickTest(mx, my, widget);
             if (!r) return false;
             dragData[id].active = r;
-            dragData[id].initX = widget->x;
-            dragData[id].initY = widget->y;
-            dragData[id].clickX = mx;
-            dragData[id].clickY = my;
+            dragData[id].prevX = mx;
+            dragData[id].prevY = my;
             return true;
         }
         case TANTO_I_MOUSEUP: dragData[id].active = false; break;
@@ -112,8 +161,10 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
             if (!dragData[id].active) return false;
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
-            const int16_t deltaX = mx - dragData[id].clickX;
-            const int16_t deltaY = my - dragData[id].clickY;
+            const int16_t deltaX = mx - dragData[id].prevX;
+            const int16_t deltaY = my - dragData[id].prevY;
+            dragData[id].prevX = mx;
+            dragData[id].prevY = my;
             updateWidgetPos(deltaX, deltaY, widget);
             return true;
         }
