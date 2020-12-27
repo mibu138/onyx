@@ -1,11 +1,16 @@
 #include "u_ui.h"
-#include "tanto/r_geo.h"
-#include "tanto/r_render.h"
-#include "tanto/r_renderpass.h"
+#include "r_geo.h"
+#include "r_render.h"
+#include "r_renderpass.h"
+#include "r_pipeline.h"
+#include "t_def.h"
 #include "i_input.h"
+#include "v_video.h"
 #include <stdio.h>
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
+
+#define SPVDIR "./shaders/spv"
 
 typedef Tanto_U_Widget Widget;
 
@@ -21,10 +26,12 @@ static Widget*  rootWidget;
 
 static DragData dragData[MAX_WIDGETS];
 
-static VkRenderPass renderPassUI;
+static VkRenderPass        renderPass;
 
-static VkPipeline pipelineSlider;
-static VkPipeline pipelineSimpleBox;
+static VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
+static VkPipeline       pipelines[TANTO_MAX_PIPELINES];
+
+static VkFramebuffer framebuffers[TANTO_FRAME_COUNT];
 
 static inline void initRenderPass(void)
 {
@@ -69,11 +76,33 @@ static inline void initRenderPass(void)
         .pSubpasses = &subpass,
     };
 
-    tanto_r_CreateRenderPass(&rpi, &renderPassUI);
+    tanto_r_CreateRenderPass(&rpi, &renderPass);
+}
+
+static void initPipelineLayouts(void)
+{
+    const Tanto_R_PipelineLayoutInfo pipelayoutInfos[] = {{
+        0 // nothing in this one
+    }};
+
+    tanto_r_CreatePipelineLayouts(TANTO_ARRAY_SIZE(pipelayoutInfos), 
+            pipelayoutInfos, pipelineLayouts);
 }
 
 static inline void initPipelines(void)
 {
+    Tanto_R_GraphicsPipelineInfo pipeInfos[] = {{
+        .renderPass = renderPass, 
+        .layout     = pipelineLayouts[0],
+        .sampleCount = VK_SAMPLE_COUNT_1_BIT,
+        .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .blendMode   = TANTO_R_BLEND_MODE_OVER,
+        .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
+        .vertShader = SPVDIR"/ui-vert.spv",
+        .fragShader = SPVDIR"/ui-frag.spv"
+    }};
+
+    tanto_r_CreateGraphicsPipelines(TANTO_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
 }
 
 static inline Widget* addWidget(const int16_t x, const int16_t y, 
@@ -183,8 +212,39 @@ static bool responder(const Tanto_I_Event* event)
     return widgets[0].inputHandlerFn(event, &widgets[0]);
 }
 
+static void initFrameBuffers(void)
+{
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        Tanto_R_Frame* frame = tanto_r_GetFrame(i);
+
+        const VkImageView attachments[] = {
+            frame->swapImage.view
+        };
+
+        const VkFramebufferCreateInfo fbi = {
+            .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            .pNext = NULL,
+            .flags = 0,
+            .renderPass = renderPass,
+            .attachmentCount = 1,
+            .pAttachments = attachments,
+            .width = TANTO_WINDOW_WIDTH,
+            .height = TANTO_WINDOW_HEIGHT,
+            .layers = 1,
+        };
+
+        V_ASSERT( vkCreateFramebuffer(device, &fbi, NULL, &framebuffers[i]) );
+    }
+}
+
 void tanto_u_Init(void)
 {
+    initRenderPass();
+    initPipelineLayouts();
+    initPipelines();
+    initFrameBuffers();
+
     widgetCount = 0;
     rootWidget = addWidget(0, 0, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, rfnPassThrough, NULL);
 
@@ -222,4 +282,54 @@ uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst)
 {
     *pToFirst = widgets;
     return widgetCount;
+}
+
+
+void tanto_u_render(const VkCommandBuffer* cmdBuf, const uint8_t frameIndex)
+{
+    const Tanto_U_Widget* iter = NULL;
+    const uint8_t widgetCount = tanto_u_GetWidgets(&iter);
+
+    VkClearValue clear = {0};
+    
+    const VkRenderPassBeginInfo rpassInfoUi = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .clearValueCount = 1,
+        .pClearValues = &clear,
+        .renderArea = {{0, 0}, {TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT}},
+        .renderPass =  renderPass,
+        .framebuffer = framebuffers[frameIndex],
+    };
+
+    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[0]);
+
+    vkCmdBeginRenderPass(*cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
+
+    for (int w = 0; w < widgetCount; w++) 
+    {
+        const Tanto_U_Widget* widget = &(iter[w]);
+        const uint8_t primCount = widget->primCount;
+        for (int p = 0; p < primCount; p++) 
+        {
+            const Tanto_R_Primitive prim = widget->primitives[p];
+
+            const VkBuffer vertBuffers[2] = {
+                prim.vertexRegion.buffer,
+                prim.vertexRegion.buffer
+            };
+
+            const VkDeviceSize attrOffsets[2] = {
+                prim.attrOffsets[0] + prim.vertexRegion.offset,
+                prim.attrOffsets[1] + prim.vertexRegion.offset
+            };
+
+            vkCmdBindVertexBuffers(*cmdBuf, 0, 2, vertBuffers, attrOffsets);
+
+            vkCmdBindIndexBuffer(*cmdBuf, prim.indexRegion.buffer, 
+                    prim.indexRegion.offset, TANTO_VERT_INDEX_TYPE);
+
+            vkCmdDrawIndexed(*cmdBuf, prim.indexCount, 1, 0, 0, 0);
+        }
+    }
+    vkCmdEndRenderPass(*cmdBuf);
 }

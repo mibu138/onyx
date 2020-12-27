@@ -30,5 +30,6 @@ void tanto_u_DebugReport(void);
 Tanto_U_Widget* tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, Tanto_U_Widget* parent);
 uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst);
+void tanto_u_render(const VkCommandBuffer* cmdBuf, const uint8_t frameIndex);
 
 #endif /* end of include guard: TANTO_U_UI_H */
