@@ -176,6 +176,226 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo, VkPipelin
 }
 
 #define MAX_SHADER_STAGES 4
+#define MAX_ATTACHMENT_STATES 4
+
+void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], 
+        VkPipeline pipelines[count])
+{
+    VkPipelineShaderStageCreateInfo           shaderStages[count][MAX_SHADER_STAGES];
+    VkPipelineVertexInputStateCreateInfo      vertexInputStates[count];
+    VkPipelineInputAssemblyStateCreateInfo    inputAssemblyStates[count];
+    VkPipelineTessellationStateCreateInfo     tessellationStates[count];
+    VkPipelineViewportStateCreateInfo         viewportStates[count];
+    VkPipelineRasterizationStateCreateInfo    rasterizationStates[count];
+    VkPipelineMultisampleStateCreateInfo      multisampleStates[count];
+    VkPipelineDepthStencilStateCreateInfo     depthStencilStates[count];
+    VkPipelineColorBlendStateCreateInfo       colorBlendStates[count];
+    //VkPipelineDynamicStateCreateInfo          dynamicStates[count];
+
+    VkViewport viewports[count];
+    VkRect2D   scissors[count];
+
+    VkPipelineColorBlendAttachmentState attachmentStates[count][MAX_ATTACHMENT_STATES];
+
+    VkGraphicsPipelineCreateInfo createInfos[count];
+
+    for (int i = 0; i < count; i++) 
+    {
+        const Tanto_R_GraphicsPipelineInfo* rasterInfo = &pipelineInfos[i];
+        assert( rasterInfo->vertShader && rasterInfo->fragShader ); // must have at least these 2
+
+        VkShaderModule vertModule;
+        VkShaderModule fragModule;
+        VkShaderModule tessCtrlModule;
+        VkShaderModule tessEvalModule;
+
+        initShaderModule(rasterInfo->vertShader, &vertModule);
+        initShaderModule(rasterInfo->fragShader, &fragModule);
+
+        uint8_t shaderStageCount = 2;
+        for (int j = 0; j < MAX_SHADER_STAGES; j++) 
+        {
+            shaderStages[i][j] = (VkPipelineShaderStageCreateInfo){0};
+        }
+
+        shaderStages[i][0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStages[i][0].stage = VK_SHADER_STAGE_VERTEX_BIT;
+        shaderStages[i][0].module = vertModule;
+        shaderStages[i][0].pName = "main";
+        shaderStages[i][0].pSpecializationInfo = NULL;
+        shaderStages[i][1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStages[i][1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
+        shaderStages[i][1].module = fragModule;
+        shaderStages[i][1].pName = "main";
+        shaderStages[i][1].pSpecializationInfo = NULL;
+        if (rasterInfo->tessCtrlShader)
+        {
+            assert(rasterInfo->tessEvalShader);
+            initShaderModule(rasterInfo->tessCtrlShader, &tessCtrlModule);
+            initShaderModule(rasterInfo->tessEvalShader, &tessEvalModule);
+            shaderStages[i][2].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            shaderStages[i][2].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+            shaderStages[i][2].module = tessCtrlModule;
+            shaderStages[i][2].pName = "main";
+            shaderStages[i][2].pSpecializationInfo = NULL;
+            shaderStages[i][3].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            shaderStages[i][3].stage = VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+            shaderStages[i][3].module = tessEvalModule;
+            shaderStages[i][3].pName = "main";
+            shaderStages[i][3].pSpecializationInfo = NULL;
+            shaderStageCount += 2;
+        }
+
+        TANTO_COND_PRINT(rasterInfo->vertexDescription.attributeCount == 0, 
+                "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.");
+
+        vertexInputStates[i] = (VkPipelineVertexInputStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+            .vertexBindingDescriptionCount =   rasterInfo->vertexDescription.bindingCount,
+            .pVertexBindingDescriptions =      rasterInfo->vertexDescription.bindingDescriptions,
+            .vertexAttributeDescriptionCount = rasterInfo->vertexDescription.attributeCount,
+            .pVertexAttributeDescriptions =    rasterInfo->vertexDescription.attributeDescriptions
+        };
+
+        inputAssemblyStates[i] = (VkPipelineInputAssemblyStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            .primitiveRestartEnable = VK_FALSE // applies only to index calls
+        };
+
+        if (rasterInfo->polygonMode == VK_POLYGON_MODE_POINT)
+            inputAssemblyStates[i].topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+
+        if (rasterInfo->polygonMode == VK_POLYGON_MODE_LINE)
+            inputAssemblyStates[i].topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+
+        if (rasterInfo->tessCtrlShader)
+            inputAssemblyStates[i].topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+
+        VkExtent2D viewportDim = rasterInfo->viewportDim;
+        if (viewportDim.width < 1) // use window size
+        {
+            viewportDim.width = TANTO_WINDOW_WIDTH;
+            viewportDim.height = TANTO_WINDOW_HEIGHT;
+        }
+
+        viewports[i] = (VkViewport){
+            .height = viewportDim.height,
+            .width = viewportDim.width,
+            .x = 0,
+            .y = 0,
+            .minDepth = 0.0,
+            .maxDepth = 1.0
+        };
+
+        scissors[i] = (VkRect2D){
+            .extent = {viewportDim.width, viewportDim.height},
+            .offset = {0, 0}
+        };
+
+        viewportStates[i] = (VkPipelineViewportStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+            .scissorCount = 1,
+            .pScissors = &scissors[i],
+            .viewportCount = 1,
+            .pViewports = &viewports[i],
+        };
+
+        rasterizationStates[i] = (VkPipelineRasterizationStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+            .depthClampEnable = VK_FALSE, // dunno
+            .rasterizerDiscardEnable = VK_FALSE, // actually discards everything
+            .polygonMode = rasterInfo->polygonMode,
+            .cullMode = rasterInfo->cullMode == 0 ? VK_CULL_MODE_BACK_BIT : rasterInfo->cullMode,
+            .frontFace = rasterInfo->frontFace,
+            .depthBiasEnable = VK_FALSE,
+            .lineWidth = 1.0
+        };
+
+        multisampleStates[i] = (VkPipelineMultisampleStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+            .sampleShadingEnable = VK_FALSE,
+            .rasterizationSamples = rasterInfo->sampleCount 
+            // TODO: alot more settings here. more to look into
+        };
+
+        attachmentStates[i][0] = (VkPipelineColorBlendAttachmentState){
+            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
+                VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
+                                                                        write anything to the
+                                                                        framebuffer */
+            .blendEnable = (rasterInfo->blendMode == TANTO_R_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
+        };
+
+        switch (rasterInfo->blendMode)
+        {
+            case TANTO_R_BLEND_MODE_OVER:  setBlendModeOver(&attachmentStates[i][0]); break;
+            case TANTO_R_BLEND_MODE_ERASE: setBlendModeErase(&attachmentStates[i][0]); break;
+            default: break;
+        }
+
+        colorBlendStates[i] = (VkPipelineColorBlendStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+            .logicOpEnable = VK_FALSE, // only for integer framebuffer formats
+            .logicOp = 0,
+            .attachmentCount = 1,
+            .pAttachments = attachmentStates[i] /* must have independentBlending device   
+                feature enabled for these to be different. each entry would correspond 
+                to the blending for a different framebuffer. */
+        };
+
+        depthStencilStates[i] = (VkPipelineDepthStencilStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+            .depthTestEnable = VK_TRUE,
+            .depthWriteEnable = VK_TRUE,
+            .depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+            .depthBoundsTestEnable = VK_FALSE, // allows you to only keep fragments within the depth bounds
+            .stencilTestEnable = VK_FALSE,
+        };
+
+        tessellationStates[i] = (VkPipelineTessellationStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+            .patchControlPoints = rasterInfo->tesselationPatchPoints,
+        };
+
+        assert(shaderStageCount <= MAX_SHADER_STAGES);
+        assert(rasterInfo->renderPass != VK_NULL_HANDLE);
+        assert(rasterInfo->layout != VK_NULL_HANDLE);
+
+        createInfos[i] = (VkGraphicsPipelineCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+            .basePipelineIndex = 0, // not used
+            .basePipelineHandle = 0,
+            .subpass = 0, // which subpass in the renderpass do we use this pipeline with
+            .renderPass = rasterInfo->renderPass,
+            .layout = rasterInfo->layout,
+            .pDynamicState = NULL,
+            .pColorBlendState = &colorBlendStates[i],
+            .pDepthStencilState = &depthStencilStates[i],
+            .pMultisampleState = &multisampleStates[i],
+            .pRasterizationState = &rasterizationStates[i],
+            .pViewportState = &viewportStates[i],
+            .pTessellationState = &tessellationStates[i], // may be able to do splines with this
+            .flags = 0,
+            .stageCount = shaderStageCount,
+            .pStages = shaderStages[i],
+            .pVertexInputState = &vertexInputStates[i],
+            .pInputAssemblyState = &inputAssemblyStates[i],
+        };
+    }
+
+    V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, count, createInfos, 
+                NULL, pipelines) );
+
+    for (int i = 0; i < count; i++) 
+    {
+        for (int j = 0; j < MAX_SHADER_STAGES; j++) 
+        {
+            if (shaderStages[i][j].module != VK_NULL_HANDLE)
+                vkDestroyShaderModule(device, shaderStages[i][j].module, NULL);
+        }
+    }
+}
 
 static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPipeline* pPipeline)
 {
@@ -184,7 +404,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
     VkShaderModule tessCtrlModule;
     VkShaderModule tessEvalModule;
 
-    const Tanto_R_PipelineRasterInfo rasterInfo = plInfo->payload.rasterInfo;
+    const Tanto_R_GraphicsPipelineInfo rasterInfo = plInfo->payload.rasterInfo;
 
     assert( rasterInfo.vertShader && rasterInfo.fragShader ); // must have at least these 2
 

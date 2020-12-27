@@ -63,7 +63,7 @@ typedef struct {
     char* fragShader;
     char* tessCtrlShader;
     char* tessEvalShader;
-} Tanto_R_PipelineRasterInfo;
+} Tanto_R_GraphicsPipelineInfo;
 
 typedef struct {
     VkPipelineLayout layout;
@@ -73,11 +73,11 @@ typedef struct {
     char**           missShaders;
     uint8_t          chitCount;
     char**           chitShaders;
-} Tanto_R_PipelineRayTraceInfo;
+} Tanto_R_RayTracePipelineInfo;
 
 union Tanto_R_PipelineInfoPayload {
-    Tanto_R_PipelineRasterInfo   rasterInfo;
-    Tanto_R_PipelineRayTraceInfo rayTraceInfo;
+    Tanto_R_GraphicsPipelineInfo rasterInfo;
+    Tanto_R_RayTracePipelineInfo rayTraceInfo;
 };
 
 typedef struct {
@@ -93,6 +93,7 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
 void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count]);
 void tanto_r_InitPipelines(const Tanto_R_PipelineInfo* const pipelineInfos, const int count);
+void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
 void tanto_r_CreatePipeline(const Tanto_R_PipelineInfo* const pipelineInfo, VkPipeline* pPipeline);
 void tanto_r_CleanUpPipelines(void);
 
