@@ -132,18 +132,18 @@ static inline bool clickTest(int16_t x, int16_t y, Widget* widget)
     return (xtest && ytest);
 }
 
-static inline void updateWidgetPos(const int16_t deltaX, const int16_t deltaY, Widget* widget)
+static inline void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
 {
-    widget->x += deltaX;
-    widget->y += deltaY;
+    widget->x += dx;
+    widget->y += dy;
     for (int i = 0; i < widget->primCount; i++) 
     {
         Tanto_R_Primitive* prim = &widget->primitives[i];
         Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++) 
         {
-            pos[i].i += deltaX;
-            pos[i].j += deltaY;
+            pos[i].i += dx;
+            pos[i].j += dy;
         }
     }
 
@@ -151,7 +151,7 @@ static inline void updateWidgetPos(const int16_t deltaX, const int16_t deltaY, W
     const uint8_t widgetCount = widget->widgetCount;
     for (int i = widgetCount - 1; i >= 0; i--) 
     {
-        updateWidgetPos(deltaX, deltaY, widget->widgets[i]);
+        updateWidgetPos(dx, dy, widget->widgets[i]);
     }
 }
 
@@ -190,11 +190,11 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
             if (!dragData[id].active) return false;
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
-            const int16_t deltaX = mx - dragData[id].prevX;
-            const int16_t deltaY = my - dragData[id].prevY;
+            const int16_t dx = mx - dragData[id].prevX;
+            const int16_t dy = my - dragData[id].prevY;
             dragData[id].prevX = mx;
             dragData[id].prevY = my;
-            updateWidgetPos(deltaX, deltaY, widget);
+            updateWidgetPos(dx, dy, widget);
             return true;
         }
         default: break;
