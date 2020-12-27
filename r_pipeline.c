@@ -406,7 +406,6 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
     assert(count < TANTO_MAX_PIPELINES);
 
     VkRayTracingPipelineCreateInfoKHR createInfos[count];
-    memset(createInfos, 0, sizeof(createInfos));
 
     VkPipelineShaderStageCreateInfo               shaderStages[count][MAX_RT_SHADER_COUNT];
     VkRayTracingShaderGroupCreateInfoKHR          shaderGroups[count][MAX_RT_SHADER_COUNT];
@@ -511,10 +510,18 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
             .stageCount = shaderCount,
             .pGroups    = shaderGroups[p],
             .pStages    = shaderStages[p]
-    };
+        };
+    }
 
     V_ASSERT( vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, count, createInfos, NULL, pipelines) );
 
+    for (int i = 0; i < count; i++) 
+    {
+        const int sc = createInfos[i].stageCount;
+        for (int j = 0; j < sc; j++) 
+        {
+            vkDestroyShaderModule(device, createInfos[i].pStages[j].module, NULL);
+        }
     }
 }
 
