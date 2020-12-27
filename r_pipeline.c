@@ -175,13 +175,13 @@ static void createPipelineRayTrace(const Tanto_R_PipelineInfo* plInfo, VkPipelin
     }
 }
 
-#define MAX_SHADER_STAGES 4
+#define MAX_GP_SHADER_STAGES 4
 #define MAX_ATTACHMENT_STATES 4
 
 void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], 
         VkPipeline pipelines[count])
 {
-    VkPipelineShaderStageCreateInfo           shaderStages[count][MAX_SHADER_STAGES];
+    VkPipelineShaderStageCreateInfo           shaderStages[count][MAX_GP_SHADER_STAGES];
     VkPipelineVertexInputStateCreateInfo      vertexInputStates[count];
     VkPipelineInputAssemblyStateCreateInfo    inputAssemblyStates[count];
     VkPipelineTessellationStateCreateInfo     tessellationStates[count];
@@ -213,7 +213,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
         initShaderModule(rasterInfo->fragShader, &fragModule);
 
         uint8_t shaderStageCount = 2;
-        for (int j = 0; j < MAX_SHADER_STAGES; j++) 
+        for (int j = 0; j < MAX_GP_SHADER_STAGES; j++) 
         {
             shaderStages[i][j] = (VkPipelineShaderStageCreateInfo){0};
         }
@@ -358,7 +358,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
             .patchControlPoints = rasterInfo->tesselationPatchPoints,
         };
 
-        assert(shaderStageCount <= MAX_SHADER_STAGES);
+        assert(shaderStageCount <= MAX_GP_SHADER_STAGES);
         assert(rasterInfo->renderPass != VK_NULL_HANDLE);
         assert(rasterInfo->layout != VK_NULL_HANDLE);
 
@@ -389,11 +389,132 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
 
     for (int i = 0; i < count; i++) 
     {
-        for (int j = 0; j < MAX_SHADER_STAGES; j++) 
+        for (int j = 0; j < MAX_GP_SHADER_STAGES; j++) 
         {
             if (shaderStages[i][j].module != VK_NULL_HANDLE)
                 vkDestroyShaderModule(device, shaderStages[i][j].module, NULL);
         }
+    }
+}
+
+#define MAX_RT_SHADER_COUNT 10
+
+void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTracePipelineInfo pipelineInfos[count], 
+        VkPipeline pipelines[count])
+{
+    assert(count > 0);
+    assert(count < TANTO_MAX_PIPELINES);
+
+    VkRayTracingPipelineCreateInfoKHR createInfos[count];
+    memset(createInfos, 0, sizeof(createInfos));
+
+    VkPipelineShaderStageCreateInfo               shaderStages[count][MAX_RT_SHADER_COUNT];
+    VkRayTracingShaderGroupCreateInfoKHR          shaderGroups[count][MAX_RT_SHADER_COUNT];
+    VkPipelineLibraryCreateInfoKHR                libraryInfos[count];
+    //VkRayTracingPipelineInterfaceCreateInfoKHR    libraryInterfaces[count];
+    //VkPipelineDynamicStateCreateInfo              dynamicStates[count];
+    
+    memset(shaderStages, 0, sizeof(shaderStages));
+    memset(shaderGroups, 0, sizeof(shaderGroups));
+
+    for (int p = 0; p < count; p++) 
+    {
+        const Tanto_R_RayTracePipelineInfo* rayTraceInfo = &pipelineInfos[p];
+
+        assert(rayTraceInfo->layout != VK_NULL_HANDLE);
+
+        const int raygenCount = rayTraceInfo->raygenCount;
+        const int missCount   = rayTraceInfo->missCount;
+        const int chitCount   = rayTraceInfo->chitCount;
+
+        assert( raygenCount == 1 ); // for now
+        assert( missCount > 0 && missCount < 10 );
+        assert( chitCount > 0 && chitCount < 10 ); // make sure its in a reasonable range
+
+        VkShaderModule raygenSM[raygenCount];
+        VkShaderModule missSM[missCount];
+        VkShaderModule chitSM[chitCount];
+
+        memset(raygenSM, 0, sizeof(raygenSM));
+        memset(missSM, 0, sizeof(missSM));
+        memset(chitSM, 0, sizeof(chitSM));
+
+        char* const* const raygenShaders = rayTraceInfo->raygenShaders;
+        char* const* const missShaders =   rayTraceInfo->missShaders;
+        char* const* const chitShaders =   rayTraceInfo->chitShaders;
+
+        for (int i = 0; i < raygenCount; i++) 
+            initShaderModule(raygenShaders[i], &raygenSM[i]);
+        for (int i = 0; i < missCount; i++) 
+            initShaderModule(missShaders[i], &missSM[i]);
+        for (int i = 0; i < chitCount; i++) 
+            initShaderModule(chitShaders[i], &chitSM[i]);
+
+        const int shaderCount = raygenCount + missCount + chitCount;
+
+        assert(shaderCount < MAX_RT_SHADER_COUNT);
+
+        for (int i = 0; i < shaderCount; i++) 
+        {
+            shaderStages[p][i].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+            shaderStages[p][i].pName = "main";
+
+            shaderGroups[p][i].sType = VK_STRUCTURE_TYPE_RAY_TRACING_SHADER_GROUP_CREATE_INFO_KHR;
+            shaderGroups[p][i].pShaderGroupCaptureReplayHandle = NULL;
+            shaderGroups[p][i].anyHitShader       = VK_SHADER_UNUSED_KHR;
+            shaderGroups[p][i].closestHitShader   = VK_SHADER_UNUSED_KHR;
+            shaderGroups[p][i].generalShader      = VK_SHADER_UNUSED_KHR;
+            shaderGroups[p][i].intersectionShader = VK_SHADER_UNUSED_KHR;
+
+            if (i < raygenCount)
+            {
+                int m = i - 0;
+                shaderStages[p][i].stage = VK_SHADER_STAGE_RAYGEN_BIT_KHR;
+                shaderStages[p][i].module = raygenSM[m];
+
+                shaderGroups[p][i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+                shaderGroups[p][i].generalShader = i;
+
+            }
+            else if ( i - raygenCount < missCount )
+            {
+                int m = i - raygenCount;
+                shaderStages[p][i].stage = VK_SHADER_STAGE_MISS_BIT_KHR;
+                shaderStages[p][i].module = missSM[m];
+
+                shaderGroups[p][i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
+                shaderGroups[p][i].generalShader = i;
+            }
+            else if ( i - raygenCount - missCount < chitCount )
+            {
+                int m = i - raygenCount - missCount;
+                shaderStages[p][i].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
+                shaderStages[p][i].module = chitSM[m];
+
+                shaderGroups[p][i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_TRIANGLES_HIT_GROUP_KHR;
+                shaderGroups[p][i].closestHitShader = i;
+            }
+        }
+
+        libraryInfos[p] = (VkPipelineLibraryCreateInfoKHR){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_LIBRARY_CREATE_INFO_KHR,
+        };
+
+        assert(rayTraceInfo->layout != VK_NULL_HANDLE);
+
+        createInfos[p] = (VkRayTracingPipelineCreateInfoKHR){
+            .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
+            .maxPipelineRayRecursionDepth = 1,
+            .layout     = rayTraceInfo->layout,
+            .pLibraryInfo = &libraryInfos[p],
+            .groupCount = shaderCount,
+            .stageCount = shaderCount,
+            .pGroups    = shaderGroups[p],
+            .pStages    = shaderStages[p]
+    };
+
+    V_ASSERT( vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, count, createInfos, NULL, pipelines) );
+
     }
 }
 
@@ -416,7 +537,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
     };
 
     uint8_t shaderStageCount = 2;
-    VkPipelineShaderStageCreateInfo shaderStages[MAX_SHADER_STAGES] = {0};
+    VkPipelineShaderStageCreateInfo shaderStages[MAX_GP_SHADER_STAGES] = {0};
     shaderStages[0].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     shaderStages[0].stage = VK_SHADER_STAGE_VERTEX_BIT;
     shaderStages[0].module = vertModule;
@@ -562,7 +683,7 @@ static void createPipelineRasterization(const Tanto_R_PipelineInfo* plInfo, VkPi
     };
 
     assert(rasterInfo.renderPass != 0);
-    assert(shaderStageCount <= MAX_SHADER_STAGES);
+    assert(shaderStageCount <= MAX_GP_SHADER_STAGES);
     assert(shaderStageCount > 0);
     assert(rasterInfo.layout != VK_NULL_HANDLE);
 

@@ -93,6 +93,7 @@ void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLa
         VkPipelineLayout pipelineLayouts[count]);
 void tanto_r_InitPipelines(const Tanto_R_PipelineInfo* const pipelineInfos, const int count);
 void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
+void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTracePipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
 void tanto_r_CreatePipeline(const Tanto_R_PipelineInfo* const pipelineInfo, VkPipeline* pPipeline);
 void tanto_r_CleanUpPipelines(void);
 
