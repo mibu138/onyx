@@ -59,7 +59,7 @@ typedef struct {
 } Tanto_LoopData;
 
 Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS);
-void tanto_LoopStart(Tanto_LoopData* data);
-void tanto_LoopEnd(Tanto_LoopData*   data);
+void tanto_FrameStart(Tanto_LoopData* data);
+void tanto_FrameEnd(Tanto_LoopData*   data);
 
 #endif /* end of include guard: UTILS_H */

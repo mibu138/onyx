@@ -124,12 +124,12 @@ Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps
     return data;
 }
 
-void tanto_LoopStart(Tanto_LoopData *data)
+void tanto_FrameStart(Tanto_LoopData *data)
 {
     tanto_TimerStart(&data->timer);
 }
 
-void tanto_LoopEnd(Tanto_LoopData *data)
+void tanto_FrameEnd(Tanto_LoopData *data)
 {
     tanto_TimerStop(&data->timer);
     tanto_LoopStatsUpdate(&data->timer, &data->loopStats);

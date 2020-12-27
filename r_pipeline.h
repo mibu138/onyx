@@ -87,7 +87,6 @@ typedef struct {
     union Tanto_R_PipelineInfoPayload payload;
 } Tanto_R_PipelineInfo;
 
-
 void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
         Tanto_R_Description* out);
 void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
