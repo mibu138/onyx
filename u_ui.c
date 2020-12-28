@@ -7,6 +7,7 @@
 #include "i_input.h"
 #include "v_video.h"
 #include <stdio.h>
+#include <vulkan/vulkan_core.h>
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
 
@@ -20,20 +21,32 @@ typedef struct {
     bool    active;
 } DragData;
 
+typedef struct {
+    int   i0;
+    int   i1;
+    float f0;
+    float f1;
+} PushConstant;
+
 static uint32_t widgetCount;
 static Widget   widgets[MAX_WIDGETS];
 static Widget*  rootWidget;
 
 static DragData dragData[MAX_WIDGETS];
 
-static VkRenderPass        renderPass;
+static VkRenderPass     renderPass;
 
 static VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
 static VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 
-static VkFramebuffer framebuffers[TANTO_FRAME_COUNT];
+static VkFramebuffer    framebuffers[TANTO_FRAME_COUNT];
 
-static inline void initRenderPass(void)
+enum {
+    PIPELINE_BOX,
+    PIPELINE_SLIDER,
+};
+
+static void initRenderPass(void)
 {
     const VkAttachmentDescription attachmentColor = {
         .flags = 0,
@@ -81,17 +94,25 @@ static inline void initRenderPass(void)
 
 static void initPipelineLayouts(void)
 {
+    VkPushConstantRange pcRange = {
+        .offset = 0,
+        .size = sizeof(PushConstant),
+        .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+    };
+
     const Tanto_R_PipelineLayoutInfo pipelayoutInfos[] = {{
-        0 // nothing in this one
+        .pushConstantCount = 1,
+        .pushConstantsRanges = &pcRange
     }};
 
     tanto_r_CreatePipelineLayouts(TANTO_ARRAY_SIZE(pipelayoutInfos), 
             pipelayoutInfos, pipelineLayouts);
 }
 
-static inline void initPipelines(void)
+static void initPipelines(void)
 {
     Tanto_R_GraphicsPipelineInfo pipeInfos[] = {{
+        // simple box
         .renderPass = renderPass, 
         .layout     = pipelineLayouts[0],
         .sampleCount = VK_SAMPLE_COUNT_1_BIT,
@@ -99,23 +120,39 @@ static inline void initPipelines(void)
         .blendMode   = TANTO_R_BLEND_MODE_OVER,
         .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
         .vertShader = SPVDIR"/ui-vert.spv",
-        .fragShader = SPVDIR"/ui-frag.spv"
+        .fragShader = SPVDIR"/ui-box-frag.spv"
+    },{ 
+        // slider
+        .renderPass = renderPass, 
+        .layout     = pipelineLayouts[0],
+        .sampleCount = VK_SAMPLE_COUNT_1_BIT,
+        .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .blendMode   = TANTO_R_BLEND_MODE_OVER,
+        .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
+        .vertShader = SPVDIR"/ui-vert.spv",
+        .fragShader = SPVDIR"/ui-slider-frag.spv"
     }};
 
     tanto_r_CreateGraphicsPipelines(TANTO_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
 }
 
-static inline Widget* addWidget(const int16_t x, const int16_t y, 
+static Widget* addWidget(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, 
-        const Tantu_U_ResponderFn rfn, Widget* parent)
+        const Tanto_U_ResponderFn rfn, 
+        const Tanto_U_DrawFn      dfn,
+        Widget* parent)
 {
     widgets[widgetCount] = (Widget){
         .id = widgetCount,
         .x = x, .y = y,
         .width = width,
         .height = height,
-        .inputHandlerFn = rfn
+        .inputHandlerFn = rfn,
+        .drawFn = dfn
     };
+
+    if (!parent && rootWidget) // if no parent given and we have root widget, make widget its child
+        parent = rootWidget;
 
     if (parent)
         parent->widgets[parent->widgetCount++] = &widgets[widgetCount];
@@ -123,7 +160,7 @@ static inline Widget* addWidget(const int16_t x, const int16_t y,
     return &widgets[widgetCount++];
 }
 
-static inline bool clickTest(int16_t x, int16_t y, Widget* widget)
+static bool clickTest(int16_t x, int16_t y, Widget* widget)
 {
     x -= widget->x;
     y -= widget->y;
@@ -132,7 +169,7 @@ static inline bool clickTest(int16_t x, int16_t y, Widget* widget)
     return (xtest && ytest);
 }
 
-static inline void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
+static void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
 {
     widget->x += dx;
     widget->y += dy;
@@ -164,6 +201,27 @@ static bool propogateEventToChildren(const Tanto_I_Event* event, Widget* widget)
         if (r) return true;
     }
     return false;
+}
+
+static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
+{
+    assert(widget->primCount == 1);
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[PIPELINE_BOX]);
+
+    const Tanto_R_Primitive* prim = &widget->primitives[0];
+
+    tanto_r_BindPrim(cmdBuf, prim);
+
+    PushConstant pc = {
+        .i0 = widget->width,
+        .i1 = widget->height
+    };
+
+    vkCmdPushConstants(cmdBuf, pipelineLayouts[0], VK_SHADER_STAGE_FRAGMENT_BIT, 
+            0, sizeof(pc), &pc);
+
+    vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
 static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
@@ -199,6 +257,35 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
         }
         default: break;
     }
+    return false;
+}
+
+static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
+{
+    assert(widget->primCount == 1);
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[PIPELINE_SLIDER]);
+
+    const Tanto_R_Primitive* prim = &widget->primitives[0];
+
+    tanto_r_BindPrim(cmdBuf, prim);
+
+    PushConstant pc = {
+        .i0 = widget->width,
+        .i1 = widget->height,
+        .f0 = widget->data.slider.sliderPos
+    };
+
+    printf("sliderPos: %f\n", pc.f0);
+
+    vkCmdPushConstants(cmdBuf, pipelineLayouts[0], VK_SHADER_STAGE_FRAGMENT_BIT, 
+            0, sizeof(pc), &pc);
+
+    vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
+}
+
+static bool rfnSlider(const Tanto_I_Event* event, Widget* widget)
+{
     return false;
 }
 
@@ -246,7 +333,7 @@ void tanto_u_Init(void)
     initFrameBuffers();
 
     widgetCount = 0;
-    rootWidget = addWidget(0, 0, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, rfnPassThrough, NULL);
+    rootWidget = addWidget(0, 0, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL);
 
     tanto_i_Subscribe(responder);
     printf("Tanto UI initialized.\n");
@@ -255,11 +342,23 @@ void tanto_u_Init(void)
 Tanto_U_Widget* tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, Widget* parent)
 {
-    if (!parent) parent = rootWidget;
-    Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, parent);
+    Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, dfnSimpleBox, parent);
 
     widget->primCount = 1;
     widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height, NULL);
+
+    return widget;
+}
+
+Tanto_U_Widget* tanto_u_CreateSlider(const int16_t x, const int16_t y, 
+        Widget* parent)
+{
+    Widget* widget = addWidget(x, y, 300, 40, rfnSlider, dfnSlider, parent);
+
+    widget->primCount = 1;
+    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height, NULL);
+
+    widget->data.slider.sliderPos = 0.5;
 
     return widget;
 }
@@ -284,8 +383,7 @@ uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst)
     return widgetCount;
 }
 
-
-void tanto_u_render(const VkCommandBuffer* cmdBuf, const uint8_t frameIndex)
+void tanto_u_render(const VkCommandBuffer cmdBuf, const uint8_t frameIndex)
 {
     const Tanto_U_Widget* iter = NULL;
     const uint8_t widgetCount = tanto_u_GetWidgets(&iter);
@@ -301,35 +399,13 @@ void tanto_u_render(const VkCommandBuffer* cmdBuf, const uint8_t frameIndex)
         .framebuffer = framebuffers[frameIndex],
     };
 
-    vkCmdBindPipeline(*cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[0]);
-
-    vkCmdBeginRenderPass(*cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
 
     for (int w = 0; w < widgetCount; w++) 
     {
         const Tanto_U_Widget* widget = &(iter[w]);
-        const uint8_t primCount = widget->primCount;
-        for (int p = 0; p < primCount; p++) 
-        {
-            const Tanto_R_Primitive prim = widget->primitives[p];
-
-            const VkBuffer vertBuffers[2] = {
-                prim.vertexRegion.buffer,
-                prim.vertexRegion.buffer
-            };
-
-            const VkDeviceSize attrOffsets[2] = {
-                prim.attrOffsets[0] + prim.vertexRegion.offset,
-                prim.attrOffsets[1] + prim.vertexRegion.offset
-            };
-
-            vkCmdBindVertexBuffers(*cmdBuf, 0, 2, vertBuffers, attrOffsets);
-
-            vkCmdBindIndexBuffer(*cmdBuf, prim.indexRegion.buffer, 
-                    prim.indexRegion.offset, TANTO_VERT_INDEX_TYPE);
-
-            vkCmdDrawIndexed(*cmdBuf, prim.indexCount, 1, 0, 0, 0);
-        }
+        if (widget->drawFn)
+            widget->drawFn(cmdBuf, widget);
     }
-    vkCmdEndRenderPass(*cmdBuf);
+    vkCmdEndRenderPass(cmdBuf);
 }

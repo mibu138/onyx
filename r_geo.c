@@ -1,4 +1,5 @@
 #include "r_geo.h"
+#include "r_render.h"
 #include "v_memory.h"
 #include "t_def.h"
 #include <string.h>
@@ -551,6 +552,23 @@ Tanto_R_Attribute* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, uint3
 Tanto_R_Index* tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim)
 {
     return (Tanto_R_Index*)prim->indexRegion.hostData;
+}
+
+void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim)
+{
+    VkBuffer     vertBuffers[prim->attrCount];
+    VkDeviceSize attrOffsets[prim->attrCount];
+
+    for (int i = 0; i < prim->attrCount; i++) 
+    {
+        vertBuffers[i] = prim->vertexRegion.buffer;
+        attrOffsets[i] = prim->attrOffsets[i] + prim->vertexRegion.offset;
+    }
+
+    vkCmdBindVertexBuffers(cmdBuf, 0, prim->attrCount, vertBuffers, attrOffsets);
+
+    vkCmdBindIndexBuffer(cmdBuf, prim->indexRegion.buffer, 
+            prim->indexRegion.offset, TANTO_VERT_INDEX_TYPE);
 }
 
 void tanto_r_FreeMesh(Tanto_R_Mesh mesh)
