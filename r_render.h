@@ -27,6 +27,7 @@ VkRenderPass tanto_r_GetMSAARenderPass(void);
 
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
+void           tanto_r_WaitOnFrame(int8_t frameIndex);
 bool           tanto_r_PresentFrame(void);
 void           tanto_r_CleanUp(void);
 void           tanto_r_RecreateSwapchain(void);

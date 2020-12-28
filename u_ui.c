@@ -276,8 +276,6 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
         .f0 = widget->data.slider.sliderPos
     };
 
-    printf("sliderPos: %f\n", pc.f0);
-
     vkCmdPushConstants(cmdBuf, pipelineLayouts[0], VK_SHADER_STAGE_FRAGMENT_BIT, 
             0, sizeof(pc), &pc);
 
@@ -286,6 +284,31 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
 
 static bool rfnSlider(const Tanto_I_Event* event, Widget* widget)
 {
+    const uint8_t id = widget->id;
+
+    switch (event->type)
+    {
+        case TANTO_I_MOUSEDOWN: 
+        {
+            const int16_t mx = event->data.mouseData.x;
+            const int16_t my = event->data.mouseData.y;
+            const bool r = clickTest(mx, my, widget);
+            if (!r) return false;
+            dragData[id].active = r;
+            widget->data.slider.sliderPos = (float)(mx - widget->x) / widget->width;
+            return true;
+        }
+        case TANTO_I_MOUSEUP: dragData[id].active = false; break;
+        case TANTO_I_MOTION: 
+        {
+            if (!dragData[id].active) return false;
+            const int16_t mx = event->data.mouseData.x;
+            widget->data.slider.sliderPos = (float)(mx - widget->x) / widget->width;
+            return true;
+        }
+        default: break;
+    }
+    return false;
     return false;
 }
 

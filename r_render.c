@@ -485,6 +485,11 @@ void tanto_r_CleanUp(void)
     vkDestroySwapchainKHR(device, swapchain, NULL);
 }
 
+void tanto_r_WaitOnFrame(int8_t frameIndex)
+{
+    vkWaitForFences(device, 1, &frames[frameIndex].fence, VK_TRUE, UINT64_MAX);
+}
+
 VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }
 VkFormat tanto_r_GetDepthFormat(void)          { return depthFormat; }
 VkFormat tanto_r_GetSwapFormat(void)           { return swapFormat; }
