@@ -25,7 +25,7 @@ typedef struct {
 
 typedef struct {
     VkDescriptorPool      descriptorPool;
-    VkDescriptorSetLayout descriptorSetLayouts[TANTO_MAX_DESCRIPTOR_SETS]; 
+    //VkDescriptorSetLayout descriptorSetLayouts[TANTO_MAX_DESCRIPTOR_SETS]; 
     VkDescriptorSet       descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
     uint32_t              descriptorSetCount;
 } Tanto_R_Description;
@@ -75,7 +75,10 @@ typedef struct {
     char**           chitShaders;
 } Tanto_R_RayTracePipelineInfo;
 
-void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
+void tanto_r_CreateDescriptorSetLayouts(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
+        VkDescriptorSetLayout layouts[count]);
+void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count], 
+        const VkDescriptorSetLayout layouts[count],
         Tanto_R_Description* out);
 void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count]);

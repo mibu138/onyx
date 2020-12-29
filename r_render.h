@@ -17,21 +17,21 @@ typedef struct frame {
     uint32_t            index;
 } Tanto_R_Frame;
 
+typedef void (*Tanto_R_SwapchainRecreationFn)(void);
+
 VkFormat tanto_r_GetOffscreenColorFormat(void);
 VkFormat tanto_r_GetDepthFormat(void);
 VkFormat tanto_r_GetSwapFormat(void);
-
-VkRenderPass tanto_r_GetSwapchainRenderPass(void);
-VkRenderPass tanto_r_GetOffscreenRenderPass(void);
-VkRenderPass tanto_r_GetMSAARenderPass(void);
 
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
 void           tanto_r_WaitOnFrame(int8_t frameIndex);
 bool           tanto_r_PresentFrame(void);
 void           tanto_r_CleanUp(void);
+void           tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn);
 void           tanto_r_RecreateSwapchain(void);
 Tanto_R_Frame* tanto_r_GetFrame(const int8_t index);
+const uint32_t tanto_r_GetCurrentFrameIndex(void);
 const int8_t   tanto_r_RequestFrame(void); // returns available frame index. -1 on out of date
 
 #endif /* end of include guard: R_INIT_H */

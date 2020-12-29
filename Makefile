@@ -35,7 +35,9 @@ DEPS =  \
     i_input.h    \
     t_utils.h      \
     t_def.h        \
-	t_text.h
+	t_text.h     \
+	shaders/common.glsl \
+	shaders/raycommon.glsl
 
 
 OBJS =  \
@@ -56,16 +58,6 @@ OBJS =  \
 	$(O)/t_text.o
 
 
-SHADERS =                         \
-		$(SPV)/default-vert.spv    \
-		$(SPV)/default-frag.spv    \
-		$(SPV)/raytrace-rchit.spv  \
-		$(SPV)/raytrace-rgen.spv   \
-        $(SPV)/raytrace-rmiss.spv  \
-		$(SPV)/raytraceShadow-rmiss.spv \
-		$(SPV)/post-frag.spv       \
-		$(SPV)/post-vert.spv
-
 debug: CFLAGS += -g -DVERBOSE=1
 debug: all
 
@@ -75,9 +67,12 @@ nbp: debug
 release: CFLAGS += -DNDEBUG -O3 
 release: all
 
-all: lib tags
+all: lib tags shaders
 
-shaders: $(SHADERS)
+FRAGS := $(patsubst %.frag,$(SPV)/%-frag.spv,$(notdir $(wildcard $(GLSL)/*.frag)))
+VERTS := $(patsubst %.vert,$(SPV)/%-vert.spv,$(notdir $(wildcard $(GLSL)/*.vert)))
+
+shaders: $(FRAGS) $(VERTS)
 
 clean: 
 	rm -f $(O)/* $(LIB)/$(LIBNAME) $(BIN)/*

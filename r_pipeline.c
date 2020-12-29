@@ -415,19 +415,16 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
     }
 }
 
-void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
-        Tanto_R_Description* out)
+void tanto_r_CreateDescriptorSetLayouts(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
+        VkDescriptorSetLayout layouts[count])
 {
     // counters for different descriptors
     assert( count < TANTO_MAX_DESCRIPTOR_SETS);
-    out->descriptorSetCount = count;
-    int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0;
     for (int i = 0; i < count; i++) 
     {
         const Tanto_R_DescriptorSetInfo set = sets[i];
         assert(set.bindingCount > 0);
         assert(set.bindingCount <= TANTO_MAX_BINDINGS);
-        assert(out->descriptorSets[i] == VK_NULL_HANDLE);
         VkDescriptorBindingFlags bindFlags[set.bindingCount];
         VkDescriptorSetLayoutBinding bindings[set.bindingCount];
         for (int b = 0; b < set.bindingCount; b++) 
@@ -441,16 +438,6 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
             bindings[b].pImmutableSamplers = NULL;
 
             bindFlags[b] = set.bindings[b].bindingFlags;
-
-            switch (set.bindings[b].type) 
-            {
-                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:             dcUbo += dCount; break;
-                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: dcAs  += dCount; break;
-                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:              dcSi  += dCount; break;
-                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:             dcSb  += dCount; break;
-                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:     dcCis += dCount; break;
-                default: assert(false);
-            }
         }
 
         // this is only useful for texture arrays really. not sure what the performance implications
@@ -469,7 +456,40 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
             .bindingCount = set.bindingCount,
             .pBindings = bindings
         };
-        V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &out->descriptorSetLayouts[i]));
+        V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, &layouts[i]));
+    }
+}
+
+void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count], 
+        const VkDescriptorSetLayout layouts[count],
+        Tanto_R_Description* out)
+{
+    // counters for different descriptors
+    assert( count < TANTO_MAX_DESCRIPTOR_SETS);
+
+    out->descriptorSetCount = count;
+
+    int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0;
+    for (int i = 0; i < count; i++) 
+    {
+        const Tanto_R_DescriptorSetInfo set = sets[i];
+        assert(set.bindingCount > 0);
+        assert(set.bindingCount <= TANTO_MAX_BINDINGS);
+        assert(out->descriptorSets[i] == VK_NULL_HANDLE);
+        for (int b = 0; b < set.bindingCount; b++) 
+        {
+            const uint32_t dCount = set.bindings[b].descriptorCount;
+
+            switch (set.bindings[b].type) 
+            {
+                case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:             dcUbo += dCount; break;
+                case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: dcAs  += dCount; break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:              dcSi  += dCount; break;
+                case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:             dcSb  += dCount; break;
+                case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:     dcCis += dCount; break;
+                default: assert(false);
+            }
+        }
     }
 
     // were not allowed to specify a count of 0
@@ -509,7 +529,7 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
         .descriptorPool = out->descriptorPool,
         .descriptorSetCount = out->descriptorSetCount,
-        .pSetLayouts = out->descriptorSetLayouts,
+        .pSetLayouts = layouts
     };
 
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, out->descriptorSets));

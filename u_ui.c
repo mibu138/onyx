@@ -119,8 +119,8 @@ static void initPipelines(void)
         .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode   = TANTO_R_BLEND_MODE_OVER,
         .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
-        .vertShader = SPVDIR"/ui-vert.spv",
-        .fragShader = SPVDIR"/ui-box-frag.spv"
+        .vertShader = TANTO_SPVDIR"/ui-vert.spv",
+        .fragShader = TANTO_SPVDIR"/ui-box-frag.spv"
     },{ 
         // slider
         .renderPass = renderPass, 
@@ -129,8 +129,8 @@ static void initPipelines(void)
         .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode   = TANTO_R_BLEND_MODE_OVER,
         .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
-        .vertShader = SPVDIR"/ui-vert.spv",
-        .fragShader = SPVDIR"/ui-slider-frag.spv"
+        .vertShader = TANTO_SPVDIR"/ui-vert.spv",
+        .fragShader = TANTO_SPVDIR"/ui-slider-frag.spv"
     }};
 
     tanto_r_CreateGraphicsPipelines(TANTO_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
@@ -348,6 +348,34 @@ static void initFrameBuffers(void)
     }
 }
 
+static void destroyPipelines(void)
+{
+    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
+    {
+        if (pipelines[i])
+        {
+            vkDestroyPipeline(device, pipelines[i], NULL);
+            pipelines[i] = 0;
+        }
+    }
+}
+
+static void destroyFramebuffers(void)
+{
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        vkDestroyFramebuffer(device, framebuffers[i], NULL);   
+    }
+}
+
+static void onSwapchainRecreate(void)
+{
+    destroyPipelines();
+    destroyFramebuffers();
+    initPipelines();
+    initFrameBuffers();
+}
+
 void tanto_u_Init(void)
 {
     initRenderPass();
@@ -359,6 +387,7 @@ void tanto_u_Init(void)
     rootWidget = addWidget(0, 0, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL);
 
     tanto_i_Subscribe(responder);
+    tanto_r_RegisterSwapchainRecreationFn(onSwapchainRecreate);
     printf("Tanto UI initialized.\n");
 }
 

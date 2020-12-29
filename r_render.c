@@ -12,25 +12,25 @@
 #include <vulkan/vulkan_core.h>
 
 
-VkRenderPass   swapchainRenderPass;
-VkRenderPass   offscreenRenderPass;
-VkRenderPass   msaaRenderPass;
-
 // TODO: we should implement a way to specify the offscreen format
 const VkFormat presentColorFormat   = VK_FORMAT_R8G8B8A8_SRGB;
 const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 const VkFormat depthFormat          = VK_FORMAT_D32_SFLOAT;
+const VkFormat swapFormat           = VK_FORMAT_B8G8R8A8_SRGB;
 
 static Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
 static uint32_t     curFrameIndex;
 
 static VkSwapchainKHR      swapchain;
 static VkImage             swapchainImages[TANTO_FRAME_COUNT];
-const VkFormat      swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
 static VkSemaphore  imageAcquiredSemaphores[TANTO_FRAME_COUNT];
 static uint8_t      imageAcquiredSemaphoreIndex = 0;
 static uint64_t            frameCounter;
+
+#define MAX_SWAP_RECREATE_FNS 8
+static uint8_t swapRecreateFnCount = 0;
+static Tanto_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
   
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -193,185 +193,20 @@ static void bindFramesToSwapImages(void)
     }
 }
 
-static void initRenderPassesSwapOff(void)
+static void recreateSwapchain(void)
 {
-    const VkAttachmentDescription attachmentColor = {
-        .format = offscreenColorFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
-    };
-
-    const VkAttachmentDescription attachmentDepth = {
-        .format = depthFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
-
-    const VkAttachmentReference referenceColor = {
-        .attachment = 0,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    const VkAttachmentReference referenceDepth = {
-        .attachment = 1,
-        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
-
-    VkSubpassDescription subpass = {
-        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .colorAttachmentCount = 1,
-        .pColorAttachments    = &referenceColor,
-        .pDepthStencilAttachment = &referenceDepth,
-        .inputAttachmentCount = 0,
-        .preserveAttachmentCount = 0,
-    };
-
-    const VkSubpassDependency dependency = {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = 0,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-    };
-
-    VkAttachmentDescription attachments[] = {
-        attachmentColor,
-        attachmentDepth,
-    };
-
-    VkRenderPassCreateInfo ci = {
-        .subpassCount = 1,
-        .pSubpasses = &subpass,
-        .attachmentCount = TANTO_ARRAY_SIZE(attachments),
-        .pAttachments = attachments,
-        .dependencyCount = 1,
-        .pDependencies = &dependency,
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
-    };
-
-    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, &offscreenRenderPass) );
-
-    subpass.pDepthStencilAttachment = NULL;
-    ci.attachmentCount = 1;
-    attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-    attachments[0].format      = swapFormat;
-
-    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, &swapchainRenderPass) );
-}
-
-static void initRenderPassMSAA(VkSampleCountFlags sampleCount)
-{
-    const VkAttachmentDescription attachmentColor = {
-        .format = swapFormat,
-        .samples = sampleCount, // TODO look into what this means
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_GENERAL,
-    };
-
-    const VkAttachmentDescription attachmentDepth = {
-        .format = depthFormat,
-        .samples = sampleCount, // TODO look into what this means
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
-
-    const VkAttachmentDescription attachmentPresent = {
-        .format = swapFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-    };
-
-    VkAttachmentDescription attachments[] = {
-        attachmentColor,
-        attachmentDepth,
-        attachmentPresent
-    };
-
-    const VkAttachmentReference referenceColor = {
-        .attachment = 0,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
-
-    const VkAttachmentReference referenceDepth = {
-        .attachment = 1,
-        .layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-    };
-
-    const VkAttachmentReference referenceResolve = {
-        .attachment = 2,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    };
-
-    VkSubpassDescription subpass = {
-        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .colorAttachmentCount = 1,
-        .pResolveAttachments  = &referenceResolve,
-        .pColorAttachments    = &referenceColor,
-        .pDepthStencilAttachment = &referenceDepth,
-        .inputAttachmentCount = 0,
-        .preserveAttachmentCount = 0,
-    };
-
-    const VkSubpassDependency dependency0 = {
-        .srcSubpass = VK_SUBPASS_EXTERNAL,
-        .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-    };
-
-    const VkSubpassDependency dependency1 = {
-        .srcSubpass = 0,
-        .dstSubpass = VK_SUBPASS_EXTERNAL,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-        .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT
-    };
-
-    VkSubpassDependency dependencies[] = {
-        dependency0, dependency1
-    };
-
-    VkRenderPassCreateInfo ci = {
-        .subpassCount = 1,
-        .pSubpasses = &subpass,
-        .attachmentCount = TANTO_ARRAY_SIZE(attachments),
-        .pAttachments = attachments,
-        .dependencyCount = 2,
-        .pDependencies = dependencies,
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
-    };
-
-    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, &msaaRenderPass) );
-}
-
-static void initRenderPasses(void)
-{
-    initRenderPassesSwapOff();
-    //TODO: fix this (causes validation error) and move it to the render pass module
-    //initRenderPassMSAA(VK_SAMPLE_COUNT_8_BIT);
+    vkDeviceWaitIdle(device);
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        vkDestroyImageView(device, frames[i].swapImage.view, NULL);   
+    }
+    vkDestroySwapchainKHR(device, swapchain, NULL);
+    initSwapchain();
+    bindFramesToSwapImages();
+    for (int i = 0; i < swapRecreateFnCount; i++) 
+    {
+        swapchainRecreationFns[i]();   
+    }
 }
 
 void tanto_r_Init(void)
@@ -380,7 +215,6 @@ void tanto_r_Init(void)
     frameCounter  = 0;
     initSwapchain();
     initSwapchainSemaphores();
-    initRenderPasses();
     initFrames();
     bindFramesToSwapImages();
     if (tanto_v_config.rayTraceEnabled)
@@ -400,11 +234,15 @@ const int8_t tanto_r_RequestFrame(void)
     VkResult r;
     r = vkAcquireNextImageKHR(device, 
             swapchain, 
-            UINT64_MAX, 
+            100000, 
             imageAcquiredSemaphores[imageAcquiredSemaphoreIndex], 
             VK_NULL_HANDLE, 
             &curFrameIndex);
-    if (VK_ERROR_OUT_OF_DATE_KHR == r) return -1;
+    if (VK_ERROR_OUT_OF_DATE_KHR == r) 
+    {
+        recreateSwapchain();
+        return -1;
+    }
     frameCounter++;
     return curFrameIndex;
 }
@@ -448,15 +286,11 @@ bool tanto_r_PresentFrame(void)
     return true;
 }
 
-void tanto_r_RecreateSwapchain(void)
+void tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
-    {
-        vkDestroyImageView(device, frames[i].swapImage.view, NULL);   
-    }
-    vkDestroySwapchainKHR(device, swapchain, NULL);
-    initSwapchain();
-    bindFramesToSwapImages();
+    swapchainRecreationFns[swapRecreateFnCount] = fn;
+    swapRecreateFnCount++;
+    assert(swapRecreateFnCount < MAX_SWAP_RECREATE_FNS);
 }
 
 Tanto_R_Frame* tanto_r_GetFrame(const int8_t index)
@@ -464,6 +298,11 @@ Tanto_R_Frame* tanto_r_GetFrame(const int8_t index)
     assert( index >= 0 );
     assert( index < TANTO_FRAME_COUNT );
     return &frames[index];
+}
+
+const uint32_t tanto_r_GetCurrentFrameIndex(void)
+{
+    return curFrameIndex;
 }
 
 void tanto_r_CleanUp(void)
@@ -478,11 +317,8 @@ void tanto_r_CleanUp(void)
         vkDestroyFence(device, frames[i].fence, NULL);
         vkDestroyImageView(device, frames[i].swapImage.view, NULL);
     }
-    tanto_r_CleanUpPipelines();
-    vkDestroyRenderPass(device, swapchainRenderPass, NULL);
-    vkDestroyRenderPass(device, offscreenRenderPass, NULL);
-    vkDestroyRenderPass(device, msaaRenderPass, NULL);
     vkDestroySwapchainKHR(device, swapchain, NULL);
+    swapRecreateFnCount = 0;
 }
 
 void tanto_r_WaitOnFrame(int8_t frameIndex)
@@ -494,6 +330,3 @@ VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }
 VkFormat tanto_r_GetDepthFormat(void)          { return depthFormat; }
 VkFormat tanto_r_GetSwapFormat(void)           { return swapFormat; }
 
-VkRenderPass tanto_r_GetSwapchainRenderPass(void) { return swapchainRenderPass; }
-VkRenderPass tanto_r_GetOffscreenRenderPass(void) { return offscreenRenderPass; }
-VkRenderPass tanto_r_GetMSAARenderPass(void)      { return msaaRenderPass; }
