@@ -1,5 +1,6 @@
 #include "t_def.h"
 #include "r_render.h"
+#include "tanto/v_command.h"
 #include "v_video.h"
 #include "v_memory.h"
 #include "r_pipeline.h"
@@ -24,6 +25,8 @@ static uint32_t     curFrameIndex;
 static VkSwapchainKHR      swapchain;
 static VkImage             swapchainImages[TANTO_FRAME_COUNT];
 
+uint8_t      tanto_r_FramesNeedingUpdate;
+
 static VkSemaphore  imageAcquiredSemaphores[TANTO_FRAME_COUNT];
 static uint8_t      imageAcquiredSemaphoreIndex = 0;
 static uint64_t            frameCounter;
@@ -31,6 +34,8 @@ static uint64_t            frameCounter;
 #define MAX_SWAP_RECREATE_FNS 8
 static uint8_t swapRecreateFnCount = 0;
 static Tanto_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
+
+static VkSemaphore presentationSemaphores[TANTO_FRAME_COUNT];
   
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -128,40 +133,9 @@ static void initSwapchainSemaphores(void)
 
 static void initFrames(void)
 {
-    const VkCommandPoolCreateInfo cmdPoolCi = {
-        .queueFamilyIndex = graphicsQueueFamilyIndex,
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-    };
-
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
-        V_ASSERT( vkCreateCommandPool(device, &cmdPoolCi, NULL, &frames[i].commandPool) );
-
-        const VkCommandBufferAllocateInfo allocInfo = {
-            .commandBufferCount = 1,
-            .commandPool = frames[i].commandPool,
-            .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-            .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
-        };
-
-        V_ASSERT( vkAllocateCommandBuffers(device, &allocInfo, &frames[i].commandBuffer) );
-        // spec states that the last parm is an array of commandBuffers... hoping a pointer
-        // to a single one works just as well
-
-        const VkSemaphoreCreateInfo semaCi = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
-        };
-
-        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &frames[i].semaphore) );
-        printf("Created frame %d semaphore %p \n", i, frames[i].semaphore);
-
-        const VkFenceCreateInfo fenceCi = {
-            .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
-            .flags = VK_FENCE_CREATE_SIGNALED_BIT
-        };
-
-        V_ASSERT( vkCreateFence(device, &fenceCi, NULL, &frames[i].fence) );
-
+        frames[i].command = tanto_v_CreateCommand();
         frames[i].index = i;
     }
     V1_PRINT("Frames successfully initialized.\n");
@@ -207,10 +181,19 @@ static void recreateSwapchain(void)
     {
         swapchainRecreationFns[i]();   
     }
+    tanto_r_FramesNeedingUpdate = TANTO_FRAME_COUNT;
 }
 
 void tanto_r_Init(void)
 {
+    tanto_r_FramesNeedingUpdate = TANTO_FRAME_COUNT;
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        const VkSemaphoreCreateInfo sc = {
+            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+        };
+        vkCreateSemaphore(device, &sc, NULL, &presentationSemaphores[i]);
+    }
     curFrameIndex = 0;
     frameCounter  = 0;
     initSwapchain();
@@ -224,14 +207,15 @@ void tanto_r_Init(void)
 
 void tanto_r_WaitOnQueueSubmit(void)
 {
-    vkWaitForFences(device, 1, &frames[curFrameIndex].fence, VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &frames[curFrameIndex].command.fence, VK_TRUE, UINT64_MAX);
 }
 
-const int8_t tanto_r_RequestFrame(void)
+const uint32_t tanto_r_RequestFrame(void)
 {
     //const uint32_t i = frameCounter % TANTO_FRAME_COUNT;
     imageAcquiredSemaphoreIndex = frameCounter % TANTO_FRAME_COUNT;
     VkResult r;
+retry:
     r = vkAcquireNextImageKHR(device, 
             swapchain, 
             100000, 
@@ -241,13 +225,13 @@ const int8_t tanto_r_RequestFrame(void)
     if (VK_ERROR_OUT_OF_DATE_KHR == r) 
     {
         recreateSwapchain();
-        return -1;
+        goto retry;
     }
     frameCounter++;
     return curFrameIndex;
 }
 
-bool tanto_r_PresentFrame(void)
+void tanto_r_SubmitFrame(void)
 {
     VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
@@ -257,23 +241,44 @@ bool tanto_r_PresentFrame(void)
         .waitSemaphoreCount = 1,
         .pWaitSemaphores = &imageAcquiredSemaphores[imageAcquiredSemaphoreIndex],
         .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &frames[curFrameIndex].semaphore,
+        .pSignalSemaphores = &frames[curFrameIndex].command.semaphore,
         .commandBufferCount = 1,
-        .pCommandBuffers = &frames[curFrameIndex].commandBuffer,
+        .pCommandBuffers = &frames[curFrameIndex].command.commandBuffer,
     };
 
-    vkWaitForFences(device, 1, &frames[curFrameIndex].fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &frames[curFrameIndex].fence);
+    vkWaitForFences(device, 1, &frames[curFrameIndex].command.fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &frames[curFrameIndex].command.fence);
 
-    V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, frames[curFrameIndex].fence) );
+    V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, frames[curFrameIndex].command.fence) );
+}
 
+void tanto_r_SubmitUI(const Tanto_V_Command cmd)
+{
+    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    VkSubmitInfo si = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pWaitDstStageMask = &stageFlags,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &frames[curFrameIndex].command.semaphore,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &presentationSemaphores[curFrameIndex],
+        .commandBufferCount = 1,
+        .pCommandBuffers = &cmd.commandBuffer
+    };
+
+    V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, cmd.fence) );
+}
+
+bool tanto_r_PresentFrame(void)
+{
     VkResult r;
     const VkPresentInfoKHR info = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .swapchainCount = 1,
         .pSwapchains = &swapchain,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &frames[curFrameIndex].semaphore,
+        .pWaitSemaphores = &presentationSemaphores[curFrameIndex],
         .pResults = &r,
         .pImageIndices = &curFrameIndex,
     };
@@ -312,10 +317,9 @@ void tanto_r_CleanUp(void)
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
-        vkDestroySemaphore(device, frames[i].semaphore, NULL);
-        vkDestroyCommandPool(device, frames[i].commandPool, NULL);
-        vkDestroyFence(device, frames[i].fence, NULL);
+        vkDestroySemaphore(device, presentationSemaphores[i], NULL);
         vkDestroyImageView(device, frames[i].swapImage.view, NULL);
+        tanto_v_DestroyCommand(frames[i].command);
     }
     vkDestroySwapchainKHR(device, swapchain, NULL);
     swapRecreateFnCount = 0;
@@ -323,7 +327,7 @@ void tanto_r_CleanUp(void)
 
 void tanto_r_WaitOnFrame(int8_t frameIndex)
 {
-    vkWaitForFences(device, 1, &frames[frameIndex].fence, VK_TRUE, UINT64_MAX);
+    vkWaitForFences(device, 1, &frames[frameIndex].command.fence, VK_TRUE, UINT64_MAX);
 }
 
 VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }

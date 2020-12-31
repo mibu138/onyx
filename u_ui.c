@@ -5,6 +5,7 @@
 #include "r_pipeline.h"
 #include "t_def.h"
 #include "i_input.h"
+#include "tanto/v_command.h"
 #include "v_video.h"
 #include <stdio.h>
 #include <vulkan/vulkan_core.h>
@@ -41,12 +42,23 @@ static VkPipeline       pipelines[TANTO_MAX_PIPELINES];
 
 static VkFramebuffer    framebuffers[TANTO_FRAME_COUNT];
 
+static Tanto_V_Command  renderCommands[TANTO_FRAME_COUNT];
+
 enum {
     PIPELINE_BOX,
     PIPELINE_SLIDER,
 };
 
-static void initRenderPass(void)
+static void initRenderCommands(void)
+{
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        renderCommands[i] = tanto_v_CreateCommand();
+        printf("UI COMMAND BUF: %p\n", renderCommands[i].commandBuffer);
+    }
+}
+
+static void initRenderPass(VkImageLayout initialLayout)
 {
     const VkAttachmentDescription attachmentColor = {
         .flags = 0,
@@ -56,7 +68,7 @@ static void initRenderPass(void)
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .initialLayout = initialLayout,
         .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
     };
 
@@ -376,9 +388,10 @@ static void onSwapchainRecreate(void)
     initFrameBuffers();
 }
 
-void tanto_u_Init(void)
+void tanto_u_Init(const VkImageLayout inputLayout)
 {
-    initRenderPass();
+    initRenderCommands();
+    initRenderPass(inputLayout);
     initPipelineLayouts();
     initPipelines();
     initFrameBuffers();
@@ -435,10 +448,23 @@ uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst)
     return widgetCount;
 }
 
-void tanto_u_render(const VkCommandBuffer cmdBuf, const uint8_t frameIndex)
+void tanto_u_Render(void)
 {
+    uint32_t frameIndex = tanto_r_GetCurrentFrameIndex();
+
+    vkWaitForFences(device, 1, &renderCommands[frameIndex].fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, &renderCommands[frameIndex].fence);
+
+    vkResetCommandPool(device, renderCommands[frameIndex].commandPool, 0);
+
+    VkCommandBufferBeginInfo cbbi = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
+
+    V_ASSERT( vkBeginCommandBuffer(renderCommands[frameIndex].commandBuffer, &cbbi) );
+
     const Tanto_U_Widget* iter = NULL;
     const uint8_t widgetCount = tanto_u_GetWidgets(&iter);
+
+    VkCommandBuffer cmdBuf = renderCommands[frameIndex].commandBuffer;
 
     VkClearValue clear = {0};
     
@@ -460,4 +486,27 @@ void tanto_u_render(const VkCommandBuffer cmdBuf, const uint8_t frameIndex)
             widget->drawFn(cmdBuf, widget);
     }
     vkCmdEndRenderPass(cmdBuf);
+
+    V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].commandBuffer) );
+    
+    tanto_r_SubmitUI(renderCommands[frameIndex]);
+}
+
+void tanto_u_CleanUp(void)
+{
+    destroyFramebuffers();
+    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
+    {
+        if (pipelineLayouts[i])
+        {
+            vkDestroyPipelineLayout(device, pipelineLayouts[i], NULL);
+            pipelineLayouts[i] = 0;
+        }
+    }
+    destroyPipelines();
+    vkDestroyRenderPass(device, renderPass, NULL);
+    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    {
+        tanto_v_DestroyCommand(renderCommands[i]);
+    }
 }
