@@ -45,13 +45,14 @@ void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo *info, VkRenderPass *
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void tanto_r_CreateRenderPassNew(const VkAttachmentLoadOp loadOp, 
+void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
-        const VkFormat format,
+        const VkFormat colorFormat,
+        const VkFormat depthFormat,
         VkRenderPass* pRenderPass)
 {
     const VkAttachmentDescription attachmentColor = {
-        .format = format,
+        .format = colorFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
         .loadOp = loadOp,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -60,7 +61,7 @@ void tanto_r_CreateRenderPassNew(const VkAttachmentLoadOp loadOp,
     };
 
     const VkAttachmentDescription attachmentDepth = {
-        .format = tanto_r_GetDepthFormat(),
+        .format = depthFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -116,13 +117,14 @@ void tanto_r_CreateRenderPassNew(const VkAttachmentLoadOp loadOp,
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void tanto_r_CreateRenderPassMSAA(const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
+void tanto_r_CreateRenderPass_ColorDepthMSAA(const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
-        const VkFormat format,
+        const VkFormat colorFormat,
+        const VkFormat depthFormat,
         VkRenderPass* pRenderPass)
 {
     const VkAttachmentDescription attachmentColor = {
-        .format = format,
+        .format = colorFormat,
         .samples = sampleCount, // TODO look into what this means
         .loadOp = loadOp,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -131,7 +133,7 @@ void tanto_r_CreateRenderPassMSAA(const VkSampleCountFlags sampleCount, const Vk
     };
 
     const VkAttachmentDescription attachmentDepth = {
-        .format = tanto_r_GetDepthFormat(),
+        .format = depthFormat,
         .samples = sampleCount, // TODO look into what this means
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -142,7 +144,7 @@ void tanto_r_CreateRenderPassMSAA(const VkSampleCountFlags sampleCount, const Vk
     };
 
     const VkAttachmentDescription attachmentPresent = {
-        .format = format,
+        .format = colorFormat,
         .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
         .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
