@@ -27,8 +27,6 @@ static uint32_t     curFrameIndex;
 static VkSwapchainKHR      swapchain;
 static VkImage             swapchainImages[TANTO_FRAME_COUNT];
 
-uint8_t      tanto_r_FramesNeedingUpdate;
-
 static VkSemaphore  imageAcquiredSemaphores[TANTO_FRAME_COUNT];
 static uint8_t      imageAcquiredSemaphoreIndex = 0;
 static uint64_t            frameCounter;
@@ -183,12 +181,10 @@ static void recreateSwapchain(void)
     {
         swapchainRecreationFns[i]();   
     }
-    tanto_r_FramesNeedingUpdate = TANTO_FRAME_COUNT;
 }
 
 void tanto_r_Init(void)
 {
-    tanto_r_FramesNeedingUpdate = TANTO_FRAME_COUNT;
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         const VkSemaphoreCreateInfo sc = {

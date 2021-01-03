@@ -109,6 +109,6 @@ void tanto_FrameEnd(Tanto_LoopData *data)
     if (data->printFps)
         printf("FPS: %f\n", 1000000000.0 / data->loopStats.nsDelta );
     if (data->printNs)
-        printf("Delta NS: %ld\n", data->loopStats.nsDelta);
+        printf("Delta s: %09ld\n", data->loopStats.nsDelta);
     tanto_LoopSleep(&data->loopStats, data->targetNs);
 }

@@ -22,8 +22,6 @@ VkFormat tanto_r_GetOffscreenColorFormat(void);
 VkFormat tanto_r_GetDepthFormat(void);
 VkFormat tanto_r_GetSwapFormat(void);
 
-extern uint8_t tanto_r_FramesNeedingUpdate;
-
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
 void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);

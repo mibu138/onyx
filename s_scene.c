@@ -52,14 +52,14 @@ void tanto_s_CreateSimpleScene(Scene *scene)
 void tanto_s_CreateSimpleScene2(Scene *scene)
 {
     const Primitive cube = tanto_r_CreateCubePrim(false);
-    const Primitive quad = tanto_r_CreateQuad(3, 2, TANTO_R_ATTRIBUTE_UVW_BIT | TANTO_R_ATTRIBUTE_NORMAL_BIT);
+    const Primitive quad = tanto_r_CreateQuad(3, 4, TANTO_R_ATTRIBUTE_UVW_BIT | TANTO_R_ATTRIBUTE_NORMAL_BIT);
 
     Xform cubeXform = m_Ident_Mat4();
     Xform quadXform = m_Ident_Mat4();
 
     cubeXform = m_Translate_Mat4((Vec3){0, 0.5, 0}, &cubeXform);
 
-    Mat4 rot = m_BuildRotate(M_PI, &(Vec3){-1, 0, 0});
+    Mat4 rot = m_BuildRotate(M_PI / 2, &(Vec3){-1, 0, 0});
     quadXform = m_Mult_Mat4(&quadXform, &rot);
 
     printf(">>Quad Rot\n");
@@ -100,10 +100,12 @@ void tanto_s_CreateSimpleScene2(Scene *scene)
 
     const Material cubeMat = {
         .color = (Vec3){0.05, 0.18, 0.516},
+        .id    = 0
     };
 
     const Material quadMat = {
         .color = (Vec3){0.75, 0.422, 0.245},
+        .id    = 1
     };
     
 
