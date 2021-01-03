@@ -5,6 +5,7 @@
 #include <stdbool.h>
 #include <setjmp.h>
 #include <coal/coal.h>
+#include <stdint.h>
 
 #ifndef NDEBUG
 #ifndef VERBOSE
@@ -62,5 +63,7 @@
 #define TANTO_MOUSE_MID   3
 
 #define TANTO_ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+
+typedef uint32_t Tanto_Mask;
 
 #endif /* end of include guard: DEF_H */

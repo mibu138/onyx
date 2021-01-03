@@ -31,6 +31,7 @@ DEPS =  \
 	r_renderpass.h \
 	r_raytrace.h \
 	r_geo.h      \
+	s_scene.h    \
 	u_ui.h       \
     i_input.h    \
     t_utils.h      \
@@ -52,6 +53,7 @@ OBJS =  \
 	$(O)/r_renderpass.o \
 	$(O)/r_raytrace.o \
 	$(O)/r_geo.o      \
+	$(O)/s_scene.o    \
 	$(O)/u_ui.o       \
     $(O)/i_input.o    \
     $(O)/t_utils.o      \

@@ -7,19 +7,6 @@
 
 const int CW = 1;
 
-static inline Tanto_R_Attribute* tanto_r_GetAttributeData(const Tanto_R_Primitive* prim, const uint8_t attrIndex)
-{
-    assert(prim->vertexRegion.hostData);
-    assert(attrIndex < prim->attrCount);
-    return (Tanto_R_Attribute*)(prim->vertexRegion.hostData + prim->attrOffsets[attrIndex]);
-}
-
-static inline Tanto_R_Index* tanto_r_GetIndexData(const Tanto_R_Primitive* prim)
-{
-    assert(prim->indexRegion.hostData);
-    return (Tanto_R_Index*)(prim->indexRegion.hostData);
-}
-
 static void initPrimBuffers(Tanto_R_Primitive* prim)
 {
     assert(prim->attrCount > 0);
@@ -296,6 +283,146 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void)
     return prim;
 }
 
+Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
+{
+    const uint32_t vertCount  = 24;
+    const uint32_t indexCount = 36;
+    const uint32_t attrCount  = 3; // position, normals, uvw
+
+    Tanto_R_Primitive prim = {
+        .attrCount = attrCount,
+        .indexCount = indexCount,
+        .vertexCount = vertCount,
+    };
+
+    initPrimBuffers(&prim);
+
+    Tanto_R_Attribute* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
+    Tanto_R_Attribute* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
+    Tanto_R_Attribute* pUvws      = tanto_r_GetPrimAttribute(&prim, 2);
+
+    const Vec3 points[8] = {
+        { -0.5,  0.5,  0.5 },
+        { -0.5, -0.5,  0.5 },
+        {  0.5, -0.5,  0.5 },
+        {  0.5,  0.5,  0.5 },
+        { -0.5,  0.5, -0.5 },
+        { -0.5, -0.5, -0.5 },
+        {  0.5, -0.5, -0.5 },
+        {  0.5,  0.5, -0.5 },
+    };
+    
+    const Vec3 normals[6] = {
+        {  0.0,  0.0,  1.0 },
+        {  0.0,  0.0, -1.0 },
+        {  0.0,  1.0,  0.0 },
+        {  0.0, -1.0,  0.0 },
+        {  1.0,  0.0,  0.0 },
+        { -1.0,  0.0,  0.0 },
+    };
+
+    const Tanto_R_Attribute uvws[4] = {
+        { 0.0, 0.0, 0.0 },
+        { 1.0, 0.0, 0.0 },
+        { 0.0, 1.0, 0.0 },
+        { 1.0, 1.0, 0.0 }
+    };
+
+    // face 0: +Z
+    pPositions[0]  = points[0];
+    pPositions[1]  = points[1];
+    pPositions[2]  = points[2];
+    pPositions[3]  = points[3];
+    // face 1: -Z
+    pPositions[4]  = points[7];
+    pPositions[5]  = points[6];
+    pPositions[6]  = points[5];
+    pPositions[7]  = points[4];
+    // face 2: -X
+    pPositions[8]  = points[0];
+    pPositions[9]  = points[4];
+    pPositions[10] = points[5];
+    pPositions[11] = points[1];
+    // face 3: +X
+    pPositions[12] = points[3];
+    pPositions[13] = points[2];
+    pPositions[14] = points[6];
+    pPositions[15] = points[7];
+    // face 4: +Y
+    pPositions[16] = points[0];
+    pPositions[17] = points[3];
+    pPositions[18] = points[7];
+    pPositions[19] = points[4];
+    // face 5: -Y
+    pPositions[20] = points[2];
+    pPositions[21] = points[1];
+    pPositions[22] = points[5];
+    pPositions[23] = points[6];
+
+    pNormals[0]  = normals[0];
+    pNormals[1]  = normals[0];
+    pNormals[2]  = normals[0];
+    pNormals[3]  = normals[0];
+    // pNormals -Z
+    pNormals[4]  = normals[1];
+    pNormals[5]  = normals[1];
+    pNormals[6]  = normals[1];
+    pNormals[7]  = normals[1];
+    // pNormals -X
+    pNormals[8]  = normals[5];
+    pNormals[9]  = normals[5];
+    pNormals[10] = normals[5];
+    pNormals[11] = normals[5];
+    // pNormals +X
+    pNormals[12] = normals[4];
+    pNormals[13] = normals[4];
+    pNormals[14] = normals[4];
+    pNormals[15] = normals[4];
+    // pNormals +Y
+    pNormals[16] = normals[2];
+    pNormals[17] = normals[2];
+    pNormals[18] = normals[2];
+    pNormals[19] = normals[2];
+    // pNormals -Y
+    pNormals[20] = normals[3];
+    pNormals[21] = normals[3];
+    pNormals[22] = normals[3];
+    pNormals[23] = normals[3];
+
+    pUvws[1] = uvws[0];
+    pUvws[0] = uvws[1];
+    pUvws[2] = uvws[2];
+    pUvws[3] = uvws[3];
+
+    Tanto_R_Index* indices = tanto_r_GetPrimIndices(&prim);
+
+    if (isClockWise)
+        for (int face = 0; face < indexCount / 6; face++) 
+        {
+            indices[face * 6 + 2] = 4 * face + 0;
+            indices[face * 6 + 1] = 4 * face + 1;
+            indices[face * 6 + 0] = 4 * face + 2;
+            indices[face * 6 + 5] = 4 * face + 0;
+            indices[face * 6 + 4] = 4 * face + 2;
+            indices[face * 6 + 3] = 4 * face + 3;
+        }
+    else
+        for (int face = 0; face < indexCount / 6; face++) 
+        {
+            indices[face * 6 + 0] = 4 * face + 0;
+            indices[face * 6 + 1] = 4 * face + 1;
+            indices[face * 6 + 2] = 4 * face + 2;
+            indices[face * 6 + 3] = 4 * face + 0;
+            indices[face * 6 + 4] = 4 * face + 2;
+            indices[face * 6 + 5] = 4 * face + 3;
+        }
+
+    tanto_v_TransferToDevice(&prim.vertexRegion);
+    tanto_v_TransferToDevice(&prim.indexRegion);
+
+    return prim;
+}
+
 Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
 {
     Tanto_R_Primitive prim = {
@@ -379,9 +506,67 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
     return prim;
 }
 
+Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tanto_R_AttributeBits attribBits)
+{
+    const int attrCount = __builtin_popcount(attribBits) + 1;
+
+    Tanto_R_Primitive prim = {
+        .attrCount = attrCount,
+        .indexCount = 6,
+        .vertexCount = 4,
+    };
+
+    initPrimBuffers(&prim);
+
+    Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(&prim, 0);
+
+    const float w = width / 2;
+    const float h = height / 2;
+
+    pos[0] = (Vec3){-w,  h, 0};
+    pos[1] = (Vec3){-w, -h, 0};
+    pos[2] = (Vec3){ w,  h, 0};
+    pos[3] = (Vec3){ w, -h, 0};
+
+    for (int i = 1; i < attrCount; i++) 
+    {
+        if (attribBits & TANTO_R_ATTRIBUTE_NORMAL_BIT)
+        {
+            Tanto_R_Attribute* normals = tanto_r_GetPrimAttribute(&prim, i);
+            normals[0] = (Vec3){0, 0, 1};
+            normals[1] = (Vec3){0, 0, 1};
+            normals[2] = (Vec3){0, 0, 1};
+            normals[3] = (Vec3){0, 0, 1};
+            attribBits &= ~TANTO_R_ATTRIBUTE_NORMAL_BIT;
+        }
+        else if (attribBits & TANTO_R_ATTRIBUTE_UVW_BIT)
+        {
+            Tanto_R_Attribute* uvw = tanto_r_GetPrimAttribute(&prim, i);
+            uvw[0] = (Vec3){0, 0, 0};
+            uvw[1] = (Vec3){0, 1, 0};
+            uvw[2] = (Vec3){1, 0, 0};
+            uvw[3] = (Vec3){1, 1, 0};
+            attribBits &= ~TANTO_R_ATTRIBUTE_UVW_BIT;
+        }
+    }
+
+    Tanto_R_Index* index = tanto_r_GetPrimIndices(&prim);
+
+    index[0] = 0;
+    index[1] = 1;
+    index[2] = 2;
+    index[3] = 2;
+    index[4] = 1;
+    index[5] = 3;
+
+    tanto_v_TransferToDevice(&prim.vertexRegion);
+    tanto_v_TransferToDevice(&prim.indexRegion);
+
+    return prim;
+}
+
 Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc)
 {
-
     Tanto_R_Primitive prim = {
         .attrCount = 2,
         .indexCount = 6,
@@ -390,20 +575,20 @@ Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const floa
 
     initPrimBuffers(&prim);
 
-    Tanto_R_Attribute* pos = tanto_r_GetAttributeData(&prim, 0);
+    Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(&prim, 0);
     // upper left. x, y
     pos[0] = (Vec3){x, y, 0};
     pos[1] = (Vec3){x, y + height, 0};
     pos[2] = (Vec3){x + width, y, 0};
     pos[3] = (Vec3){x + width, y + height, 0};
 
-    Tanto_R_Attribute* uvw = tanto_r_GetAttributeData(&prim, 1);
+    Tanto_R_Attribute* uvw = tanto_r_GetPrimAttribute(&prim, 1);
     uvw[0] = (Vec3){0, 0, 0};
     uvw[1] = (Vec3){0, 1, 0};
     uvw[2] = (Vec3){1, 0, 0};
     uvw[3] = (Vec3){1, 1, 0};
 
-    Tanto_R_Index* index = tanto_r_GetIndexData(&prim);
+    Tanto_R_Index* index = tanto_r_GetPrimIndices(&prim);
     index[0] = 0;
     index[1] = 1;
     index[2] = 2;
@@ -569,6 +754,12 @@ void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* pri
 
     vkCmdBindIndexBuffer(cmdBuf, prim->indexRegion.buffer, 
             prim->indexRegion.offset, TANTO_VERT_INDEX_TYPE);
+}
+
+void tanto_r_DrawPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim)
+{
+    tanto_r_BindPrim(cmdBuf, prim);
+    vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
 void tanto_r_FreeMesh(Tanto_R_Mesh mesh)

@@ -5,6 +5,7 @@
 #include "v_memory.h"
 #include <coal/coal.h>
 #include "v_command.h"
+#include "s_scene.h"
 
 #define TANTO_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
 #define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
@@ -25,6 +26,7 @@ extern uint8_t tanto_r_FramesNeedingUpdate;
 
 void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
+void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);
 void           tanto_r_WaitOnFrame(int8_t frameIndex);
 bool           tanto_r_PresentFrame(void);
 void           tanto_r_CleanUp(void);

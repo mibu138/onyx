@@ -1,11 +1,13 @@
 #include "t_def.h"
 #include "r_render.h"
+#include "tanto/r_geo.h"
 #include "tanto/v_command.h"
 #include "v_video.h"
 #include "v_memory.h"
 #include "r_pipeline.h"
 #include "r_raytrace.h"
 #include "t_utils.h"
+#include "s_scene.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -334,3 +336,10 @@ VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }
 VkFormat tanto_r_GetDepthFormat(void)          { return depthFormat; }
 VkFormat tanto_r_GetSwapFormat(void)           { return swapFormat; }
 
+void tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene)
+{
+    for (int i = 0; i < scene->primCount; i++) 
+    {
+        tanto_r_DrawPrim(cmdBuf, &scene->prims[i]);
+    }
+}
