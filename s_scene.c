@@ -1,5 +1,6 @@
 #include "s_scene.h"
 #include "coal/m_math.h"
+#include "coal/util.h"
 #include "tanto/r_geo.h"
 #include <string.h>
 
@@ -57,7 +58,15 @@ void tanto_s_CreateSimpleScene2(Scene *scene)
     Xform quadXform = m_Ident_Mat4();
 
     cubeXform = m_Translate_Mat4((Vec3){0, 0.5, 0}, &cubeXform);
-    
+
+    Mat4 rot = m_BuildRotate(M_PI, &(Vec3){-1, 0, 0});
+    quadXform = m_Mult_Mat4(&quadXform, &rot);
+
+    printf(">>Quad Rot\n");
+    coal_PrintMat4(&rot);
+    printf(">>Quad Xform\n");
+    coal_PrintMat4(&quadXform);
+
     const Light dirLight = {
         .type = TANTO_S_LIGHT_TYPE_DIRECTION,
         .intensity = 1,
@@ -89,9 +98,18 @@ void tanto_s_CreateSimpleScene2(Scene *scene)
         quadXform
     };
 
+    const Material cubeMat = {
+        .color = (Vec3){0.05, 0.18, 0.516},
+    };
+
+    const Material quadMat = {
+        .color = (Vec3){0.75, 0.422, 0.245},
+    };
+    
+
     Material mats[2] = { 
-        (Vec3){1, 0, 0},
-        (Vec3){0, 0, 1}
+        cubeMat,
+        quadMat
     };
 
     memcpy(s.prims, prims, sizeof(prims));

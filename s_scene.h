@@ -45,7 +45,8 @@ typedef struct {
 } Tanto_S_Light;
 
 typedef struct {
-    Vec3 color;
+    Vec3     color;
+    uint32_t id;
 } Tanto_S_Matrial;
 
 typedef struct {
