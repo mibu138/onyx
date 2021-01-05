@@ -375,7 +375,8 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
          VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
          VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
-         VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+         VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+         VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
     initBlockChain(MEMORY_SIZE_HOST, hostVisibleCoherentTypeIndex, bhbFlags, true, "hostGraphic", &blockChainHostGraphics);
     initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, false, "devImage", &blockChainDeviceImage);
@@ -404,7 +405,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     if (0 == alignment)
         alignment = chain->defaultAlignment;
 
-    V1_PRINT("Requesting block of size %ld from chain of totalSize: %ld \n", size, chain->totalSize);
+    V1_PRINT("Requesting region of size %ld from chain %s of total size %ld \n", size, chain->name, chain->totalSize);
     block = requestBlock(size, alignment, chain); 
     Tanto_V_BufferRegion region;
     region.offset = block->offset;
@@ -537,6 +538,7 @@ void tanto_v_FreeImage(Tanto_V_Image* image)
 
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
 {
+    V1_PRINT("Freeing region of size %ld from chain %s of total size %ld \n", pRegion->size, pRegion->pChain->name, pRegion->pChain->totalSize);
     freeBlock(pRegion->pChain, pRegion->memBlockId);
     if (pRegion->hostData)
         memset(pRegion->hostData, 0, pRegion->size);
@@ -563,16 +565,7 @@ void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
     assert( srcRegion.pChain == &blockChainHostGraphics ); // only chain it makes sense to transfer from
     Tanto_V_BufferRegion destRegion = tanto_v_RequestBufferRegion(srcRegion.size, 0, TANTO_V_MEMORY_DEVICE_TYPE);
 
-    Tanto_V_CommandPool cmdPool = tanto_v_RequestOneTimeUseCommand(); // arbitrary index;
-
-    VkBufferCopy copy;
-    copy.srcOffset = srcRegion.offset;
-    copy.dstOffset = destRegion.offset;
-    copy.size      = srcRegion.size;
-
-    vkCmdCopyBuffer(cmdPool.buffer, srcRegion.buffer, destRegion.buffer, 1, &copy);
-
-    tanto_v_SubmitOneTimeCommandAndWait(&cmdPool, 0);
+    tanto_v_CopyBufferRegion(&srcRegion, &destRegion);
 
     tanto_v_FreeBufferRegion(pRegion);
 

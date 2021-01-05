@@ -18,44 +18,46 @@ NAME = viewer
 
 
 DEPS =  \
-	Makefile     \
-    d_display.h  \
-    v_video.h    \
-    v_def.h      \
-	v_loader.h   \
-    v_memory.h   \
-	v_image.h    \
-	v_command.h  \
-    r_render.h   \
-    r_pipeline.h \
+	Makefile       \
+    d_display.h    \
+    v_video.h      \
+    v_def.h        \
+	v_loader.h     \
+    v_memory.h     \
+	v_image.h      \
+	v_command.h    \
+    r_render.h     \
+    r_pipeline.h   \
 	r_renderpass.h \
-	r_raytrace.h \
-	r_geo.h      \
-	s_scene.h    \
-	u_ui.h       \
-    i_input.h    \
+	r_raytrace.h   \
+	r_geo.h        \
+	s_scene.h      \
+	f_file.h       \
+	u_ui.h         \
+    i_input.h      \
     t_utils.h      \
     t_def.h        \
-	t_text.h     \
+	t_text.h       \
 	shaders/common.glsl \
 	shaders/raycommon.glsl
 
 
 OBJS =  \
-    $(O)/d_display.o  \
-    $(O)/v_video.o    \
-    $(O)/v_memory.o   \
-	$(O)/v_image.o    \
-	$(O)/v_command.o  \
-	$(O)/v_loader.o   \
-    $(O)/r_render.o   \
-    $(O)/r_pipeline.o \
+    $(O)/d_display.o    \
+    $(O)/v_video.o      \
+    $(O)/v_memory.o     \
+	$(O)/v_image.o      \
+	$(O)/v_command.o    \
+	$(O)/v_loader.o     \
+    $(O)/r_render.o     \
+    $(O)/r_pipeline.o   \
 	$(O)/r_renderpass.o \
-	$(O)/r_raytrace.o \
-	$(O)/r_geo.o      \
-	$(O)/s_scene.o    \
-	$(O)/u_ui.o       \
-    $(O)/i_input.o    \
+	$(O)/r_raytrace.o   \
+	$(O)/r_geo.o        \
+	$(O)/s_scene.o      \
+	$(O)/f_file.o       \
+	$(O)/u_ui.o         \
+    $(O)/i_input.o      \
     $(O)/t_utils.o      \
 	$(O)/t_text.o
 
