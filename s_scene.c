@@ -16,7 +16,6 @@ void tanto_s_CreateSimpleScene(Scene *scene)
     const Primitive cube = tanto_r_CreateCubePrim(false);
 
     Xform cubeXform = m_Ident_Mat4();
-    cubeXform = m_Translate_Mat4((Vec3){0, 0.5, 0}, &cubeXform);
     
     const Light dirLight = {
         .type = TANTO_S_LIGHT_TYPE_DIRECTION,

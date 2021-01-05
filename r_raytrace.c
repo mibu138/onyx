@@ -125,25 +125,25 @@ static void initCmdPool(void)
     V_ASSERT( vkAllocateCommandBuffers(device, &allocInfo, rtCmdBuffers) );
 }
 
-void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
+void tanto_r_BuildBlas(const Tanto_R_Primitive* prim)
 {
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = mesh->vertexBlock.buffer,
+        .buffer = prim->vertexRegion.buffer,
     };
 
-    const VkDeviceAddress vertAddr  = vkGetBufferDeviceAddress(device, &addrInfo) + mesh->vertexBlock.offset;
+    const VkDeviceAddress vertAddr = vkGetBufferDeviceAddress(device, &addrInfo) + prim->vertexRegion.offset;
 
-    addrInfo.buffer = mesh->indexBlock.buffer;
+    addrInfo.buffer = prim->indexRegion.buffer;
     
-    const VkDeviceAddress indexAddr = vkGetBufferDeviceAddress(device, &addrInfo) + mesh->indexBlock.offset;
+    const VkDeviceAddress indexAddr = vkGetBufferDeviceAddress(device, &addrInfo) + prim->indexRegion.offset;
 
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
         .vertexFormat  = TANTO_VERT_POS_FORMAT,
         .vertexStride  = sizeof(Tanto_R_Attribute),
         .indexType     = TANTO_VERT_INDEX_TYPE,
-        .maxVertex     = mesh->vertexCount,
+        .maxVertex     = prim->vertexCount,
         .vertexData.deviceAddress = vertAddr,
         .indexData.deviceAddress = indexAddr,
         .transformData = 0
@@ -169,7 +169,7 @@ void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
     };
 
-    const uint32_t numTrianlges = mesh->indexCount / 3;
+    const uint32_t numTrianlges = prim->indexCount / 3;
 
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildAS, &numTrianlges, &buildSizes); 
 
@@ -230,7 +230,6 @@ void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh)
 
 void tanto_r_BuildTlas(void)
 {
-
     VkTransformMatrixKHR transform = {
         1.0, 0.0, 0.0, 0.0,
         0.0, 1.0, 0.0, 0.0,

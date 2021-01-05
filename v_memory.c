@@ -47,12 +47,12 @@ static struct BlockChain blockChainDeviceImage;
 static uint32_t hostVisibleCoherentTypeIndex = 0;
 static uint32_t deviceLocalTypeIndex = 0;
 
-static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
+void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
     printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
 }
 
-static void printBlockChainInfo(const struct BlockChain* chain)
+void printBlockChainInfo(const struct BlockChain* chain)
 {
     printf("BlockChain %s:\n", chain->name);
     printf("totalSize: %ld\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
@@ -541,6 +541,20 @@ void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
     if (pRegion->hostData)
         memset(pRegion->hostData, 0, pRegion->size);
     memset(pRegion, 0, sizeof(Tanto_V_BufferRegion));
+}
+
+void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst)
+{
+    Tanto_V_CommandPool cmdPool = tanto_v_RequestOneTimeUseCommand(); // arbitrary index;
+
+    VkBufferCopy copy;
+    copy.srcOffset = src->offset;
+    copy.dstOffset = dst->offset;
+    copy.size      = src->size;
+
+    vkCmdCopyBuffer(cmdPool.buffer, src->buffer, dst->buffer, 1, &copy);
+
+    tanto_v_SubmitOneTimeCommandAndWait(&cmdPool, 0);
 }
 
 void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)

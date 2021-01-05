@@ -13,11 +13,11 @@ typedef struct {
     VkDeviceAddress address;
 } AccelerationStructure;
 
-AccelerationStructure bottomLevelAS;
-AccelerationStructure topLevelAS;
+extern AccelerationStructure bottomLevelAS;
+extern AccelerationStructure topLevelAS;
 
 void tanto_r_InitRayTracing(void);
-void tanto_r_BuildBlas(const Tanto_R_Mesh* mesh);
+void tanto_r_BuildBlas(const Tanto_R_Primitive* prim);
 void tanto_r_BuildTlas(void);
 void tanto_r_RayTraceDestroyAccelStructs(void);
 void tanto_r_RayTraceCleanUp(void);

@@ -15,6 +15,10 @@ typedef struct {
 } Tanto_R_RenderPassInfo;
 
 void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo* info, VkRenderPass* pRenderPass);
+void tanto_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp, 
+        const VkImageLayout initialLayout, const VkImageLayout finalLayout,
+        const VkFormat colorFormat,
+        VkRenderPass* pRenderPass);
 void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,

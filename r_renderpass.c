@@ -45,6 +45,59 @@ void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo *info, VkRenderPass *
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
+void tanto_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp, 
+        const VkImageLayout initialLayout, const VkImageLayout finalLayout,
+        const VkFormat colorFormat,
+        VkRenderPass* pRenderPass)
+{
+    const VkAttachmentDescription attachmentColor = {
+        .format = colorFormat,
+        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
+        .loadOp = loadOp,
+        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .initialLayout = initialLayout,
+        .finalLayout = finalLayout,
+    };
+
+    const VkAttachmentReference referenceColor = {
+        .attachment = 0,
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
+    };
+    VkSubpassDescription subpass = {
+        .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
+        .colorAttachmentCount = 1,
+        .pColorAttachments    = &referenceColor,
+        .pDepthStencilAttachment = NULL,
+        .inputAttachmentCount = 0,
+        .preserveAttachmentCount = 0,
+    };
+
+    const VkSubpassDependency dependency = {
+        .srcSubpass = VK_SUBPASS_EXTERNAL,
+        .dstSubpass = 0,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = 0,
+        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+    };
+
+    VkAttachmentDescription attachments[] = {
+        attachmentColor,
+    };
+
+    VkRenderPassCreateInfo ci = {
+        .subpassCount = 1,
+        .pSubpasses = &subpass,
+        .attachmentCount = TANTO_ARRAY_SIZE(attachments),
+        .pAttachments = attachments,
+        .dependencyCount = 1,
+        .pDependencies = &dependency,
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
+    };
+
+    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
+}
+
 void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
