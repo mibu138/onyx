@@ -18,9 +18,10 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     const VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
-    const VkFilter filter)
+    const VkFilter filter,
+    const Tanto_V_MemoryType memType)
 {
-    Tanto_V_Image image = tanto_v_CreateImage(width, height, format, usageFlags, aspectMask, sampleCount);
+    Tanto_V_Image image = tanto_v_CreateImage(width, height, format, usageFlags, aspectMask, sampleCount, memType);
 
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,

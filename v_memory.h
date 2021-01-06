@@ -48,7 +48,8 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
-        const VkSampleCountFlags sampleCount);
+        const VkSampleCountFlags sampleCount,
+        const Tanto_V_MemoryType memType);
 
 void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst);
 

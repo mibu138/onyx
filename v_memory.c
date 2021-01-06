@@ -467,7 +467,8 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
-        const VkSampleCountFlags sampleCount)
+        const VkSampleCountFlags sampleCount,
+        const Tanto_V_MemoryType memType)
 {
     assert( width * height < MEMORY_SIZE_DEV_IMAGE );
 
@@ -499,14 +500,21 @@ Tanto_V_Image tanto_v_CreateImage(
 
     V1_PRINT("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
 
-    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
+    BlockChain* chain;
+    switch (memType) 
+    {
+        case TANTO_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceImage; break;
+        case TANTO_V_MEMORY_HOST_TYPE:   chain = &blockChainHostImage; break;
+    }
+
+    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, chain);
     image.memBlockId = block->id;
     image.size = memReqs.size;
     image.extent.depth = 1;
     image.extent.width = width;
     image.extent.height = height;
 
-    vkBindImageMemory(device, image.handle, blockChainDeviceImage.memory, block->offset);
+    vkBindImageMemory(device, image.handle, chain->memory, block->offset);
 
     VkImageViewCreateInfo viewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
