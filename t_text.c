@@ -95,7 +95,7 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height,
 
     Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
+            TANTO_V_MEMORY_HOST_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 

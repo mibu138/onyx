@@ -6,17 +6,8 @@
 
 typedef uint32_t Tanto_V_BlockId;
 
-//typedef struct {
-//    size_t       size;
-//    uint8_t*     hostData;
-//    VkDeviceSize vOffset;
-//    VkBuffer*    vBuffer;
-//    bool         isMapped;
-//} Tanto_V_BlockHostBuffer;
-
 typedef enum {
-    TANTO_V_MEMORY_HOST_GRAPHICS_TYPE,
-    TANTO_V_MEMORY_HOST_TRANSFER_TYPE,
+    TANTO_V_MEMORY_HOST_TYPE,
     TANTO_V_MEMORY_DEVICE_TYPE,
 } Tanto_V_MemoryType;
 

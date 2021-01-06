@@ -59,9 +59,9 @@ Tanto_F_Primitive tanto_f_CreateFPrimFromRPrim(const Tanto_R_Primitive* rprim)
     {
         // must copy data to host
         hostVertRegion = tanto_v_RequestBufferRegion(attrCount * attributeChunkSize,
-                0, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
+                0, TANTO_V_MEMORY_HOST_TYPE);
         hostIndexRegion = tanto_v_RequestBufferRegion(indexChunkSize,
-                0, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
+                0, TANTO_V_MEMORY_HOST_TYPE);
         tanto_v_CopyBufferRegion(&rprim->vertexRegion, &hostVertRegion);
         tanto_v_CopyBufferRegion(&rprim->indexRegion, &hostIndexRegion);
     }

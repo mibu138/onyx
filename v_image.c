@@ -148,7 +148,7 @@ void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* filename)
 {
     Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(
-            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
+            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TYPE);
 
     VkImageLayout origLayout = image->layout;
     tanto_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);

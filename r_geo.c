@@ -14,10 +14,10 @@ static void initPrimBuffers(Tanto_R_Primitive* prim)
     assert(prim->indexCount > 0);
 
     prim->vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim->attrCount * prim->vertexCount, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_TYPE);
 
     prim->indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim->indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_TYPE);
 
     assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
     for (int i = 0; i < prim->attrCount; i++) 
@@ -41,10 +41,10 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void)
     };
 
     prim.vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_TYPE);
 
     prim.indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim.indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_TYPE);
 
     const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
     const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
@@ -227,7 +227,7 @@ Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
     prim.vertexRegion = tanto_v_RequestBufferRegion(
             sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            TANTO_V_MEMORY_HOST_TYPE);
 
     const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
     const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
@@ -261,12 +261,12 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
     prim.vertexRegion = tanto_v_RequestBufferRegion(
             sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            TANTO_V_MEMORY_HOST_TYPE);
 
     prim.indexRegion = tanto_v_RequestBufferRegion(
             sizeof(Tanto_R_Index) * prim.indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            TANTO_V_MEMORY_HOST_TYPE);
 
     const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
     const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
