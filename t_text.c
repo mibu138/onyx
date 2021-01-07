@@ -89,8 +89,7 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
-            VK_FILTER_NEAREST,
-            TANTO_V_MEMORY_DEVICE_TYPE);
+            VK_FILTER_NEAREST); 
 
     tanto_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 

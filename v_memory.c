@@ -1,4 +1,5 @@
 #include "v_memory.h"
+#include "tanto/t_utils.h"
 #include "v_video.h"
 #include "t_def.h"
 #include "v_command.h"
@@ -65,6 +66,16 @@ void printBlockChainInfo(const BlockChain* chain)
         printf("{ Block %d: size = %ld, offset = %ld, inUse = %s, id: %d}, ", i, block->size, block->offset, block->inUse ? "true" : "false", block->id);
     }
     printf("\n");
+}
+
+static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
+{
+    const uint32_t memoryCount = memoryProperties.memoryTypeCount;
+    for (uint32_t memoryIndex = 0; memoryIndex < memoryCount; ++memoryIndex) {
+        const uint32_t memoryTypeBits = (1 << memoryIndex);
+        if (memoryTypeBits & memoryTypeBitsRequirement) return memoryIndex;
+    }
+    return -1;
 }
 
 static void initBlockChain(
@@ -467,8 +478,7 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
-        const VkSampleCountFlags sampleCount,
-        const Tanto_V_MemoryType memType)
+        const VkSampleCountFlags sampleCount)
 {
     assert( width * height < MEMORY_SIZE_DEV_IMAGE );
 
@@ -491,7 +501,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    Tanto_V_Image image;
+    Tanto_V_Image image = {0};
 
     V_ASSERT( vkCreateImage(device, &imageInfo, NULL, &image.handle) );
 
@@ -499,22 +509,19 @@ Tanto_V_Image tanto_v_CreateImage(
     vkGetImageMemoryRequirements(device, image.handle, &memReqs);
 
     V1_PRINT("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
+    V1_PRINT("Width * Height * Format size = %d\n", width * height * 4);
+    V1_PRINT("Required memory bits for image: %0x\n", memReqs.memoryTypeBits);
+    bitprint(&memReqs.memoryTypeBits, 32);
 
-    BlockChain* chain;
-    switch (memType) 
-    {
-        case TANTO_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceImage; break;
-        case TANTO_V_MEMORY_HOST_TYPE:   chain = &blockChainHostImage; break;
-    }
-
-    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, chain);
-    image.memBlockId = block->id;
     image.size = memReqs.size;
     image.extent.depth = 1;
     image.extent.width = width;
     image.extent.height = height;
 
-    vkBindImageMemory(device, image.handle, chain->memory, block->offset);
+    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
+    image.memBlockId = block->id;
+
+    vkBindImageMemory(device, image.handle, blockChainDeviceImage.memory, block->offset);
 
     VkImageViewCreateInfo viewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -586,7 +593,7 @@ void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
     *pRegion = destRegion;
 }
 
-void tanto_v_CleanUpMemory()
+void tanto_v_CleanUpMemory(void)
 {
     freeBlockChain(&blockChainHostBuffer);
     freeBlockChain(&blockChainHostImage);
