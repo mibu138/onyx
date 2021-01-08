@@ -59,6 +59,7 @@ typedef struct {
     Tanto_R_BlendMode         blendMode;
     VkExtent2D                viewportDim;
     uint32_t                  tesselationPatchPoints;
+    uint32_t                  subpass;
     char* vertShader;
     char* fragShader;
     char* tessCtrlShader;

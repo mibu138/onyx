@@ -11,9 +11,9 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST_BUFFER 0x80000000 // 
+#define MEMORY_SIZE_HOST_BUFFER 0x120000000 // 
 #define MEMORY_SIZE_DEV_BUFFER  0x1000000 // 
-#define MEMORY_SIZE_DEV_IMAGE   0x80000000 // 
+#define MEMORY_SIZE_DEV_IMAGE   0x120000000 // 
 #define MAX_BLOCKS 100000
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;

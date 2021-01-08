@@ -256,7 +256,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .basePipelineIndex = 0, // not used
             .basePipelineHandle = 0,
-            .subpass = 0, // which subpass in the renderpass do we use this pipeline with
+            .subpass = rasterInfo->subpass, // which subpass in the renderpass do we use this pipeline with
             .renderPass = rasterInfo->renderPass,
             .layout = rasterInfo->layout,
             .pDynamicState = NULL,
@@ -469,7 +469,7 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
 
     out->descriptorSetCount = count;
 
-    int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0;
+    int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0, dcIa = 0;
     for (int i = 0; i < count; i++) 
     {
         const Tanto_R_DescriptorSetInfo set = sets[i];
@@ -487,6 +487,7 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
                 case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:              dcSi  += dCount; break;
                 case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:             dcSb  += dCount; break;
                 case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:     dcCis += dCount; break;
+                case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:           dcIa  += dCount; break;
                 default: assert(false);
             }
         }
@@ -498,6 +499,7 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
     dcSi  = dcSi > 0  ? dcSi  : 1;
     dcSb  = dcSb > 0  ? dcSb  : 1;
     dcCis = dcCis > 0 ? dcCis : 1;
+    dcIa  = dcIa   > 0 ? dcIa : 1;
 
     const VkDescriptorPoolSize poolSizes[] = {{
             .descriptorCount = dcUbo,
@@ -514,6 +516,9 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
         },{
             .descriptorCount = dcCis,
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        },{
+            .descriptorCount = dcIa,
+            .type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
     }};
 
     const VkDescriptorPoolCreateInfo poolInfo = {
