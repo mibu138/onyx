@@ -11,8 +11,7 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST_BUFFER 0x1000000 // 
-#define MEMORY_SIZE_HOST_IMAGE  0x80000000 // 
+#define MEMORY_SIZE_HOST_BUFFER 0x80000000 // 
 #define MEMORY_SIZE_DEV_BUFFER  0x1000000 // 
 #define MEMORY_SIZE_DEV_IMAGE   0x80000000 // 
 #define MAX_BLOCKS 100000
@@ -42,7 +41,6 @@ typedef struct BlockChain {
 } BlockChain;
 
 static BlockChain blockChainHostBuffer;
-static BlockChain blockChainHostImage;
 static BlockChain blockChainDeviceBuffer;
 static BlockChain blockChainDeviceImage;
 
@@ -121,7 +119,7 @@ static void initBlockChain(
         VkBufferCreateInfo ci = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .usage = bufferUsageFlags,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue determined by first use
+            .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue family determined by first use
             .size = memorySize 
         };
 
@@ -400,7 +398,6 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
     initBlockChain(MEMORY_SIZE_HOST_BUFFER, hostVisibleCoherentTypeIndex, bhbFlags, true, "hostBuffer",   &blockChainHostBuffer);
-    initBlockChain(MEMORY_SIZE_HOST_IMAGE, hostVisibleCoherentTypeIndex, 0, false, "hostImage", &blockChainHostImage);
     initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, devBufFlags, false, "devBuffer",  &blockChainDeviceBuffer);
     initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, false, "devImage",              &blockChainDeviceImage);
 }
@@ -456,7 +453,7 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size,
         // must satisfy alignment requirements for uniform buffers
         alignment = deviceProperties.limits.minUniformBufferOffsetAlignment;
     }
-    return tanto_v_RequestBufferRegionAligned(size, alignment, memType);
+    return tanto_v_RequestBufferRegionAligned(size, 0x40, memType); //TODO: fix this. find the maximum alignment and choose that
 }
 
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
@@ -596,7 +593,6 @@ void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
 void tanto_v_CleanUpMemory(void)
 {
     freeBlockChain(&blockChainHostBuffer);
-    freeBlockChain(&blockChainHostImage);
     freeBlockChain(&blockChainDeviceImage);
     freeBlockChain(&blockChainDeviceBuffer);
 }
