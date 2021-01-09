@@ -53,6 +53,8 @@ Tanto_V_Image tanto_v_CreateImage(
 
 void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst);
 
+void tanto_v_CopyImageToBufferRegion(const Tanto_V_Image* image, Tanto_V_BufferRegion* bufferRegion);
+
 void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion);
 
 void tanto_v_FreeImage(Tanto_V_Image* image);

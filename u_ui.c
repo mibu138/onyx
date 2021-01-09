@@ -53,8 +53,8 @@ static void initRenderCommands(void)
 {
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
-        renderCommands[i] = tanto_v_CreateCommand();
-        printf("UI COMMAND BUF: %p\n", renderCommands[i].commandBuffer);
+        renderCommands[i] = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+        printf("UI COMMAND BUF: %p\n", renderCommands[i].buffer);
     }
 }
 
@@ -455,16 +455,16 @@ void tanto_u_Render(void)
     vkWaitForFences(device, 1, &renderCommands[frameIndex].fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &renderCommands[frameIndex].fence);
 
-    vkResetCommandPool(device, renderCommands[frameIndex].commandPool, 0);
+    vkResetCommandPool(device, renderCommands[frameIndex].pool, 0);
 
     VkCommandBufferBeginInfo cbbi = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 
-    V_ASSERT( vkBeginCommandBuffer(renderCommands[frameIndex].commandBuffer, &cbbi) );
+    V_ASSERT( vkBeginCommandBuffer(renderCommands[frameIndex].buffer, &cbbi) );
 
     const Tanto_U_Widget* iter = NULL;
     const uint8_t widgetCount = tanto_u_GetWidgets(&iter);
 
-    VkCommandBuffer cmdBuf = renderCommands[frameIndex].commandBuffer;
+    VkCommandBuffer cmdBuf = renderCommands[frameIndex].buffer;
 
     VkClearValue clear = {0};
     
@@ -487,7 +487,7 @@ void tanto_u_Render(void)
     }
     vkCmdEndRenderPass(cmdBuf);
 
-    V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].commandBuffer) );
+    V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
     tanto_r_SubmitUI(renderCommands[frameIndex]);
 }

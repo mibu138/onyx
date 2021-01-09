@@ -565,16 +565,27 @@ void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
 
 void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst)
 {
-    Tanto_V_CommandPool cmdPool = tanto_v_RequestOneTimeUseCommand(); // arbitrary index;
+    Tanto_V_Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE); // arbitrary index;
+
+    tanto_v_BeginCommandBuffer(cmd.buffer);
 
     VkBufferCopy copy;
     copy.srcOffset = src->offset;
     copy.dstOffset = dst->offset;
     copy.size      = src->size;
 
-    vkCmdCopyBuffer(cmdPool.buffer, src->buffer, dst->buffer, 1, &copy);
+    vkCmdCopyBuffer(cmd.buffer, src->buffer, dst->buffer, 1, &copy);
 
-    tanto_v_SubmitOneTimeCommandAndWait(&cmdPool, 0);
+    tanto_v_EndCommandBuffer(cmd.buffer);
+
+    tanto_v_SubmitAndWait(&cmd, 0);
+
+    tanto_v_DestroyCommand(cmd);
+}
+
+void tanto_v_CopyImageToBufferRegion(const Tanto_V_Image* image, Tanto_V_BufferRegion* bufferRegion)
+{
+    // TODO
 }
 
 void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)

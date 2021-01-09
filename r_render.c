@@ -135,7 +135,7 @@ static void initFrames(void)
 {
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
-        frames[i].command = tanto_v_CreateCommand();
+        frames[i].command = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
         frames[i].index = i;
     }
     V1_PRINT("Frames successfully initialized.\n");
@@ -241,7 +241,7 @@ void tanto_r_SubmitFrame(void)
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &frames[curFrameIndex].command.semaphore,
         .commandBufferCount = 1,
-        .pCommandBuffers = &frames[curFrameIndex].command.commandBuffer,
+        .pCommandBuffers = &frames[curFrameIndex].command.buffer,
     };
 
     vkWaitForFences(device, 1, &frames[curFrameIndex].command.fence, VK_TRUE, UINT64_MAX);
@@ -262,7 +262,7 @@ void tanto_r_SubmitUI(const Tanto_V_Command cmd)
         .signalSemaphoreCount = 1,
         .pSignalSemaphores = &presentationSemaphores[curFrameIndex],
         .commandBufferCount = 1,
-        .pCommandBuffers = &cmd.commandBuffer
+        .pCommandBuffers = &cmd.buffer
     };
 
     V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, cmd.fence) );

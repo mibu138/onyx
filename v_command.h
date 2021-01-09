@@ -5,25 +5,27 @@
 #include "v_video.h"
 
 typedef struct {
-    VkCommandPool   handle;
-    VkCommandBuffer buffer;
-    uint32_t        queueFamily;
-} Tanto_V_CommandPool;
-
-typedef struct {
-    VkCommandPool       commandPool;
-    VkCommandBuffer     commandBuffer;
+    VkCommandPool       pool;
+    VkCommandBuffer     buffer;
     VkSemaphore         semaphore;
     VkFence             fence;
+    uint32_t            queueFamily;
 } Tanto_V_Command;
 
-Tanto_V_CommandPool tanto_v_RequestOneTimeUseCommand(void);
-Tanto_V_CommandPool tanto_v_RequestCommandPool(Tanto_V_QueueType queueFamilyType);
+typedef struct {
+    VkPipelineStageFlags srcStageFlags;
+    VkPipelineStageFlags dstStageFlags;
+    VkAccessFlags srcAccessMask;
+    VkAccessFlags dstAccessMask;
+} Tanto_V_Barrier;
 
-void tanto_v_SubmitOneTimeCommandAndWait(Tanto_V_CommandPool* pool, const uint32_t queueIndex);
-void tanto_v_SubmitAndWait(Tanto_V_CommandPool* pool, const uint32_t queueIndex);
+Tanto_V_Command tanto_v_CreateCommand(const Tanto_V_QueueType);
 
-Tanto_V_Command tanto_v_CreateCommand(void);
-void tanto_v_DestroyCommand(Tanto_V_Command);
+void            tanto_v_BeginCommandBuffer(VkCommandBuffer cmdBuf);
+void            tanto_v_EndCommandBuffer(VkCommandBuffer cmdBuf);
+
+void            tanto_v_SubmitAndWait(Tanto_V_Command* cmd, const uint32_t queueIndex);
+
+void            tanto_v_DestroyCommand(Tanto_V_Command);
 
 #endif /* end of include guard: TANTO_V_COMMAND_H */
