@@ -6,6 +6,7 @@
  */
 
 #include "v_memory.h"
+#include "v_command.h"
 
 typedef enum {
     TANTO_V_IMAGE_FILE_TYPE_PNG,
@@ -25,6 +26,13 @@ void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageL
 
 void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
         Tanto_V_Image* image);
+
+void tanto_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Tanto_V_BufferRegion* region,
+        Tanto_V_Image* image);
+
+void tanto_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Tanto_V_Image* image, Tanto_V_BufferRegion* region);
+void tanto_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Tanto_V_Barrier barrier, 
+        const VkImageLayout oldLayout, const VkImageLayout newLayout, VkImage image);
 
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* name);
 

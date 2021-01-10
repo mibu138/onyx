@@ -1,6 +1,7 @@
 #include "r_renderpass.h"
 #include "r_render.h"
 
+#include "tanto/t_def.h"
 #include "v_video.h"
 
 void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo *info, VkRenderPass *pRenderPass)
@@ -143,13 +144,22 @@ void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp,
         .preserveAttachmentCount = 0,
     };
 
-    const VkSubpassDependency dependency = {
+    const VkSubpassDependency dependency1 = {
         .srcSubpass = VK_SUBPASS_EXTERNAL,
         .dstSubpass = 0,
         .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = 0,
-        .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT,
+        .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+    };
+
+    const VkSubpassDependency dependency2 = {
+        .srcSubpass = 0,
+        .dstSubpass = VK_SUBPASS_EXTERNAL,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        .dstAccessMask = 0,
     };
 
     VkAttachmentDescription attachments[] = {
@@ -157,13 +167,17 @@ void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp,
         attachmentDepth,
     };
 
+    const VkSubpassDependency dependencies[] = {
+        dependency1, dependency2
+    };
+
     VkRenderPassCreateInfo ci = {
         .subpassCount = 1,
         .pSubpasses = &subpass,
         .attachmentCount = 2,
         .pAttachments = attachments,
-        .dependencyCount = 1,
-        .pDependencies = &dependency,
+        .dependencyCount = TANTO_ARRAY_SIZE(dependencies),
+        .pDependencies = dependencies,
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
     };
 

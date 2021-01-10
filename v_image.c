@@ -4,6 +4,7 @@
 #include "v_video.h"
 #include "v_command.h"
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "thirdparty/stb_image.h"
@@ -103,6 +104,33 @@ void tanto_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Tanto_V_Bu
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopy);
 }
 
+void tanto_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Tanto_V_Image* image, Tanto_V_BufferRegion* region)
+{
+    const VkImageSubresourceLayers subRes = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseArrayLayer = 0,
+        .layerCount = 1, 
+        .mipLevel = 0,
+    };
+
+    const VkOffset3D imgOffset = {
+        .x = 0,
+        .y = 0,
+        .z = 0
+    };
+
+    const VkBufferImageCopy imgCopy = {
+        .imageOffset = imgOffset,
+        .imageExtent = image->extent,
+        .imageSubresource = subRes,
+        .bufferOffset = region->offset,
+        .bufferImageHeight = 0,
+        .bufferRowLength = 0
+    };
+
+    printf("Copying image to buffer...\n");
+    vkCmdCopyImageToBuffer(cmdbuf, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region->buffer, 1, &imgCopy);
+}
 
 void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Tanto_V_Image* image)
 {
