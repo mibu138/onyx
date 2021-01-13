@@ -8,23 +8,30 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include "v_command.h"
 
 #include <unistd.h>
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_xcb.h>
 
+#define MAX_GRAPHICS_QUEUES 32
+#define MAX_TRANSFER_QUEUES 16
 
 static VkInstance instance;
 
-VkDevice          device;
 VkPhysicalDevice  physicalDevice;
+VkDevice          device;
 
-uint32_t graphicsQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
-VkQueue  graphicsQueues[TANTO_G_QUEUE_COUNT];
-VkQueue  presentQueue;
+static uint32_t graphicsQueueCount;
+static uint32_t transferQueueCount;
+static uint32_t graphicsQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
+static uint32_t transferQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
+static VkQueue  graphicsQueues[MAX_GRAPHICS_QUEUES];
+static VkQueue  transferQueues[MAX_TRANSFER_QUEUES];
+static VkQueue  presentQueue;
 
 static VkSurfaceKHR      nativeSurface;
-VkSurfaceKHR*    pSurface;
+static VkSurfaceKHR*     pSurface;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
     
@@ -230,22 +237,45 @@ static void initDevice(void)
     {
         VkQueryControlFlags flags = qfprops[i].queueFlags;
         V1_PRINT("Queue Family %d: count: %d flags: ", i, qfprops[i].queueCount);
-        if (flags & VK_QUEUE_GRAPHICS_BIT)  V1_PRINT(" Graphics ");
-        if (flags & VK_QUEUE_COMPUTE_BIT)   V1_PRINT(" Compute ");
-        if (flags & VK_QUEUE_TRANSFER_BIT)  V1_PRINT(" Tranfer ");
+        if (flags & VK_QUEUE_GRAPHICS_BIT) V1_PRINT(" Graphics ");
+        if (flags & VK_QUEUE_COMPUTE_BIT)  V1_PRINT(" Compute ");
+        if (flags & VK_QUEUE_TRANSFER_BIT) 
+        {
+            V1_PRINT(" Tranfer ");
+            if (transferQueueCount == 0) 
+            {
+                transferQueueCount = qfprops[i].queueCount;
+                transferQueueFamilyIndex = i;
+            }
+        }
         V1_PRINT("\n");
+        if (flags & VK_QUEUE_GRAPHICS_BIT && graphicsQueueCount == 0) // first graphics queue
+        {
+            graphicsQueueCount = qfprops[i].queueCount;
+            graphicsQueueFamilyIndex = i;
+            break;
+        }
+        if (flags & VK_QUEUE_TRANSFER_BIT && transferQueueCount == 0) // TODO: this is a shitty heuristic. make better
+        {
+            transferQueueCount = qfprops[i].queueCount;
+            transferQueueFamilyIndex = i;
+        }
     }
 
-    graphicsQueueFamilyIndex = 0; // because we know this
-    assert( TANTO_G_QUEUE_COUNT < qfprops[graphicsQueueFamilyIndex].queueCount );
+    assert(graphicsQueueCount < MAX_GRAPHICS_QUEUES);
 
-    const float priorities[TANTO_G_QUEUE_COUNT] = {1.0, 1.0, 1.0, 1.0};
+    float priorities[graphicsQueueCount];
+
+    for (int i = 0; i < graphicsQueueCount; i++) 
+    {
+        priorities[i] = 1.0;   
+    }
 
     const VkDeviceQueueCreateInfo qci[] = { 
         { 
             .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
             .queueFamilyIndex = graphicsQueueFamilyIndex,
-            .queueCount = TANTO_G_QUEUE_COUNT,
+            .queueCount =  graphicsQueueCount,
             .pQueuePriorities = priorities,
         }
     };
@@ -411,7 +441,7 @@ static void initDevice(void)
 
 static void initQueues(void)
 {
-    for (int i = 0; i < TANTO_G_QUEUE_COUNT; i++) 
+    for (int i = 0; i < graphicsQueueCount; i++) 
     {
         vkGetDeviceQueue(device, graphicsQueueFamilyIndex, i, &graphicsQueues[i]);
     }
@@ -448,7 +478,7 @@ void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window)
 void tanto_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Tanto_V_QueueType queueType, const uint32_t index)
 {
     assert( TANTO_V_QUEUE_GRAPHICS_TYPE == queueType );
-    assert( TANTO_G_QUEUE_COUNT > index );
+    assert( graphicsQueueCount > index );
 
     const VkSubmitInfo info = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -499,3 +529,31 @@ VkDevice tanto_v_GetDevice(void)
 {
     return device;
 }
+
+VkSurfaceKHR tanto_v_GetSurface(void)
+{
+    return *pSurface;
+}
+
+VkQueue tanto_v_GetPresentQueue(void)
+{
+    return presentQueue;
+}
+
+void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+        const Tanto_V_Command* cmd)
+{
+    VkSubmitInfo si = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pWaitDstStageMask = pWaitDstStageMask,
+        .waitSemaphoreCount = pWaitSemephore == NULL ? 0 : 1,
+        .pWaitSemaphores = pWaitSemephore,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &cmd->semaphore,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &cmd->buffer,
+    };
+
+    V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, cmd->fence) );
+}
+

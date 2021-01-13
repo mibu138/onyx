@@ -26,7 +26,7 @@ void           tanto_r_Init(void);
 void           tanto_r_WaitOnQueueSubmit(void);
 void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);
 void           tanto_r_WaitOnFrame(int8_t frameIndex);
-bool           tanto_r_PresentFrame(void);
+bool           tanto_r_PresentFrame(const VkSemaphore* pWaitSemaphore);
 void           tanto_r_CleanUp(void);
 void           tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn);
 void           tanto_r_RecreateSwapchain(void);

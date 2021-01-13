@@ -489,6 +489,8 @@ void tanto_u_Render(void)
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
     tanto_r_SubmitUI(renderCommands[frameIndex]);
+
+    tanto_r_PresentFrame(&renderCommands[frameIndex].semaphore);
 }
 
 void tanto_u_CleanUp(void)

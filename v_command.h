@@ -4,7 +4,7 @@
 #include "v_def.h"
 #include "v_video.h"
 
-typedef struct {
+typedef struct Tanto_V_Command{
     VkCommandPool       pool;
     VkCommandBuffer     buffer;
     VkSemaphore         semaphore;

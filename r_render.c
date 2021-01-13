@@ -35,8 +35,6 @@ static uint64_t            frameCounter;
 static uint8_t swapRecreateFnCount = 0;
 static Tanto_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
 
-static VkSemaphore presentationSemaphores[TANTO_FRAME_COUNT];
-  
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
@@ -60,17 +58,18 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
 static void initSwapchain(void)
 {
     VkBool32 supported;
-    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, *pSurface, &supported);
+    const VkSurfaceKHR surface = tanto_v_GetSurface();
+    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, surface, &supported);
 
     assert(supported == VK_TRUE);
 
     VkSurfaceCapabilitiesKHR capabilities;
-    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, *pSurface, &capabilities) );
+    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities) );
 
     uint32_t formatsCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, NULL);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, NULL);
     VkSurfaceFormatKHR surfaceFormats[formatsCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, *pSurface, &formatsCount, surfaceFormats);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, surfaceFormats);
 
     V1_PRINT("Surface formats: \n");
     for (int i = 0; i < formatsCount; i++) {
@@ -78,9 +77,9 @@ static void initSwapchain(void)
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, NULL);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL);
     VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, *pSurface, &presentModeCount, presentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes);
 
     //const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
     const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
@@ -94,7 +93,7 @@ static void initSwapchain(void)
 
     const VkSwapchainCreateInfoKHR ci = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = *pSurface,
+        .surface = surface,
         .minImageCount = 2,
         .imageFormat = swapFormat, //50
         .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
@@ -185,13 +184,6 @@ static void recreateSwapchain(void)
 
 void tanto_r_Init(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
-    {
-        const VkSemaphoreCreateInfo sc = {
-            .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-        };
-        vkCreateSemaphore(device, &sc, NULL, &presentationSemaphores[i]);
-    }
     curFrameIndex = 0;
     frameCounter  = 0;
     swapRecreateFnCount = 0;
@@ -231,44 +223,24 @@ retry:
 
 void tanto_r_SubmitFrame(void)
 {
-    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    VkSubmitInfo si = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pWaitDstStageMask = &stageFlags,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &imageAcquiredSemaphores[imageAcquiredSemaphoreIndex],
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &frames[curFrameIndex].command.semaphore,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &frames[curFrameIndex].command.buffer,
-    };
-
     vkWaitForFences(device, 1, &frames[curFrameIndex].command.fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &frames[curFrameIndex].command.fence);
 
-    V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, frames[curFrameIndex].command.fence) );
+    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+    tanto_v_SubmitGraphicsCommand(0, &stageFlags, &imageAcquiredSemaphores[imageAcquiredSemaphoreIndex], 
+            &frames[curFrameIndex].command);
 }
 
 void tanto_r_SubmitUI(const Tanto_V_Command cmd)
 {
     VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    VkSubmitInfo si = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pWaitDstStageMask = &stageFlags,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &frames[curFrameIndex].command.semaphore,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &presentationSemaphores[curFrameIndex],
-        .commandBufferCount = 1,
-        .pCommandBuffers = &cmd.buffer
-    };
-
-    V_ASSERT( vkQueueSubmit(graphicsQueues[0], 1, &si, cmd.fence) );
+    tanto_v_SubmitGraphicsCommand(0, &stageFlags, &frames[curFrameIndex].command.semaphore, 
+            &cmd);
 }
 
-bool tanto_r_PresentFrame(void)
+bool tanto_r_PresentFrame(const VkSemaphore* pWaitSemaphore)
 {
     VkResult r;
     const VkPresentInfoKHR info = {
@@ -276,13 +248,13 @@ bool tanto_r_PresentFrame(void)
         .swapchainCount = 1,
         .pSwapchains = &swapchain,
         .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &presentationSemaphores[curFrameIndex],
+        .pWaitSemaphores = pWaitSemaphore,
         .pResults = &r,
         .pImageIndices = &curFrameIndex,
     };
 
     VkResult presentResult;
-    presentResult = vkQueuePresentKHR(presentQueue, &info);
+    presentResult = vkQueuePresentKHR(tanto_v_GetPresentQueue(), &info);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
         return false;
     assert( VK_SUCCESS == r );
@@ -313,7 +285,6 @@ void tanto_r_CleanUp(void)
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
-        vkDestroySemaphore(device, presentationSemaphores[i], NULL);
         vkDestroyImageView(device, frames[i].swapImage.view, NULL);
         tanto_v_DestroyCommand(frames[i].command);
     }

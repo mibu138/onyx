@@ -5,7 +5,6 @@
 #include <stdbool.h>
 
 #define TANTO_FRAME_COUNT 2
-#define TANTO_G_QUEUE_COUNT 4
 
 typedef struct {
     bool rayTraceEnabled;

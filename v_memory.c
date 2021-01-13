@@ -490,6 +490,8 @@ Tanto_V_Image tanto_v_CreateImage(
     assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
     assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
 
+    uint32_t queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE);
+
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
@@ -502,7 +504,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .usage = usageFlags,
         .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
         .queueFamilyIndexCount = 1,
-        .pQueueFamilyIndices = &graphicsQueueFamilyIndex,
+        .pQueueFamilyIndices = &queueFamilyIndex,
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
