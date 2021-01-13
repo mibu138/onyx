@@ -16,6 +16,8 @@
 #define MEMORY_SIZE_DEV_IMAGE   0x120000000 // 
 #define MAX_BLOCKS 100000
 
+typedef Tanto_V_BufferRegion BufferRegion;
+
 static VkPhysicalDeviceMemoryProperties memoryProperties;
 
 typedef struct tanto_V_MemBlock {
@@ -30,6 +32,7 @@ typedef struct BlockChain {
     VkDeviceSize       totalSize;
     VkDeviceSize       usedSize;
     VkDeviceSize       defaultAlignment;
+    VkDeviceAddress    bufferAddress;
     uint32_t           count;
     uint32_t           cur;
     uint32_t           nextBlockId;
@@ -46,6 +49,9 @@ static BlockChain blockChainDeviceImage;
 
 static uint32_t hostVisibleCoherentTypeIndex = 0;
 static uint32_t deviceLocalTypeIndex = 0;
+
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
@@ -120,6 +126,8 @@ static void initBlockChain(
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .usage = bufferUsageFlags,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue family determined by first use
+            // TODO this sharing mode is why we need to expand Tanto_V_MemoryType to specify
+            // queue usage as well. So we do need graphics type, transfer type, and compute types
             .size = memorySize 
         };
 
@@ -134,6 +142,13 @@ static void initBlockChain(
         //chain->defaultAlignment = memReqs.alignment;
 
         V1_PRINT("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
+
+        const VkBufferDeviceAddressInfo addrInfo = {
+            .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+            .buffer = chain->buffer
+        };
+
+        chain->bufferAddress = vkGetBufferDeviceAddress(device, &addrInfo);
 
         if (mapBuffer)
             V_ASSERT( vkMapMemory(device, chain->memory, 0, VK_WHOLE_SIZE, 0, (void**)&chain->hostData) );
@@ -158,6 +173,7 @@ static void freeBlockChain(struct BlockChain* chain)
         chain->buffer = VK_NULL_HANDLE;
     }
     vkFreeMemory(device, chain->memory, NULL);
+    memset(chain, 0, sizeof(*chain));
 }
 
 static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain)
@@ -208,9 +224,6 @@ static void rotateBlockDown(const size_t fromIndex, const size_t toIndex, struct
         chain->blocks[i - 1] = temp;
     }
 }
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 static void mergeBlocks(struct BlockChain* chain)
 {
@@ -374,6 +387,7 @@ void tanto_v_InitMemory(void)
 
     VkBufferUsageFlags bhbFlags = 
          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
+         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
          VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
@@ -389,6 +403,7 @@ void tanto_v_InitMemory(void)
 
     VkBufferUsageFlags devBufFlags = 
          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
+         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
          VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
          VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
@@ -439,21 +454,14 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
 Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size, 
         const VkBufferUsageFlags flags, const Tanto_V_MemoryType memType)
 {
-    uint32_t alignment = 0;
-    // the order of this if statements matters. it garuantees the maximum
-    // alignment is chose if multiple flags are present
+    uint32_t alignment = 16;
     if ( VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
-    {
-        alignment = deviceProperties.limits.minStorageBufferOffsetAlignment;
-        // must satisfy alignment requirements for storage buffers
-    }
-    if ( VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags && 
-            alignment < deviceProperties.limits.minUniformBufferOffsetAlignment)
-    {
-        // must satisfy alignment requirements for uniform buffers
-        alignment = deviceProperties.limits.minUniformBufferOffsetAlignment;
-    }
-    return tanto_v_RequestBufferRegionAligned(size, 0x40, memType); //TODO: fix this. find the maximum alignment and choose that
+        alignment = MAX(deviceProperties.limits.minStorageBufferOffsetAlignment, alignment);
+    if ( VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags)
+        alignment = MAX(deviceProperties.limits.minUniformBufferOffsetAlignment, alignment);
+    if ( VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR & flags)
+        alignment = MAX(256, alignment); // 256 comes from spec for VkAccelerationStructureCreateInfoKHR - see offset
+    return tanto_v_RequestBufferRegionAligned(size, alignment, memType); //TODO: fix this. find the maximum alignment and choose that
 }
 
 uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
@@ -606,6 +614,12 @@ void tanto_v_CleanUpMemory(void)
     freeBlockChain(&blockChainHostBuffer);
     freeBlockChain(&blockChainDeviceImage);
     freeBlockChain(&blockChainDeviceBuffer);
+}
+
+VkDeviceAddress tanto_v_GetBufferRegionAddress(const BufferRegion* region)
+{
+    assert(region->pChain->bufferAddress != 0);
+    return region->pChain->bufferAddress + region->offset;
 }
 
 void tanto_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 

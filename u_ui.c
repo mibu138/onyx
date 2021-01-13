@@ -396,7 +396,6 @@ void tanto_u_Init(const VkImageLayout inputLayout)
     initPipelines();
     initFrameBuffers();
 
-    widgetCount = 0;
     rootWidget = addWidget(0, 0, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL);
 
     tanto_i_Subscribe(responder);
@@ -509,4 +508,6 @@ void tanto_u_CleanUp(void)
     {
         tanto_v_DestroyCommand(renderCommands[i]);
     }
+    rootWidget = NULL;
+    widgetCount = 0;
 }

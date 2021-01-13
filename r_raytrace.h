@@ -7,19 +7,17 @@
 
 typedef struct {
     VkAccelerationStructureKHR handle;
-    VkBuffer        buffer;
-    VkDeviceSize    size;
-    VkDeviceMemory  memory;
-    VkDeviceAddress address;
-} AccelerationStructure;
+    Tanto_V_BufferRegion       bufferRegion;
+} Tanto_R_AccelerationStructure;
 
-extern AccelerationStructure bottomLevelAS;
-extern AccelerationStructure topLevelAS;
+typedef struct {
+    Tanto_V_BufferRegion bufferRegion;
+    uint32_t             groupCount;
+} Tanto_R_ShaderBindingTable;
 
-void tanto_r_InitRayTracing(void);
-void tanto_r_BuildBlas(const Tanto_R_Primitive* prim);
-void tanto_r_BuildTlas(void);
-void tanto_r_RayTraceDestroyAccelStructs(void);
-void tanto_r_RayTraceCleanUp(void);
+void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, Tanto_R_AccelerationStructure* blas);
+void tanto_r_BuildTlas(const Tanto_R_AccelerationStructure* blas, Tanto_R_AccelerationStructure* tlas);
+void tanto_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, Tanto_R_ShaderBindingTable* sbt);
+void tanto_r_DestroyAccelerationStruct(Tanto_R_AccelerationStructure* as);
 
 #endif /* end of include guard: R_RAYTRACE_H */

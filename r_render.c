@@ -194,12 +194,12 @@ void tanto_r_Init(void)
     }
     curFrameIndex = 0;
     frameCounter  = 0;
+    swapRecreateFnCount = 0;
+    imageAcquiredSemaphoreIndex = 0;
     initSwapchain();
     initSwapchainSemaphores();
     initFrames();
     bindFramesToSwapImages();
-    if (tanto_v_config.rayTraceEnabled)
-        tanto_r_InitRayTracing();
     printf("Tanto Renderer initialized.\n");
 }
 
@@ -310,8 +310,6 @@ const uint32_t tanto_r_GetCurrentFrameIndex(void)
 
 void tanto_r_CleanUp(void)
 {
-    if (tanto_v_config.rayTraceEnabled)
-        tanto_r_RayTraceCleanUp();
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
         vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);

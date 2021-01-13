@@ -3,129 +3,18 @@
 #include "r_render.h"
 #include "v_memory.h"
 #include "t_utils.h"
+#include "v_command.h"
 #include <assert.h>
 #include "t_def.h"
 #include <stdio.h>
 #include <string.h>
-#include <vulkan/vulkan_beta.h>
-#include <vulkan/vulkan_core.h>
 
-static VkCommandPool   rtCmdPool;
-static VkCommandBuffer rtCmdBuffers[1];
+typedef Tanto_V_BufferRegion          BufferRegion;
+typedef Tanto_R_AccelerationStructure AccelerationStructure;
+typedef Tanto_V_Command               Command;
+typedef Tanto_R_ShaderBindingTable    ShaderBindingTable;
 
-typedef struct {
-    VkBuffer        buffer;
-    VkDeviceSize    size;
-    VkDeviceMemory  memory;
-    VkDeviceAddress address;
-} ScratchBuffer;
-
-AccelerationStructure bottomLevelAS;
-AccelerationStructure topLevelAS;
-
-static void createAccelerationStructureBuffer(AccelerationStructure* accelStruct, 
-        const VkAccelerationStructureBuildSizesInfoKHR buildSizeInfo)
-{
-    VkBufferCreateInfo bufferCreate = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size  = buildSizeInfo.accelerationStructureSize,
-        .usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-    };
-
-    V_ASSERT( vkCreateBuffer(device, &bufferCreate, NULL, &accelStruct->buffer) );
-
-    VkMemoryRequirements memReqs;
-
-    vkGetBufferMemoryRequirements(device, accelStruct->buffer, &memReqs);
-
-    printf("ACCEL STRUCT SIZE NEEDED: %ld\n", memReqs.size);
-
-    VkMemoryAllocateFlagsInfo allocFlagsInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-        .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
-    };
-
-    VkMemoryAllocateInfo memAlloc = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize = memReqs.size,
-        .memoryTypeIndex = tanto_v_GetMemoryType(
-                memReqs.memoryTypeBits, 
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
-        .pNext = &allocFlagsInfo
-    };
-
-    V_ASSERT( vkAllocateMemory(device, &memAlloc, NULL, &accelStruct->memory) );
-    V_ASSERT( vkBindBufferMemory(device, accelStruct->buffer, accelStruct->memory, 0) );
-
-    accelStruct->size = buildSizeInfo.accelerationStructureSize;
-}
-
-static void createScratchBuffer(VkDeviceSize size, ScratchBuffer* scratchBuffer)
-{
-    VkBufferCreateInfo bufferCreate = {
-        .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-        .size  = size,
-        .usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT
-    };
-
-    V_ASSERT( vkCreateBuffer(device, &bufferCreate, NULL, &scratchBuffer->buffer) );
-
-    VkMemoryRequirements memReqs;
-
-    vkGetBufferMemoryRequirements(device, scratchBuffer->buffer, &memReqs);
-
-    VkMemoryAllocateFlagsInfo allocFlagsInfo = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-        .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
-    };
-
-    VkMemoryAllocateInfo memAlloc = {
-        .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-        .allocationSize = memReqs.size,
-        .memoryTypeIndex = tanto_v_GetMemoryType(
-                memReqs.memoryTypeBits, 
-                VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT),
-        .pNext = &allocFlagsInfo
-    };
-
-    scratchBuffer->size = memReqs.size;
-
-    printf("Scratch buffer build size: %ld\n", scratchBuffer->size);
-
-    V_ASSERT( vkAllocateMemory(device, &memAlloc, NULL, &scratchBuffer->memory) );
-
-    V_ASSERT( vkBindBufferMemory(device, scratchBuffer->buffer, scratchBuffer->memory, 0) );
-
-    VkBufferDeviceAddressInfo addrInfo = {
-        .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-        .buffer = scratchBuffer->buffer,
-    };
-
-    scratchBuffer->address = vkGetBufferDeviceAddress(device, &addrInfo);
-}
-
-static void initCmdPool(void)
-{
-    const VkCommandPoolCreateInfo cmdPoolCi = {
-        .queueFamilyIndex = graphicsQueueFamilyIndex,
-        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
-    };
-
-    V_ASSERT( vkCreateCommandPool(device, &cmdPoolCi, NULL, &rtCmdPool) );
-
-    const VkCommandBufferAllocateInfo allocInfo = {
-        .commandBufferCount = 1,
-        .commandPool = rtCmdPool,
-        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
-    };
-
-    V_ASSERT( vkAllocateCommandBuffers(device, &allocInfo, rtCmdBuffers) );
-}
-
-void tanto_r_BuildBlas(const Tanto_R_Primitive* prim)
+void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* blas)
 {
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -173,24 +62,27 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim)
 
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildAS, &numTrianlges, &buildSizes); 
 
-    createAccelerationStructureBuffer(&bottomLevelAS, buildSizes); 
+    blas->bufferRegion = tanto_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
+            TANTO_V_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR accelStructInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
-        .buffer = bottomLevelAS.buffer,
-        .size   = bottomLevelAS.size,
+        .buffer = blas->bufferRegion.buffer,
+        .offset = blas->bufferRegion.offset,
+        .size   = blas->bufferRegion.size,
         .type   = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR
     };
 
-    V_ASSERT( vkCreateAccelerationStructureKHR(device, &accelStructInfo, NULL, &bottomLevelAS.handle) );
+    V_ASSERT( vkCreateAccelerationStructureKHR(device, &accelStructInfo, NULL, &blas->handle) );
 
-    ScratchBuffer scratchBuffer;
-
-    createScratchBuffer(buildSizes.buildScratchSize, &scratchBuffer);
+    Tanto_V_BufferRegion scratchBufferRegion = tanto_v_RequestBufferRegion(buildSizes.buildScratchSize, 
+            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+            TANTO_V_MEMORY_DEVICE_TYPE);
 
     buildAS.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    buildAS.dstAccelerationStructure = bottomLevelAS.handle;
-    buildAS.scratchData.deviceAddress = scratchBuffer.address;
+    buildAS.dstAccelerationStructure = blas->handle;
+    buildAS.scratchData.deviceAddress = tanto_v_GetBufferRegionAddress(&scratchBufferRegion);
 
     VkAccelerationStructureBuildRangeInfoKHR buildRange = {
         .firstVertex = 0,
@@ -201,34 +93,22 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim)
 
     const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
 
-    VkCommandBufferBeginInfo cmdBegin = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
-    };
+    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
 
-    vkBeginCommandBuffer(rtCmdBuffers[0], &cmdBegin);
+    tanto_v_BeginCommandBuffer(cmd.buffer);
 
-    vkCmdBuildAccelerationStructuresKHR(rtCmdBuffers[0], 1, &buildAS, ranges);
+    vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &buildAS, ranges);
 
-    vkEndCommandBuffer(rtCmdBuffers[0]);
+    tanto_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitToQueueWait(&rtCmdBuffers[0], TANTO_V_QUEUE_GRAPHICS_TYPE, 0); // choosing the last queue for no reason
+    tanto_v_SubmitAndWait(&cmd, 0);
 
-    vkResetCommandPool(device, rtCmdPool, 0);
+    tanto_v_DestroyCommand(cmd);
 
-    //vkDestroyQueryPool(device, queryPool, NULL);
-    vkDestroyBuffer(device, scratchBuffer.buffer, NULL);
-    vkFreeMemory(device, scratchBuffer.memory, NULL);
-
-    VkAccelerationStructureDeviceAddressInfoKHR blasAddrInfo = {
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
-        .accelerationStructure = bottomLevelAS.handle
-    };
-
-    bottomLevelAS.address = vkGetAccelerationStructureDeviceAddressKHR(device, &blasAddrInfo);
+    tanto_v_FreeBufferRegion(&scratchBufferRegion);
 }
 
-void tanto_r_BuildTlas(void)
+void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure* tlas)
 {
     VkTransformMatrixKHR transform = {
         1.0, 0.0, 0.0, 0.0,
@@ -242,7 +122,7 @@ void tanto_r_BuildTlas(void)
     //transform = m_Transpose_Mat4(&transform); // we don't need to because its identity, but leaving here to impress the point
 
     VkAccelerationStructureInstanceKHR instance = {
-        .accelerationStructureReference = bottomLevelAS.address, // the 0'th blas
+        .accelerationStructureReference = tanto_v_GetBufferRegionAddress(&blas->bufferRegion),
         .instanceCustomIndex = 0, // 0'th instance it
         .instanceShaderBindingTableRecordOffset = 0, 
         .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
@@ -250,62 +130,16 @@ void tanto_r_BuildTlas(void)
         .transform = transform
     };
 
-    VkBuffer instBuffer;
-    VkDeviceMemory instMemory; 
-    VkDeviceAddress instAddress;
+    BufferRegion instBuffer = tanto_v_RequestBufferRegion(1 * sizeof(VkAccelerationStructureInstanceKHR),
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            TANTO_V_MEMORY_HOST_TYPE);
 
-    {
-        VkBufferCreateInfo bufferInfo = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-            .usage = VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-            .size = 1 * sizeof(VkAccelerationStructureInstanceKHR),
-            .queueFamilyIndexCount = 1,
-            .pQueueFamilyIndices = &graphicsQueueFamilyIndex,
-        };
-
-        V_ASSERT( vkCreateBuffer(device, &bufferInfo, NULL, &instBuffer) );
-
-        VkMemoryRequirements memReqs;
-
-        vkGetBufferMemoryRequirements(device, instBuffer, &memReqs);
-
-        const VkMemoryAllocateFlagsInfo allocFlagsInfo = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-            .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
-        };
-
-        VkMemoryAllocateInfo memAlloc = {
-            .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-            .pNext = &allocFlagsInfo,
-            .memoryTypeIndex = tanto_v_GetMemoryType(memReqs.memoryTypeBits, 
-                    VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT),
-            .allocationSize = memReqs.size
-        };
-
-        V_ASSERT( vkAllocateMemory(device, &memAlloc, NULL, &instMemory) );
-
-        vkBindBufferMemory(device, instBuffer, instMemory, 0);
-
-        void* data;
-
-        V_ASSERT( vkMapMemory(device, instMemory, 0, memReqs.size, 0, &data) );
-
-        memcpy(data, &instance, 1 * sizeof(instance));
-
-        vkUnmapMemory(device, instMemory);
-
-        VkBufferDeviceAddressInfo addrInfo = {
-            .sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
-            .buffer = instBuffer
-        };
-
-        instAddress = vkGetBufferDeviceAddress(device, &addrInfo);
-    }
+    assert(instBuffer.hostData);
+    memcpy(instBuffer.hostData, &instance, 1 * sizeof(instance));
 
     const VkAccelerationStructureGeometryInstancesDataKHR instanceData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-        .data.deviceAddress = instAddress,
+        .data.deviceAddress = tanto_v_GetBufferRegionAddress(&instBuffer),
         .arrayOfPointers = VK_FALSE
     };
 
@@ -336,26 +170,29 @@ void tanto_r_BuildTlas(void)
 
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &topAsInfo, &maxPrimCount, &buildSizes); 
 
-    createAccelerationStructureBuffer(&topLevelAS, buildSizes);
+    tlas->bufferRegion = tanto_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            TANTO_V_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR asCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
         .type  = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
-        .buffer = topLevelAS.buffer,
-        .size   = topLevelAS.size,
+        .buffer = tlas->bufferRegion.buffer,
+        .offset = tlas->bufferRegion.offset,
+        .size   = tlas->bufferRegion.size,
     };
 
-    V_ASSERT( vkCreateAccelerationStructureKHR(device, &asCreateInfo, NULL, &topLevelAS.handle) );
+    V_ASSERT( vkCreateAccelerationStructureKHR(device, &asCreateInfo, NULL, &tlas->handle) );
 
     // allocate and bind memory
 
-    ScratchBuffer scratchBuffer;
-
-    createScratchBuffer(buildSizes.buildScratchSize, &scratchBuffer);
+    BufferRegion scratchBuffer = tanto_v_RequestBufferRegion(buildSizes.buildScratchSize,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            TANTO_V_MEMORY_DEVICE_TYPE);
 
     topAsInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    topAsInfo.dstAccelerationStructure = topLevelAS.handle;
-    topAsInfo.scratchData.deviceAddress = scratchBuffer.address;
+    topAsInfo.dstAccelerationStructure = tlas->handle;
+    topAsInfo.scratchData.deviceAddress = tanto_v_GetBufferRegionAddress(&scratchBuffer);
 
     const VkAccelerationStructureBuildRangeInfoKHR buildRange = {
         .firstVertex = 0,
@@ -366,63 +203,55 @@ void tanto_r_BuildTlas(void)
 
     const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
 
-    const VkCommandBufferBeginInfo cmdBegin = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
-    };
+    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
 
-    V_ASSERT( vkBeginCommandBuffer(rtCmdBuffers[0], &cmdBegin) );
+    tanto_v_BeginCommandBuffer(cmd.buffer);
 
-    vkCmdBuildAccelerationStructuresKHR(rtCmdBuffers[0], 1, &topAsInfo, ranges);
+    vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &topAsInfo, ranges);
 
-    vkEndCommandBuffer(rtCmdBuffers[0]);
+    tanto_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitToQueueWait(&rtCmdBuffers[0], TANTO_V_QUEUE_GRAPHICS_TYPE, 0);
+    tanto_v_SubmitAndWait(&cmd, TANTO_V_QUEUE_GRAPHICS_TYPE);
 
-    vkDestroyBuffer(device, scratchBuffer.buffer, NULL);
-    vkDestroyBuffer(device, instBuffer, NULL);
-    vkFreeMemory(device, scratchBuffer.memory, NULL);
-    vkFreeMemory(device, instMemory, NULL);
-
-    VkAccelerationStructureDeviceAddressInfoKHR blasAddrInfo = {
-        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR,
-        .accelerationStructure = topLevelAS.handle
-    };
-
-    bottomLevelAS.address = vkGetAccelerationStructureDeviceAddressKHR(device, &blasAddrInfo);
+    tanto_v_DestroyCommand(cmd);
+    tanto_v_FreeBufferRegion(&scratchBuffer);
+    tanto_v_FreeBufferRegion(&instBuffer);
 }
 
-void tanto_r_InitRayTracing(void)
+void tanto_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
 {
-    VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProps = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
-        .pNext = NULL
-    };
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = tanto_v_GetPhysicalDeviceRayTracingProperties();
+    const uint32_t groupHandleSize = rtprops.shaderGroupHandleSize;
+    const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
+    const uint32_t sbtSize = groupCount * baseAlignment; // 3 shader groups: raygen, miss, closest hit
 
-    VkPhysicalDeviceProperties2 properties = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
-        .pNext = &rtProps
-    };
+    uint8_t shaderHandleData[sbtSize];
 
-    vkGetPhysicalDeviceProperties2(physicalDevice, &properties);
+    printf("ShaderGroup handle size: %d\n", groupHandleSize);
+    printf("ShaderGroup base alignment: %d\n", baseAlignment);
+    printf("ShaderGroups total size   : %d\n", sbtSize);
 
-    printf("Max recursion depth: %d\n", rtProps.maxRayRecursionDepth);
+    VkResult r;
+    r = vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleData);
+    assert( VK_SUCCESS == r );
+    sbt->bufferRegion = tanto_v_RequestBufferRegionAligned(sbtSize, baseAlignment, TANTO_V_MEMORY_HOST_TYPE);
+    sbt->groupCount = groupCount;
 
-    initCmdPool();
+    uint8_t* pSrc    = shaderHandleData;
+    uint8_t* pTarget = sbt->bufferRegion.hostData;
+
+    for (int i = 0; i < groupCount; i++) 
+    {
+        memcpy(pTarget, pSrc + i * groupHandleSize, groupHandleSize);
+        pTarget += baseAlignment;
+    }
+
+    printf("Created shader binding table\n");
 }
 
-void tanto_r_RayTraceDestroyAccelStructs(void)
+void tanto_r_DestroyAccelerationStruct(AccelerationStructure* as)
 {
-    vkDestroyAccelerationStructureKHR(device, topLevelAS.handle, NULL);
-    vkDestroyAccelerationStructureKHR(device, bottomLevelAS.handle, NULL);
-    vkDestroyBuffer(device, topLevelAS.buffer, NULL);
-    vkDestroyBuffer(device, bottomLevelAS.buffer, NULL);
-    vkFreeMemory(device, topLevelAS.memory, NULL);
-    vkFreeMemory(device, bottomLevelAS.memory, NULL);
+    vkDestroyAccelerationStructureKHR(device, as->handle, NULL);
+    tanto_v_FreeBufferRegion(&as->bufferRegion);
 }
 
-void tanto_r_RayTraceCleanUp(void)
-{
-    tanto_r_RayTraceDestroyAccelStructs();
-    vkDestroyCommandPool(device, rtCmdPool, NULL);
-}

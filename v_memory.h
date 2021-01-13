@@ -61,6 +61,8 @@ void tanto_v_FreeImage(Tanto_V_Image* image);
 
 void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion);
 
+VkDeviceAddress tanto_v_GetBufferRegionAddress(const Tanto_V_BufferRegion* region);
+
 void tanto_v_CleanUpMemory(void);
 
 // application's job to destroy this buffer and free the memory
