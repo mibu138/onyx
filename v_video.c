@@ -14,8 +14,7 @@
 #include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan_xcb.h>
 
-#define MAX_GRAPHICS_QUEUES 32
-#define MAX_TRANSFER_QUEUES 16
+#define MAX_QUEUES 32
 
 static VkInstance instance;
 
@@ -24,10 +23,13 @@ VkDevice          device;
 
 static uint32_t graphicsQueueCount;
 static uint32_t transferQueueCount;
+static uint32_t computeQueueCount;
 static uint32_t graphicsQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
 static uint32_t transferQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
-static VkQueue  graphicsQueues[MAX_GRAPHICS_QUEUES];
-static VkQueue  transferQueues[MAX_TRANSFER_QUEUES];
+static uint32_t computeQueueFamilyIndex = UINT32_MAX; //hopefully this causes obvious errors
+static VkQueue  graphicsQueues[MAX_QUEUES];
+static VkQueue  transferQueues[MAX_QUEUES];
+static VkQueue  computeQueues[MAX_QUEUES];
 static VkQueue  presentQueue;
 
 static VkSurfaceKHR      nativeSurface;
@@ -48,18 +50,7 @@ VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     return VK_FALSE; // application must return false;
 }
 
-static uint32_t getVkVersionAvailable(void)
-{
-    uint32_t v;
-    vkEnumerateInstanceVersion(&v);
-    uint32_t major = VK_VERSION_MAJOR(v);
-    uint32_t minor = VK_VERSION_MINOR(v);
-    uint32_t patch = VK_VERSION_PATCH(v);
-    V1_PRINT("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
-    return v;
-}
-
-static void inspectAvailableLayers(void)
+void inspectAvailableLayers(void)
 {
     uint32_t availableCount;
     vkEnumerateInstanceLayerProperties(&availableCount, NULL);
@@ -84,7 +75,7 @@ static void inspectAvailableLayers(void)
     putchar('\n');
 }
 
-static void inspectAvailableExtensions(void)
+void inspectAvailableExtensions(void)
 {
     uint32_t availableCount;
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount, NULL);
@@ -95,6 +86,17 @@ static void inspectAvailableExtensions(void)
         V1_PRINT("%s\n", propertiesAvailable[i].extensionName);
     }
     putchar('\n');
+}
+
+static uint32_t getVkVersionAvailable(void)
+{
+    uint32_t v;
+    vkEnumerateInstanceVersion(&v);
+    uint32_t major = VK_VERSION_MAJOR(v);
+    uint32_t minor = VK_VERSION_MINOR(v);
+    uint32_t patch = VK_VERSION_PATCH(v);
+    V1_PRINT("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
+    return v;
 }
 
 static void initVkInstance(void)
@@ -233,52 +235,76 @@ static void initDevice(void)
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, qfprops);
 
+    int8_t transferQueueTicker = 2, computeQueueTicker = 2;
     for (int i = 0; i < qfcount; i++) 
     {
         VkQueryControlFlags flags = qfprops[i].queueFlags;
         V1_PRINT("Queue Family %d: count: %d flags: ", i, qfprops[i].queueCount);
         if (flags & VK_QUEUE_GRAPHICS_BIT) V1_PRINT(" Graphics ");
         if (flags & VK_QUEUE_COMPUTE_BIT)  V1_PRINT(" Compute ");
-        if (flags & VK_QUEUE_TRANSFER_BIT) 
-        {
-            V1_PRINT(" Tranfer ");
-            if (transferQueueCount == 0) 
-            {
-                transferQueueCount = qfprops[i].queueCount;
-                transferQueueFamilyIndex = i;
-            }
-        }
+        if (flags & VK_QUEUE_TRANSFER_BIT) V1_PRINT(" Tranfer ");
         V1_PRINT("\n");
         if (flags & VK_QUEUE_GRAPHICS_BIT && graphicsQueueCount == 0) // first graphics queue
         {
             graphicsQueueCount = qfprops[i].queueCount;
             graphicsQueueFamilyIndex = i;
-            break;
         }
-        if (flags & VK_QUEUE_TRANSFER_BIT && transferQueueCount == 0) // TODO: this is a shitty heuristic. make better
+        if (flags & VK_QUEUE_TRANSFER_BIT && transferQueueTicker > 0) // TODO: this a blind heuristic. get more info.
         {
             transferQueueCount = qfprops[i].queueCount;
             transferQueueFamilyIndex = i;
+            transferQueueTicker--;
+        }
+        if (flags & VK_QUEUE_COMPUTE_BIT && computeQueueTicker > 0) // TODO: this is a blind heuristic. get more info.
+        {
+            computeQueueCount = qfprops[i].queueCount;
+            computeQueueFamilyIndex = i;
+            computeQueueTicker--;
         }
     }
 
-    assert(graphicsQueueCount < MAX_GRAPHICS_QUEUES);
+    V1_PRINT("Graphics Queue family index: %d\n", graphicsQueueFamilyIndex); 
+    V1_PRINT("Transfer Queue family index: %d\n", transferQueueFamilyIndex); 
+    V1_PRINT("Compute  Queue family index: %d\n", computeQueueFamilyIndex); 
 
-    float priorities[graphicsQueueCount];
+    assert(graphicsQueueCount < MAX_QUEUES);
+    assert(transferQueueCount < MAX_QUEUES);
+    assert(computeQueueCount < MAX_QUEUES);
+
+    float graphicsPriorities[graphicsQueueCount];
+    float transferPriorities[transferQueueCount];
+    float computePriorities[computeQueueCount];
 
     for (int i = 0; i < graphicsQueueCount; i++) 
     {
-        priorities[i] = 1.0;   
+        graphicsPriorities[i] = 1.0;   
+    }
+    for (int i = 0; i < transferQueueCount; i++) 
+    {
+        transferPriorities[i] = 1.0;   
+    }
+    for (int i = 0; i < computeQueueCount; i++) 
+    {
+        computePriorities[i] = 1.0;   
     }
 
-    const VkDeviceQueueCreateInfo qci[] = { 
-        { 
-            .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-            .queueFamilyIndex = graphicsQueueFamilyIndex,
-            .queueCount =  graphicsQueueCount,
-            .pQueuePriorities = priorities,
-        }
-    };
+    // TODO: test what would happen if families alias eachother.
+    const VkDeviceQueueCreateInfo qci[] = {{ 
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = graphicsQueueFamilyIndex,
+        .queueCount =  graphicsQueueCount,
+        .pQueuePriorities = graphicsPriorities,
+    },{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = transferQueueFamilyIndex,
+        .queueCount =  transferQueueCount,
+        .pQueuePriorities = transferPriorities,
+    },{
+        .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+        .queueFamilyIndex = computeQueueFamilyIndex,
+        .queueCount =  computeQueueCount,
+        .pQueuePriorities = computePriorities,
+    }};
 
     uint32_t propCount;
     V_ASSERT( vkEnumerateDeviceExtensionProperties(physicalDevice, NULL, &propCount, NULL) );
@@ -445,6 +471,14 @@ static void initQueues(void)
     {
         vkGetDeviceQueue(device, graphicsQueueFamilyIndex, i, &graphicsQueues[i]);
     }
+    for (int i = 0; i < transferQueueCount; i++) 
+    {
+        vkGetDeviceQueue(device, transferQueueFamilyIndex, i, &transferQueues[i]);
+    }
+    for (int i = 0; i < computeQueueCount; i++) 
+    {
+        vkGetDeviceQueue(device, computeQueueFamilyIndex, i, &computeQueues[i]);
+    }
     presentQueue = graphicsQueues[0]; // use the first queue to present
 }
 
@@ -520,6 +554,7 @@ uint32_t tanto_v_GetQueueFamilyIndex(Tanto_V_QueueType type)
     switch (type)
     {
         case TANTO_V_QUEUE_GRAPHICS_TYPE: return graphicsQueueFamilyIndex;
+        case TANTO_V_QUEUE_TRANSFER_TYPE: return transferQueueFamilyIndex;
         case TANTO_V_QUEUE_COMPUTE_TYPE:  assert(0); return -1; //not supported yet
     }
     return -1;

@@ -89,13 +89,14 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
-            VK_FILTER_NEAREST); 
+            VK_FILTER_NEAREST,
+            tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE)); 
 
     tanto_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 
     Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            TANTO_V_MEMORY_HOST_TYPE);
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 

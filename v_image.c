@@ -22,9 +22,10 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     const VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
-    const VkFilter filter)
+    const VkFilter filter,
+    const uint32_t queueFamilyIndex)
 {
-    Tanto_V_Image image = tanto_v_CreateImage(width, height, format, usageFlags, aspectMask, sampleCount);
+    Tanto_V_Image image = tanto_v_CreateImage(width, height, format, usageFlags, aspectMask, sampleCount, queueFamilyIndex);
 
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -195,7 +196,7 @@ void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* filename)
 {
     Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(
-            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TYPE);
+            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
 
     VkImageLayout origLayout = image->layout;
     tanto_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);

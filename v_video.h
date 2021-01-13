@@ -8,6 +8,7 @@ v_video.c
 
 typedef enum {
     TANTO_V_QUEUE_GRAPHICS_TYPE,
+    TANTO_V_QUEUE_TRANSFER_TYPE,
     TANTO_V_QUEUE_COMPUTE_TYPE,
 } Tanto_V_QueueType;
 

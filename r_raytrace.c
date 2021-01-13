@@ -132,7 +132,7 @@ void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure*
 
     BufferRegion instBuffer = tanto_v_RequestBufferRegion(1 * sizeof(VkAccelerationStructureInstanceKHR),
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            TANTO_V_MEMORY_HOST_TYPE);
+            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     assert(instBuffer.hostData);
     memcpy(instBuffer.hostData, &instance, 1 * sizeof(instance));
@@ -234,7 +234,7 @@ void tanto_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipelin
     VkResult r;
     r = vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleData);
     assert( VK_SUCCESS == r );
-    sbt->bufferRegion = tanto_v_RequestBufferRegionAligned(sbtSize, baseAlignment, TANTO_V_MEMORY_HOST_TYPE);
+    sbt->bufferRegion = tanto_v_RequestBufferRegionAligned(sbtSize, baseAlignment, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
     sbt->groupCount = groupCount;
 
     uint8_t* pSrc    = shaderHandleData;

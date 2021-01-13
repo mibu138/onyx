@@ -11,7 +11,8 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST_BUFFER 0x120000000 // 
+#define MEMORY_SIZE_HOST_GRAPHICS_BUFFER 0x120000000 // 
+#define MEMORY_SIZE_HOST_TRANSFER_BUFFER 0x120000000 // 
 #define MEMORY_SIZE_DEV_BUFFER  0x1000000 // 
 #define MEMORY_SIZE_DEV_IMAGE   0x120000000 // 
 #define MAX_BLOCKS 100000
@@ -43,7 +44,8 @@ typedef struct BlockChain {
     Tanto_V_MemBlock   blocks[MAX_BLOCKS];
 } BlockChain;
 
-static BlockChain blockChainHostBuffer;
+static BlockChain blockChainHostGraphicsBuffer;
+static BlockChain blockChainHostTransferBuffer;
 static BlockChain blockChainDeviceBuffer;
 static BlockChain blockChainDeviceImage;
 
@@ -83,6 +85,7 @@ static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 }
 
 static void initBlockChain(
+        const Tanto_V_MemoryType memType,
         const VkDeviceSize memorySize, 
         const uint32_t memTypeIndex, 
         const VkBufferUsageFlags bufferUsageFlags, 
@@ -122,9 +125,21 @@ static void initBlockChain(
 
     if (bufferUsageFlags)
     {
+
+        uint32_t queueFamilyIndex; 
+        switch (memType) 
+        {
+            case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE); break;
+            case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_TRANSFER_TYPE); break;
+            case TANTO_V_MEMORY_DEVICE_TYPE:        queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE); break;
+            default: assert(0); break;
+        }
+
         VkBufferCreateInfo ci = {
             .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
             .usage = bufferUsageFlags,
+            .queueFamilyIndexCount = 1,
+            .pQueueFamilyIndices = &queueFamilyIndex,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue family determined by first use
             // TODO this sharing mode is why we need to expand Tanto_V_MemoryType to specify
             // queue usage as well. So we do need graphics type, transfer type, and compute types
@@ -385,7 +400,7 @@ void tanto_v_InitMemory(void)
     V1_PRINT( "Host Visible and Coherent memory type index found: %d\n", hostVisibleCoherentTypeIndex);
     V1_PRINT( "Device local memory type index found: %d\n", deviceLocalTypeIndex);
 
-    VkBufferUsageFlags bhbFlags = 
+    VkBufferUsageFlags hostGraphicsFlags = 
          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
          VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
          VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
@@ -397,9 +412,10 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    //VkBufferUsageFlags hostTransferFlags = 
-    //    VK_BUFFER_USAGE_TRANSFER_DST_BIT |
-    //    VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    VkBufferUsageFlags hostTransferFlags = 
+        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+        VK_BUFFER_USAGE_TRANSFER_DST_BIT |
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VkBufferUsageFlags devBufFlags = 
          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
@@ -412,9 +428,18 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
-    initBlockChain(MEMORY_SIZE_HOST_BUFFER, hostVisibleCoherentTypeIndex, bhbFlags, true, "hostBuffer",   &blockChainHostBuffer);
-    initBlockChain(MEMORY_SIZE_DEV_BUFFER, deviceLocalTypeIndex, devBufFlags, false, "devBuffer",  &blockChainDeviceBuffer);
-    initBlockChain(MEMORY_SIZE_DEV_IMAGE, deviceLocalTypeIndex, 0, false, "devImage",              &blockChainDeviceImage);
+    initBlockChain(TANTO_V_MEMORY_HOST_GRAPHICS_TYPE, MEMORY_SIZE_HOST_GRAPHICS_BUFFER, 
+            hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
+            true, "hostGraphBuffer", &blockChainHostGraphicsBuffer);
+    initBlockChain(TANTO_V_MEMORY_HOST_TRANSFER_TYPE, MEMORY_SIZE_HOST_TRANSFER_BUFFER, 
+            hostVisibleCoherentTypeIndex, hostTransferFlags, 
+            true, "hostTransBuffer", &blockChainHostTransferBuffer);
+    initBlockChain(TANTO_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_BUFFER, 
+            deviceLocalTypeIndex, devBufFlags, 
+            false, "devBuffer", &blockChainDeviceBuffer);
+    initBlockChain(TANTO_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_IMAGE, 
+            deviceLocalTypeIndex, 0, 
+            false, "devImage", &blockChainDeviceImage);
 }
 
 Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
@@ -429,7 +454,8 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     struct BlockChain* chain = NULL;
     switch (memType) 
     {
-        case TANTO_V_MEMORY_HOST_TYPE:   chain = &blockChainHostBuffer; break;
+        case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE:   chain = &blockChainHostGraphicsBuffer; break;
+        case TANTO_V_MEMORY_HOST_TRANSFER_TYPE:   chain = &blockChainHostTransferBuffer; break;
         case TANTO_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceBuffer; break;
         default: block = NULL; assert(0);
     }
@@ -483,14 +509,13 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
-        const VkSampleCountFlags sampleCount)
+        const VkSampleCountFlags sampleCount,
+        const uint32_t queueFamilyIndex)
 {
     assert( width * height < MEMORY_SIZE_DEV_IMAGE );
 
     assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
     assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
-
-    uint32_t queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE);
 
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
@@ -601,7 +626,7 @@ void tanto_v_CopyImageToBufferRegion(const Tanto_V_Image* image, Tanto_V_BufferR
 void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
 {
     const Tanto_V_BufferRegion srcRegion = *pRegion;
-    assert( srcRegion.pChain == &blockChainHostBuffer); // only chain it makes sense to transfer from
+    assert( srcRegion.pChain == &blockChainHostGraphicsBuffer); // only chain it makes sense to transfer from
     Tanto_V_BufferRegion destRegion = tanto_v_RequestBufferRegion(srcRegion.size, 0, TANTO_V_MEMORY_DEVICE_TYPE);
 
     tanto_v_CopyBufferRegion(&srcRegion, &destRegion);
@@ -613,7 +638,8 @@ void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
 
 void tanto_v_CleanUpMemory(void)
 {
-    freeBlockChain(&blockChainHostBuffer);
+    freeBlockChain(&blockChainHostGraphicsBuffer);
+    freeBlockChain(&blockChainHostTransferBuffer);
     freeBlockChain(&blockChainDeviceImage);
     freeBlockChain(&blockChainDeviceBuffer);
 }
@@ -631,7 +657,8 @@ void tanto_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags,
     uint32_t typeIndex;
     switch (type) 
     {
-        case TANTO_V_MEMORY_HOST_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
+        case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
+        case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
         case TANTO_V_MEMORY_DEVICE_TYPE:        typeIndex = deviceLocalTypeIndex; break;
     }
 

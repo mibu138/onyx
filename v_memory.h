@@ -7,7 +7,8 @@
 typedef uint32_t Tanto_V_BlockId;
 
 typedef enum {
-    TANTO_V_MEMORY_HOST_TYPE,
+    TANTO_V_MEMORY_HOST_GRAPHICS_TYPE,
+    TANTO_V_MEMORY_HOST_TRANSFER_TYPE,
     TANTO_V_MEMORY_DEVICE_TYPE,
 } Tanto_V_MemoryType;
 
@@ -30,7 +31,7 @@ typedef struct {
     VkExtent3D        extent;
     Tanto_V_BlockId   memBlockId;
     VkImageLayout     layout;
-    VkDeviceMemory    memory; // need this specifically for images that can exist in host memory types
+    uint32_t          queueFamily;
 } Tanto_V_Image;
 
 void tanto_v_InitMemory(void);
@@ -49,7 +50,8 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkFormat format,
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
-        const VkSampleCountFlags sampleCount);
+        const VkSampleCountFlags sampleCount,
+        const uint32_t queueFamilyIndex);
 
 void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst);
 
