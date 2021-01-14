@@ -447,7 +447,7 @@ uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst)
     return widgetCount;
 }
 
-void tanto_u_Render(void)
+const VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
 {
     uint32_t frameIndex = tanto_r_GetCurrentFrameIndex();
 
@@ -488,9 +488,12 @@ void tanto_u_Render(void)
 
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
-    tanto_r_SubmitUI(renderCommands[frameIndex]);
+    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    tanto_r_PresentFrame(&renderCommands[frameIndex].semaphore);
+    tanto_v_SubmitCommand(tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
+            0, &stageFlags, pWaitSemephore, &renderCommands[frameIndex]);
+
+    return &renderCommands[frameIndex].semaphore;
 }
 
 void tanto_u_CleanUp(void)

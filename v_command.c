@@ -52,7 +52,7 @@ void tanto_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
         .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
     };
 
-    vkBeginCommandBuffer(cmdBuf, &beginInfo);
+    V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
 void tanto_v_EndCommandBuffer(VkCommandBuffer cmdBuf)
@@ -60,9 +60,21 @@ void tanto_v_EndCommandBuffer(VkCommandBuffer cmdBuf)
     vkEndCommandBuffer(cmdBuf);
 }
 
+
+void tanto_v_WaitForFence(VkFence* fence)
+{
+    vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
+    vkResetFences(device, 1, fence);
+}
+
 void tanto_v_DestroyCommand(Tanto_V_Command cmd)
 {
     vkDestroyCommandPool(device, cmd.pool, NULL);
     vkDestroyFence(device, cmd.fence, NULL);
     vkDestroySemaphore(device, cmd.semaphore, NULL);
+}
+
+void tanto_v_ResetCommand(Tanto_V_Command* cmd)
+{
+    vkResetCommandPool(device, cmd->pool, 0);
 }

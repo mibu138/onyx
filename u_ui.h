@@ -36,14 +36,14 @@ struct Tanto_U_Widget {
     uint8_t              id;
 };
 
-void tanto_u_Init(const VkImageLayout inputLayout);
-void tanto_u_DebugReport(void);
-Tanto_U_Widget* tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
-        const int16_t width, const int16_t height, Tanto_U_Widget* parent);
-Tanto_U_Widget* tanto_u_CreateSlider(const int16_t x, const int16_t y, 
-        Tanto_U_Widget* parent);
-uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst);
-void    tanto_u_Render(void);
-void    tanto_u_CleanUp(void);
+void               tanto_u_Init(const VkImageLayout inputLayout);
+void               tanto_u_DebugReport(void);
+Tanto_U_Widget*    tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
+                        const int16_t width, const int16_t height, Tanto_U_Widget* parent);
+Tanto_U_Widget*    tanto_u_CreateSlider(const int16_t x, const int16_t y, 
+                        Tanto_U_Widget* parent);
+uint8_t            tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst);
+const VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore);
+void               tanto_u_CleanUp(void);
 
 #endif /* end of include guard: TANTO_U_UI_H */

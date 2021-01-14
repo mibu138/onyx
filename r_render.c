@@ -134,7 +134,6 @@ static void initFrames(void)
 {
     for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
     {
-        frames[i].command = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
         frames[i].index = i;
     }
     V1_PRINT("Frames successfully initialized.\n");
@@ -195,11 +194,6 @@ void tanto_r_Init(void)
     printf("Tanto Renderer initialized.\n");
 }
 
-void tanto_r_WaitOnQueueSubmit(void)
-{
-    vkWaitForFences(device, 1, &frames[curFrameIndex].command.fence, VK_TRUE, UINT64_MAX);
-}
-
 const uint32_t tanto_r_RequestFrame(void)
 {
     //const uint32_t i = frameCounter % TANTO_FRAME_COUNT;
@@ -221,34 +215,16 @@ retry:
     return curFrameIndex;
 }
 
-void tanto_r_SubmitFrame(void)
-{
-    vkWaitForFences(device, 1, &frames[curFrameIndex].command.fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, &frames[curFrameIndex].command.fence);
-
-    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    tanto_v_SubmitGraphicsCommand(0, &stageFlags, &imageAcquiredSemaphores[imageAcquiredSemaphoreIndex], 
-            &frames[curFrameIndex].command);
-}
-
-void tanto_r_SubmitUI(const Tanto_V_Command cmd)
-{
-    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    tanto_v_SubmitGraphicsCommand(0, &stageFlags, &frames[curFrameIndex].command.semaphore, 
-            &cmd);
-}
-
-bool tanto_r_PresentFrame(const VkSemaphore* pWaitSemaphore)
+bool tanto_r_PresentFrame(const VkSemaphore waitSemaphore)
 {
     VkResult r;
+    VkSemaphore waitSemaphores[2] = {waitSemaphore, imageAcquiredSemaphores[imageAcquiredSemaphoreIndex]};
     const VkPresentInfoKHR info = {
         .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
         .swapchainCount = 1,
         .pSwapchains = &swapchain,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = pWaitSemaphore,
+        .waitSemaphoreCount = 2,
+        .pWaitSemaphores = waitSemaphores,
         .pResults = &r,
         .pImageIndices = &curFrameIndex,
     };
@@ -286,15 +262,9 @@ void tanto_r_CleanUp(void)
     {
         vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
         vkDestroyImageView(device, frames[i].swapImage.view, NULL);
-        tanto_v_DestroyCommand(frames[i].command);
     }
     vkDestroySwapchainKHR(device, swapchain, NULL);
     swapRecreateFnCount = 0;
-}
-
-void tanto_r_WaitOnFrame(int8_t frameIndex)
-{
-    vkWaitForFences(device, 1, &frames[frameIndex].command.fence, VK_TRUE, UINT64_MAX);
 }
 
 VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }

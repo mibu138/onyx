@@ -575,7 +575,8 @@ VkQueue tanto_v_GetPresentQueue(void)
     return presentQueue;
 }
 
-void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+void tanto_v_SubmitCommand(const uint32_t queueFamilyIndex, const uint32_t queueIndex, 
+        const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
         const Tanto_V_Command* cmd)
 {
     VkSubmitInfo si = {

@@ -28,6 +28,9 @@ VkDevice          tanto_v_GetDevice(void);
 VkQueue           tanto_v_GetPresentQueue(void);
 void              tanto_v_CleanUp(void);
 VkSurfaceKHR      tanto_v_GetSurface(void);
+void              tanto_v_SubmitCommand(const uint32_t queueFamilyIndex, const uint32_t queueIndex, 
+                        const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+                        const struct Tanto_V_Command* cmd);
 void              tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
                         const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
                         const struct Tanto_V_Command* cmd);

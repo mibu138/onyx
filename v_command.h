@@ -28,4 +28,7 @@ void            tanto_v_SubmitAndWait(Tanto_V_Command* cmd, const uint32_t queue
 
 void            tanto_v_DestroyCommand(Tanto_V_Command);
 
+void            tanto_v_WaitForFence(VkFence* fence);
+void            tanto_v_ResetCommand(Tanto_V_Command* cmd);
+
 #endif /* end of include guard: TANTO_V_COMMAND_H */

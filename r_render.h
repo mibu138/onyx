@@ -11,7 +11,6 @@
 #define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
 
 typedef struct {
-    Tanto_V_Command     command;
     Tanto_V_Image       swapImage;
     uint32_t            index;
 } Tanto_R_Frame;
@@ -23,17 +22,13 @@ VkFormat tanto_r_GetDepthFormat(void);
 VkFormat tanto_r_GetSwapFormat(void);
 
 void           tanto_r_Init(void);
-void           tanto_r_WaitOnQueueSubmit(void);
 void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);
-void           tanto_r_WaitOnFrame(int8_t frameIndex);
-bool           tanto_r_PresentFrame(const VkSemaphore* pWaitSemaphore);
+bool           tanto_r_PresentFrame(const VkSemaphore waitSemaphore);
 void           tanto_r_CleanUp(void);
 void           tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn);
 void           tanto_r_RecreateSwapchain(void);
 Tanto_R_Frame* tanto_r_GetFrame(const int8_t index);
 const uint32_t tanto_r_GetCurrentFrameIndex(void);
 const uint32_t tanto_r_RequestFrame(void); // returns available frame index.
-void           tanto_r_SubmitFrame(void);
-void           tanto_r_SubmitUI(const Tanto_V_Command cmd);
 
 #endif /* end of include guard: R_INIT_H */
