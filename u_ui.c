@@ -490,8 +490,7 @@ const VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
     
     VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-    tanto_v_SubmitCommand(tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
-            0, &stageFlags, pWaitSemephore, &renderCommands[frameIndex]);
+    tanto_v_SubmitGraphicsCommand(0, &stageFlags, pWaitSemephore, renderCommands[frameIndex].fence, &renderCommands[frameIndex]);
 
     return &renderCommands[frameIndex].semaphore;
 }

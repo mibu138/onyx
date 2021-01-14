@@ -575,9 +575,15 @@ VkQueue tanto_v_GetPresentQueue(void)
     return presentQueue;
 }
 
-void tanto_v_SubmitCommand(const uint32_t queueFamilyIndex, const uint32_t queueIndex, 
+void tanto_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t submitInfoCount, 
+        const VkSubmitInfo* submitInfos, VkFence fence)
+{
+    V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], submitInfoCount, submitInfos, fence) );
+}
+
+void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
         const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
-        const Tanto_V_Command* cmd)
+        VkFence fence, const Tanto_V_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -590,6 +596,24 @@ void tanto_v_SubmitCommand(const uint32_t queueFamilyIndex, const uint32_t queue
         .pCommandBuffers = &cmd->buffer,
     };
 
-    V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, cmd->fence) );
+    V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, fence) );
+}
+
+void tanto_v_SubmitTransferCommand(const uint32_t queueIndex, 
+        const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+        VkFence fence, const Tanto_V_Command* cmd)
+{
+    VkSubmitInfo si = {
+        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+        .pWaitDstStageMask = pWaitDstStageMask,
+        .waitSemaphoreCount = pWaitSemephore == NULL ? 0 : 1,
+        .pWaitSemaphores = pWaitSemephore,
+        .signalSemaphoreCount = 1,
+        .pSignalSemaphores = &cmd->semaphore,
+        .commandBufferCount = 1,
+        .pCommandBuffers = &cmd->buffer,
+    };
+
+    V_ASSERT( vkQueueSubmit(transferQueues[queueIndex], 1, &si, fence) );
 }
 
