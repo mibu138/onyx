@@ -215,7 +215,7 @@ retry:
     return curFrameIndex;
 }
 
-bool tanto_r_PresentFrame(const VkSemaphore waitSemaphore)
+bool tanto_r_PresentFrame(VkSemaphore waitSemaphore)
 {
     VkResult r;
     VkSemaphore waitSemaphores[2] = {waitSemaphore, imageAcquiredSemaphores[imageAcquiredSemaphoreIndex]};

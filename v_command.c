@@ -49,7 +49,16 @@ void tanto_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
-        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT,
+    };
+
+    V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
+}
+
+void tanto_v_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
+{
+    VkCommandBufferBeginInfo beginInfo = {
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
+        .flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT
     };
 
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );

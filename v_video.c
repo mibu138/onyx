@@ -365,14 +365,10 @@ static void initDevice(void)
     // on to the pNext member of deviceFeatures. 
 
     
-    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
-        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-        .pNext = NULL
-    };
 
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
-        .pNext = &devAddressFeatures
+        .pNext = NULL
     };
 
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures = {
@@ -380,12 +376,14 @@ static void initDevice(void)
         .pNext = &accelFeatures
     };
 
-    // this allows us to use only a subset of a descriptor array's elements in a draw call
-    // as well as unbounded descriptor arrays in shaders. 
-    // this is particularly useful for arrays of textures.
+    VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
+        .pNext = NULL
+    };
+
     VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-        .pNext = NULL
+        .pNext = &devAddressFeatures,
     };
 
     VkPhysicalDeviceFeatures2 deviceFeatures = {
@@ -394,7 +392,7 @@ static void initDevice(void)
     };
 
     if (tanto_v_config.rayTraceEnabled)
-        descIndexingFeatures.pNext = &rtFeatures;
+        devAddressFeatures.pNext = &rtFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 

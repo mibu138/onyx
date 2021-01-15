@@ -447,7 +447,7 @@ uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst)
     return widgetCount;
 }
 
-const VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
+VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
 {
     uint32_t frameIndex = tanto_r_GetCurrentFrameIndex();
 

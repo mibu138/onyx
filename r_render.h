@@ -23,7 +23,7 @@ VkFormat tanto_r_GetSwapFormat(void);
 
 void           tanto_r_Init(void);
 void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);
-bool           tanto_r_PresentFrame(const VkSemaphore waitSemaphore);
+bool           tanto_r_PresentFrame(VkSemaphore waitSemaphore);
 void           tanto_r_CleanUp(void);
 void           tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn);
 void           tanto_r_RecreateSwapchain(void);
