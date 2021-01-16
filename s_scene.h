@@ -5,7 +5,7 @@
 #include "t_def.h"
 
 #define TANTO_S_MAX_PRIMS  256 
-#define TANTO_S_MAX_LIGHTS 32
+#define TANTO_S_MAX_LIGHTS 16
 
 typedef Tanto_Mask Tanto_S_DirtyMask;
 typedef Mat4       Tanto_S_Xform;
@@ -41,6 +41,7 @@ typedef union {
 typedef struct {
     Tanto_S_LightStructure structure;
     float                  intensity;
+    Vec3                   color;
     Tanto_S_LightType      type;
 } Tanto_S_Light;
 
@@ -63,5 +64,8 @@ typedef struct {
 // counter-clockwise orientation
 void tanto_s_CreateSimpleScene(Tanto_S_Scene* scene);
 void tanto_s_CreateSimpleScene2(Tanto_S_Scene* scene);
+void tanto_s_CreateSimpleScene3(Tanto_S_Scene *scene);
+void tanto_s_UpdateCamera(Tanto_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
+void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 
 #endif /* end of include guard: TANTO_S_SCENE_H */
