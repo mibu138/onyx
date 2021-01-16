@@ -1,4 +1,5 @@
 #include "s_scene.h"
+#include "f_file.h"
 #include "coal/m_math.h"
 #include "coal/util.h"
 #include "tanto/r_geo.h"
@@ -203,8 +204,45 @@ void tanto_s_CreateSimpleScene3(Scene *scene)
     *scene = s;
 }
 
+void tanto_s_CreateEmptyScene(Scene* scene)
+{
+    memset(scene, 0, sizeof(Scene));
+    Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
+    scene->camera.xform = m;
+}
+
+Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xform)
+{
+    Tanto_F_Primitive fprim;
+    int r = tanto_f_ReadPrimitive(filePath, &fprim);
+    assert(r);
+    Tanto_R_Primitive prim = tanto_f_CreateRPrimFromFPrim(&fprim);
+    tanto_f_FreePrimitive(&fprim);
+    const uint32_t curIndex = scene->primCount++;
+    assert(curIndex < TANTO_S_MAX_PRIMS);
+    scene->prims[curIndex] = prim;
+    const Mat4 m = xform ? *xform : m_Ident_Mat4();
+    scene->xforms[curIndex] = m;
+    return curIndex;
+}
+
+Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 direction)
+{
+    Light light = {
+        .color = {1, 1, 1},
+        .intensity = 1,
+        .type = TANTO_S_LIGHT_TYPE_DIRECTION,
+        .structure.directionLight.dir = m_Normalize_Vec3(&direction)
+    };
+
+    const uint32_t curIndex = scene->lightCount++;
+    assert(curIndex < TANTO_S_MAX_LIGHTS);
+    scene->lights[curIndex] = light;
+    return curIndex;
+}
+
 #define HOME_POS    {0.0, 0.0, 1.0}
-#define HOME_TARGET {0.0, 0.5, 0.0}
+#define HOME_TARGET {0.0, 0.0, 0.0}
 #define HOME_UP     {0.0, 1.0, 0.0}
 #define ZOOM_RATE 0.01
 #define PAN_RATE 1

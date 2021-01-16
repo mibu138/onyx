@@ -9,8 +9,8 @@ Tanto_D_XcbWindow d_XcbWindow;
 
 static char windowName[32] = "floating";
 
-uint32_t TANTO_WINDOW_WIDTH  = 1000;
-uint32_t TANTO_WINDOW_HEIGHT = 1000;
+uint32_t TANTO_WINDOW_WIDTH  = 2000;
+uint32_t TANTO_WINDOW_HEIGHT = 2000;
 
 void tanto_d_Init(const char* name)
 {

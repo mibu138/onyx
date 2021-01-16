@@ -8,6 +8,8 @@
 #define TANTO_S_MAX_LIGHTS 16
 
 typedef Tanto_Mask Tanto_S_DirtyMask;
+typedef uint32_t   Tanto_S_PrimId;
+typedef uint32_t   Tanto_S_LightId;
 typedef Mat4       Tanto_S_Xform;
 
 typedef enum {
@@ -66,6 +68,10 @@ void tanto_s_CreateSimpleScene(Tanto_S_Scene* scene);
 void tanto_s_CreateSimpleScene2(Tanto_S_Scene* scene);
 void tanto_s_CreateSimpleScene3(Tanto_S_Scene *scene);
 void tanto_s_UpdateCamera(Tanto_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
+void tanto_s_CreateEmptyScene(Tanto_S_Scene* scene);
 void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
+
+Tanto_S_PrimId  tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
+Tanto_S_LightId tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 direction);
 
 #endif /* end of include guard: TANTO_S_SCENE_H */

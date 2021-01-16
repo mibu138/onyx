@@ -25,9 +25,14 @@ typedef struct {
 typedef struct {
     int   i0;
     int   i1;
+} PushConstantVert;
+
+typedef struct {
+    int   i0;
+    int   i1;
     float f0;
     float f1;
-} PushConstant;
+} PushConstantFrag;
 
 static uint32_t widgetCount;
 static Widget   widgets[MAX_WIDGETS];
@@ -106,15 +111,19 @@ static void initRenderPass(VkImageLayout initialLayout)
 
 static void initPipelineLayouts(void)
 {
-    VkPushConstantRange pcRange = {
+    VkPushConstantRange pcRanges[] = {{
         .offset = 0,
-        .size = sizeof(PushConstant),
+        .size = sizeof(PushConstantFrag),
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
-    };
+    },{
+        .offset = sizeof(PushConstantFrag),
+        .size = sizeof(PushConstantVert),
+        .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
+    }};
 
     const Tanto_R_PipelineLayoutInfo pipelayoutInfos[] = {{
-        .pushConstantCount = 1,
-        .pushConstantsRanges = &pcRange
+        .pushConstantCount = TANTO_ARRAY_SIZE(pcRanges),
+        .pushConstantsRanges = pcRanges
     }};
 
     tanto_r_CreatePipelineLayouts(TANTO_ARRAY_SIZE(pipelayoutInfos), 
@@ -225,7 +234,7 @@ static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
 
     tanto_r_BindPrim(cmdBuf, prim);
 
-    PushConstant pc = {
+    PushConstantFrag pc = {
         .i0 = widget->width,
         .i1 = widget->height
     };
@@ -282,7 +291,7 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
 
     tanto_r_BindPrim(cmdBuf, prim);
 
-    PushConstant pc = {
+    PushConstantFrag pc = {
         .i0 = widget->width,
         .i1 = widget->height,
         .f0 = widget->data.slider.sliderPos
@@ -418,6 +427,7 @@ Tanto_U_Widget* tanto_u_CreateSlider(const int16_t x, const int16_t y,
         Widget* parent)
 {
     Widget* widget = addWidget(x, y, 300, 40, rfnSlider, dfnSlider, parent);
+    printf("Slider X %d Y %d\n", x, y);
 
     widget->primCount = 1;
     widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height, NULL);
@@ -477,6 +487,15 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
     };
 
     vkCmdBeginRenderPass(cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
+
+    PushConstantVert pc = {
+        .i0 = TANTO_WINDOW_WIDTH,
+        .i1 = TANTO_WINDOW_HEIGHT
+    };
+
+    vkCmdPushConstants(cmdBuf, pipelineLayouts[0], 
+            VK_SHADER_STAGE_VERTEX_BIT, 
+            sizeof(PushConstantFrag), sizeof(PushConstantVert), &pc);
 
     for (int w = 0; w < widgetCount; w++) 
     {
