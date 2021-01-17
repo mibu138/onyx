@@ -72,6 +72,7 @@ void tanto_s_CreateEmptyScene(Tanto_S_Scene* scene);
 void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 
 Tanto_S_PrimId  tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
-Tanto_S_LightId tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 direction);
+Tanto_S_LightId tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
+Tanto_S_LightId tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);
 
 #endif /* end of include guard: TANTO_S_SCENE_H */

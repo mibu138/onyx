@@ -220,16 +220,21 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
     tanto_f_FreePrimitive(&fprim);
     const uint32_t curIndex = scene->primCount++;
     assert(curIndex < TANTO_S_MAX_PRIMS);
+    Material mat = {
+        .color = {1, 1, 1},
+        .id = 0 // what does this do again?
+    };
     scene->prims[curIndex] = prim;
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
     scene->xforms[curIndex] = m;
+    scene->materials[curIndex] = mat;
     return curIndex;
 }
 
-Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 direction)
+Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
 {
     Light light = {
-        .color = {1, 1, 1},
+        .color = color,
         .intensity = 1,
         .type = TANTO_S_LIGHT_TYPE_DIRECTION,
         .structure.directionLight.dir = m_Normalize_Vec3(&direction)
@@ -241,10 +246,25 @@ Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 direction)
     return curIndex;
 }
 
+Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
+{
+    Light light = {
+        .color = color,
+        .intensity = 1,
+        .type = TANTO_S_LIGHT_TYPE_POINT,
+        .structure.pointLight.pos = position
+    };
+
+    const uint32_t curIndex = scene->lightCount++;
+    assert(curIndex < TANTO_S_MAX_LIGHTS);
+    scene->lights[curIndex] = light;
+    return curIndex;
+}
+
 #define HOME_POS    {0.0, 0.0, 1.0}
 #define HOME_TARGET {0.0, 0.0, 0.0}
 #define HOME_UP     {0.0, 1.0, 0.0}
-#define ZOOM_RATE 0.01
+#define ZOOM_RATE 0.005
 #define PAN_RATE 1
 #define TUMBLE_RATE 2
 
