@@ -11,120 +11,10 @@ typedef Tanto_R_Primitive Primitive;
 typedef Tanto_S_Xform     Xform;
 typedef Tanto_S_Scene     Scene;
 typedef Tanto_S_Light     Light;
-typedef Tanto_S_Matrial   Material;
+typedef Tanto_S_Material  Material;
 typedef Tanto_S_Camera    Camera;
 
 void tanto_s_CreateSimpleScene(Scene *scene)
-{
-    const Primitive cube = tanto_r_CreateCubePrim(false);
-
-    Xform cubeXform = m_Ident_Mat4();
-    
-    const Light dirLight = {
-        .type = TANTO_S_LIGHT_TYPE_DIRECTION,
-        .intensity = 1,
-        .structure.directionLight.dir = (Vec3){-0.37904902,  -0.53066863, -0.75809804}
-    };
-
-    const Material mat = {
-        .color = (Vec3){1, 0, 0}
-    };
-
-    Vec3 pos = (Vec3){0, 0, 2};
-    Vec3 tar = (Vec3){0, 0, 0};
-    Vec3 up  = (Vec3){0, 1, 0};
-    Mat4 cameraXform = m_LookAt(&pos, &tar, &up);
-
-    const Scene s = {
-        .lightCount = 1,
-        .lights[0] = dirLight,
-        .primCount = 1,
-        .prims[0] = cube,
-        .xforms[0] = cubeXform,
-        .materials[0] = mat,
-        .camera = (Camera){
-            .xform = cameraXform
-        },
-        .dirt = -1, // set to all dirty
-    };
-
-    *scene = s;
-}
-
-void tanto_s_CreateSimpleScene2(Scene *scene)
-{
-    const Primitive cube = tanto_r_CreateCubePrim(false);
-    const Primitive quad = tanto_r_CreateQuad(3, 4, TANTO_R_ATTRIBUTE_UVW_BIT | TANTO_R_ATTRIBUTE_NORMAL_BIT);
-
-    Xform cubeXform = m_Ident_Mat4();
-    Xform quadXform = m_Ident_Mat4();
-
-    cubeXform = m_Translate_Mat4((Vec3){0, 0.5, 0}, &cubeXform);
-
-    Mat4 rot = m_BuildRotate(M_PI / 2, &(Vec3){-1, 0, 0});
-    quadXform = m_Mult_Mat4(&quadXform, &rot);
-
-    printf(">>Quad Rot\n");
-    coal_PrintMat4(&rot);
-    printf(">>Quad Xform\n");
-    coal_PrintMat4(&quadXform);
-
-    const Light dirLight = {
-        .type = TANTO_S_LIGHT_TYPE_DIRECTION,
-        .intensity = 1,
-        .color     = (Vec3){1, 1, 1},
-        .structure.directionLight.dir = (Vec3){-0.37904902,  -0.53066863, -0.75809804}
-    };
-
-    Vec3 pos = (Vec3){0, 0, 2};
-    Vec3 tar = (Vec3){0, 0, 0};
-    Vec3 up  = (Vec3){0, 1, 0};
-    Mat4 cameraXform = m_LookAt(&pos, &tar, &up);
-
-    Scene s = {
-        .lightCount = 1,
-        .lights[0] = dirLight,
-        .primCount = 2,
-        .camera = (Camera){
-            .xform = cameraXform
-        },
-        .dirt = -1, // set to all dirty
-    };
-
-    Primitive prims[2] = {
-        cube,
-        quad
-    };
-
-    Xform xforms[2] = {
-        cubeXform,
-        quadXform
-    };
-
-    const Material cubeMat = {
-        .color = (Vec3){0.05, 0.18, 0.516},
-        .id    = 0
-    };
-
-    const Material quadMat = {
-        .color = (Vec3){0.75, 0.422, 0.245},
-        .id    = 1
-    };
-    
-
-    Material mats[2] = { 
-        cubeMat,
-        quadMat
-    };
-
-    memcpy(s.prims, prims, sizeof(prims));
-    memcpy(s.xforms, xforms, sizeof(xforms));
-    memcpy(s.materials, mats, sizeof(mats));
-
-    *scene = s;
-}
-
-void tanto_s_CreateSimpleScene3(Scene *scene)
 {
     const Primitive cube = tanto_r_CreateCubePrim(false);
     const Primitive quad = tanto_r_CreateQuad(3, 4, TANTO_R_ATTRIBUTE_UVW_BIT | TANTO_R_ATTRIBUTE_NORMAL_BIT);
@@ -182,13 +72,13 @@ void tanto_s_CreateSimpleScene3(Scene *scene)
     };
 
     const Material cubeMat = {
-        .color = (Vec3){0.05, 0.18, 0.516},
-        .id    = 0
+        .color        = (Vec3){0.05, 0.18, 0.516},
+        .roughness    = .5
     };
 
     const Material quadMat = {
-        .color = (Vec3){0.75, 0.422, 0.245},
-        .id    = 1
+        .color        = (Vec3){0.75, 0.422, 0.245},
+        .roughness    = 1
     };
     
 
@@ -221,8 +111,10 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
     const uint32_t curIndex = scene->primCount++;
     assert(curIndex < TANTO_S_MAX_PRIMS);
     Material mat = {
-        .color = {1, 1, 1},
-        .id = 0 // what does this do again?
+        .color     = {1, .4, .7},
+        .roughness = 1,
+        .textureAlbedo = 0,
+        .textureRoughness = 0
     };
     scene->prims[curIndex] = prim;
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
@@ -264,8 +156,8 @@ Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const V
 #define HOME_POS    {0.0, 0.0, 1.0}
 #define HOME_TARGET {0.0, 0.0, 0.0}
 #define HOME_UP     {0.0, 1.0, 0.0}
-#define ZOOM_RATE 0.005
-#define PAN_RATE 1
+#define ZOOM_RATE   0.005
+#define PAN_RATE    0.1
 #define TUMBLE_RATE 2
 
 void tanto_s_UpdateCamera(Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home)

@@ -4,18 +4,23 @@
 #include "r_geo.h"
 #include "t_def.h"
 
-#define TANTO_S_MAX_PRIMS  256 
-#define TANTO_S_MAX_LIGHTS 16
+#define TANTO_S_MAX_PRIMS     256 
+#define TANTO_S_MAX_MATERIALS 16
+#define TANTO_S_MAX_LIGHTS    16
+#define TANTO_S_MAX_TEXTURES  16
 
 typedef Tanto_Mask Tanto_S_DirtyMask;
 typedef uint32_t   Tanto_S_PrimId;
 typedef uint32_t   Tanto_S_LightId;
+typedef uint32_t   Tanto_S_MaterialId;
+typedef uint32_t   Tanto_S_TextureId;
 typedef Mat4       Tanto_S_Xform;
 
 typedef enum {
-    TANTO_S_CAMERA_BIT = 0x00000001,
-    TANTO_S_LIGHTS_BIT = 0x00000002,
-    TANTO_S_XFORMS_BIT = 0x00000004,
+    TANTO_S_CAMERA_BIT   = 0x00000001,
+    TANTO_S_LIGHTS_BIT   = 0x00000002,
+    TANTO_S_XFORMS_BIT   = 0x00000004,
+    TANTO_S_TEXTURES_BIT = 0x00000008,
 } Tanto_S_DirtyBits;
 
 typedef struct {
@@ -48,19 +53,29 @@ typedef struct {
 } Tanto_S_Light;
 
 typedef struct {
-    Vec3     color;
-    uint32_t id;
-} Tanto_S_Matrial;
+    Tanto_V_Image        devImage;
+    Tanto_V_BufferRegion hostBuffer;
+} Tanto_S_Texture;
 
 typedef struct {
-    uint32_t          primCount;
-    uint32_t          lightCount;
-    Tanto_R_Primitive prims[TANTO_S_MAX_PRIMS];
-    Tanto_S_Xform     xforms[TANTO_S_MAX_PRIMS];
-    Tanto_S_Matrial   materials[TANTO_S_MAX_PRIMS];
-    Tanto_S_Light     lights[TANTO_S_MAX_LIGHTS];
-    Tanto_S_Camera    camera;
-    Tanto_S_DirtyMask dirt;
+    Vec3              color;
+    float             roughness;
+    Tanto_S_TextureId textureAlbedo;
+    Tanto_S_TextureId textureRoughness;
+} Tanto_S_Material;
+
+typedef struct {
+    Tanto_S_PrimId     primCount;
+    Tanto_S_LightId    lightCount;
+    Tanto_S_MaterialId materialCount;
+    Tanto_S_TextureId  textureCount;
+    Tanto_R_Primitive  prims[TANTO_S_MAX_PRIMS];
+    Tanto_S_Xform      xforms[TANTO_S_MAX_PRIMS];
+    Tanto_S_Material   materials[TANTO_S_MAX_MATERIALS];
+    Tanto_S_Texture    textures[TANTO_S_MAX_TEXTURES];
+    Tanto_S_Light      lights[TANTO_S_MAX_LIGHTS];
+    Tanto_S_Camera     camera;
+    Tanto_S_DirtyMask  dirt;
 } Tanto_S_Scene;
 
 // counter-clockwise orientation
