@@ -25,3 +25,15 @@ float sdEquilateralTriangle( in vec2 p )
     p.x -= clamp( p.x, -2.0, 0.0 );
     return -length(p)*sign(p.y);
 }
+
+float calcDiffuse(const vec3 N, const vec3 lightDir)
+{
+    return max(dot(-1 * lightDir, N), 0);
+}
+
+float calcSpecular(const vec3 N, const vec3 lightDir, const vec3 eyeDir)
+{
+    vec3 R = reflect(lightDir, N);
+    return pow(max(dot(R, eyeDir), 0), 32);
+}
+

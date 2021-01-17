@@ -37,7 +37,9 @@ DEPS =  \
     i_input.h      \
     t_utils.h      \
     t_def.h        \
-	t_text.h       \
+	t_text.h       
+
+SHDEPS = \
 	shaders/common.glsl \
 	shaders/raycommon.glsl
 
@@ -96,17 +98,17 @@ staticlib: $(OBJS) $(DEPS) shaders
 $(O)/%.o:  %.c $(DEPS)
 	$(CC) $(CFLAGS) $(INFLAGS) -c $< -o $@
 
-$(SPV)/%-vert.spv: $(GLSL)/%.vert
+$(SPV)/%-vert.spv: $(GLSL)/%.vert $(SHDEPS)
 	$(GLC) $(GLFLAGS) $< -o $@
 
-$(SPV)/%-frag.spv: $(GLSL)/%.frag
+$(SPV)/%-frag.spv: $(GLSL)/%.frag $(SHDEPS)
 	$(GLC) $(GLFLAGS) $< -o $@
 
-$(SPV)/%-rchit.spv: $(GLSL)/%.rchit
+$(SPV)/%-rchit.spv: $(GLSL)/%.rchit $(SHDEPS)
 	$(GLC) $(GLFLAGS) $< -o $@
 
-$(SPV)/%-rgen.spv: $(GLSL)/%.rgen
+$(SPV)/%-rgen.spv: $(GLSL)/%.rgen $(SHDEPS)
 	$(GLC) $(GLFLAGS) $< -o $@
 
-$(SPV)/%-rmiss.spv: $(GLSL)/%.rmiss
+$(SPV)/%-rmiss.spv: $(GLSL)/%.rmiss $(SHDEPS)
 	$(GLC) $(GLFLAGS) $< -o $@
