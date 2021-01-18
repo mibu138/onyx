@@ -105,6 +105,13 @@ void tanto_s_CreateEmptyScene(Scene* scene)
     scene->camera.xform = m;
 }
 
+void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId)
+{
+    assert(scene->materialCount > matId);
+    assert(scene->primCount > primId);
+    scene->prims[primId].materialId = matId;
+}
+
 Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xform)
 {
     Tanto_F_Primitive fprim;
