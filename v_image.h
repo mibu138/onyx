@@ -35,6 +35,15 @@ void tanto_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Tanto_V_Im
 void tanto_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Tanto_V_Barrier barrier, 
         const VkImageLayout oldLayout, const VkImageLayout newLayout, VkImage image);
 
+void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
+    const VkImageUsageFlags usageFlags,
+    const VkImageAspectFlags aspectMask,
+    const VkSampleCountFlags sampleCount,
+    const VkFilter filter,
+    const uint32_t queueFamilyIndex, 
+    const VkImageLayout, 
+    Tanto_V_Image* image);
+
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* name);
 
 void tanto_v_ClearColorImage(Tanto_V_Image* image);

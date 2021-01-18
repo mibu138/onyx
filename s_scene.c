@@ -3,7 +3,9 @@
 #include "coal/m_math.h"
 #include "coal/util.h"
 #include "tanto/r_geo.h"
+#include "tanto/v_image.h"
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
 
@@ -13,8 +15,10 @@ typedef Tanto_S_Scene     Scene;
 typedef Tanto_S_Light     Light;
 typedef Tanto_S_Material  Material;
 typedef Tanto_S_Camera    Camera;
+typedef Tanto_S_Texture   Texture;
 
-void tanto_s_CreateSimpleScene(Scene *scene)
+// TODO: this function needs to updated
+void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
 {
     const Primitive cube = tanto_r_CreateCubePrim(false);
     const Primitive quad = tanto_r_CreateQuad(3, 4, TANTO_R_ATTRIBUTE_UVW_BIT | TANTO_R_ATTRIBUTE_NORMAL_BIT);
@@ -110,17 +114,43 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
     tanto_f_FreePrimitive(&fprim);
     const uint32_t curIndex = scene->primCount++;
     assert(curIndex < TANTO_S_MAX_PRIMS);
-    Material mat = {
-        .color     = {1, .4, .7},
-        .roughness = 1,
-        .textureAlbedo = 0,
-        .textureRoughness = 0
-    };
-    scene->prims[curIndex] = prim;
+    scene->prims[curIndex].rprim = prim;
+
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
     scene->xforms[curIndex] = m;
-    scene->materials[curIndex] = mat;
+
+    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, TANTO_S_NONE, TANTO_S_NONE);
+
     return curIndex;
+}
+
+Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath)
+{
+    Texture texture = {0};
+
+    tanto_v_LoadImage(filePath, 4, VK_FORMAT_R8G8B8A8_UNORM,
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 
+            1, VK_FILTER_LINEAR, tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &texture.devImage);
+
+    const Tanto_S_TextureId texId = scene->textureCount++;
+    scene->textures[texId] = texture;
+    assert(texId < TANTO_S_MAX_TEXTURES);
+
+    return texId;
+}
+
+Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId)
+{
+    Tanto_S_MaterialId matId = scene->materialCount++;
+    assert(matId < TANTO_S_MAX_TEXTURES);
+
+    scene->materials[matId].color = color;
+    scene->materials[matId].roughness = roughness;
+    scene->materials[matId].textureAlbedo = albedoId;
+    scene->materials[matId].textureRoughness = roughnessId;
+
+    return matId;
 }
 
 Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)

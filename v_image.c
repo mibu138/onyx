@@ -12,8 +12,10 @@
 
 #define IMG_OUT_DIR "/out/images/"
 
-typedef Tanto_V_Command Command;
-typedef Tanto_V_Barrier Barrier;
+typedef Tanto_V_Command      Command;
+typedef Tanto_V_Barrier      Barrier;
+typedef Tanto_V_BufferRegion BufferRegion;
+typedef Tanto_V_Image        Image;
 
 Tanto_V_Image tanto_v_CreateImageAndSampler(
     const uint32_t width, 
@@ -191,6 +193,39 @@ void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
     tanto_v_SubmitAndWait(&cmd, 0);
 
     printf("Copying complete.\n");
+}
+
+void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
+    const VkImageUsageFlags usageFlags,
+    const VkImageAspectFlags aspectMask,
+    const VkSampleCountFlags sampleCount,
+    const VkFilter filter,
+    const uint32_t queueFamilyIndex, 
+    const VkImageLayout layout,
+    Image* image)
+{
+    assert(channelCount < 5);
+    int w, h, n;
+    unsigned char* data = stbi_load(filename, &w, &h, &n, channelCount);
+    assert(data);
+    assert(image);
+    assert(image->size == 0);
+    *image = tanto_v_CreateImageAndSampler(w, h, format, usageFlags, aspectMask, sampleCount, filter, queueFamilyIndex);
+
+    BufferRegion stagingBuffer = tanto_v_RequestBufferRegion(image->size, 
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
+
+    printf("%s loading image: width %d height %d channels %d\n", __PRETTY_FUNCTION__, w, h, channelCount);
+    printf("Tanto_V_Image size: %ld\n", image->size);
+    memcpy(stagingBuffer.hostData, data, w*h*channelCount);
+
+    stbi_image_free(data);
+
+    tanto_v_TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, layout, image);
+
+    tanto_v_CopyBufferToImage(&stagingBuffer, image);
+
+    tanto_v_FreeBufferRegion(&stagingBuffer);
 }
 
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* filename)

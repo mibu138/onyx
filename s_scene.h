@@ -16,6 +16,9 @@ typedef uint32_t   Tanto_S_MaterialId;
 typedef uint32_t   Tanto_S_TextureId;
 typedef Mat4       Tanto_S_Xform;
 
+#define TANTO_S_NONE (uint32_t)-1
+
+
 typedef enum {
     TANTO_S_CAMERA_BIT   = 0x00000001,
     TANTO_S_LIGHTS_BIT   = 0x00000002,
@@ -39,6 +42,11 @@ typedef struct {
 typedef struct {
     Vec3 dir;
 } Tanto_S_DirectionLight;
+
+typedef struct {
+    Tanto_R_Primitive  rprim;
+    Tanto_S_MaterialId materialId;
+} Tanto_S_Primitive;
 
 typedef union {
     Tanto_S_PointLight     pointLight;
@@ -69,7 +77,7 @@ typedef struct {
     Tanto_S_LightId    lightCount;
     Tanto_S_MaterialId materialCount;
     Tanto_S_TextureId  textureCount;
-    Tanto_R_Primitive  prims[TANTO_S_MAX_PRIMS];
+    Tanto_S_Primitive  prims[TANTO_S_MAX_PRIMS];
     Tanto_S_Xform      xforms[TANTO_S_MAX_PRIMS];
     Tanto_S_Material   materials[TANTO_S_MAX_MATERIALS];
     Tanto_S_Texture    textures[TANTO_S_MAX_TEXTURES];
@@ -86,8 +94,10 @@ void tanto_s_UpdateCamera(Tanto_S_Scene* scene, float dt, int16_t mx, int16_t my
 void tanto_s_CreateEmptyScene(Tanto_S_Scene* scene);
 void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 
-Tanto_S_PrimId  tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
-Tanto_S_LightId tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
-Tanto_S_LightId tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);
+Tanto_S_PrimId    tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
+Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath);
+Tanto_S_LightId   tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
+Tanto_S_LightId   tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);
+Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId);
 
 #endif /* end of include guard: TANTO_S_SCENE_H */
