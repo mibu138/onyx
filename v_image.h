@@ -20,6 +20,7 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     const VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
+    const uint32_t mipLevels,
     const VkFilter filter,
     const uint32_t queueFamilyIndex);
 
@@ -33,7 +34,7 @@ void tanto_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Tanto_V_Bu
 
 void tanto_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Tanto_V_Image* image, Tanto_V_BufferRegion* region);
 void tanto_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Tanto_V_Barrier barrier, 
-        const VkImageLayout oldLayout, const VkImageLayout newLayout, VkImage image);
+        const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t mipLevels, VkImage image);
 
 void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
     const VkImageUsageFlags usageFlags,
@@ -42,6 +43,7 @@ void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const V
     const VkFilter filter,
     const uint32_t queueFamilyIndex, 
     const VkImageLayout, 
+    const bool createMipMaps,
     Tanto_V_Image* image);
 
 void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* name);

@@ -510,9 +510,11 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
         const VkSampleCountFlags sampleCount,
+        const uint32_t mipLevels,
         const uint32_t queueFamilyIndex)
 {
     assert( width * height < MEMORY_SIZE_DEV_IMAGE );
+    assert(mipLevels > 0);
 
     assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
     assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
@@ -522,7 +524,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .imageType = VK_IMAGE_TYPE_2D,
         .format = format,
         .extent = {width, height, 1},
-        .mipLevels = 1,
+        .mipLevels = mipLevels,
         .arrayLayers = 1,
         .samples = sampleCount,
         .tiling = VK_IMAGE_TILING_OPTIMAL,
@@ -549,6 +551,7 @@ Tanto_V_Image tanto_v_CreateImage(
     image.extent.depth = 1;
     image.extent.width = width;
     image.extent.height = height;
+    image.mipLevels = mipLevels;
 
     const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
     image.memBlockId = block->id;
@@ -564,7 +567,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .subresourceRange = {
             .aspectMask = aspectMask,
             .baseMipLevel = 0,
-            .levelCount = 1,
+            .levelCount = mipLevels,
             .baseArrayLayer = 0,
             .layerCount = 1
         }

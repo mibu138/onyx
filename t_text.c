@@ -89,6 +89,7 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height,
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
+            1,
             VK_FILTER_NEAREST,
             tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE)); 
 

@@ -31,6 +31,7 @@ typedef struct {
     VkExtent3D        extent;
     Tanto_V_BlockId   memBlockId;
     VkImageLayout     layout;
+    uint32_t          mipLevels;
     uint32_t          queueFamily;
 } Tanto_V_Image;
 
@@ -51,6 +52,7 @@ Tanto_V_Image tanto_v_CreateImage(
         const VkImageUsageFlags usageFlags,
         const VkImageAspectFlags aspectMask,
         const VkSampleCountFlags sampleCount,
+        const uint32_t mipLevels,
         const uint32_t queueFamilyIndex);
 
 void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst);

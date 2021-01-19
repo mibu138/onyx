@@ -149,11 +149,11 @@ Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath
         default: printf("ChannelCount %d not support.\n", channelCount); return TANTO_S_NONE;
     }
 
-
     tanto_v_LoadImage(filePath, channelCount, format,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 
+            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
+            VK_IMAGE_ASPECT_COLOR_BIT, 
             1, VK_FILTER_LINEAR, tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &texture.devImage);
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
 
     const Tanto_S_TextureId texId = scene->textureCount++;
     scene->textures[texId] = texture;
