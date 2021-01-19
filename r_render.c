@@ -275,6 +275,6 @@ void tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene)
 {
     for (int i = 0; i < scene->primCount; i++) 
     {
-        tanto_r_DrawPrim(cmdBuf, &scene->prims[i]);
+        tanto_r_DrawPrim(cmdBuf, &scene->prims[i].rprim);
     }
 }

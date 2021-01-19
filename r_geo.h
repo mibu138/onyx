@@ -48,6 +48,7 @@ Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_3Vec3(void);
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_2Vec3(void);
 void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
 void tanto_r_DrawPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
+void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim);
 void tanto_r_FreePrim(Tanto_R_Primitive* prim);
 
 #endif /* end of include guard: R_GEO_H */

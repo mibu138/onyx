@@ -31,9 +31,9 @@ float calcDiffuse(const vec3 N, const vec3 lightDir)
     return max(dot(-1 * lightDir, N), 0);
 }
 
-float calcSpecular(const vec3 N, const vec3 lightDir, const vec3 eyeDir)
+float calcSpecular(const vec3 N, const vec3 lightDir, const vec3 eyeDir, const float power)
 {
     vec3 R = reflect(lightDir, N);
-    return pow(max(dot(R, eyeDir), 0), 32);
+    return pow(max(dot(R, eyeDir), 0), power);
 }
 

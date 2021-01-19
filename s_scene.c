@@ -103,6 +103,7 @@ void tanto_s_CreateEmptyScene(Scene* scene)
     memset(scene, 0, sizeof(Scene));
     Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
     scene->camera.xform = m;
+    tanto_s_LoadTexture(scene, "data/chungus.jpg", 3); // for debugging, a tedId of zero gives you this
 }
 
 void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId)
@@ -118,6 +119,7 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
     int r = tanto_f_ReadPrimitive(filePath, &fprim);
     assert(r);
     Tanto_R_Primitive prim = tanto_f_CreateRPrimFromFPrim(&fprim);
+    tanto_r_TransferPrimToDevice(&prim);
     tanto_f_FreePrimitive(&fprim);
     const uint32_t curIndex = scene->primCount++;
     assert(curIndex < TANTO_S_MAX_PRIMS);
@@ -128,14 +130,27 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
 
     scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, TANTO_S_NONE, TANTO_S_NONE);
 
+    scene->dirt |= TANTO_S_XFORMS_BIT;
+
     return curIndex;
 }
 
-Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath)
+Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath, const uint8_t channelCount)
 {
     Texture texture = {0};
 
-    tanto_v_LoadImage(filePath, 4, VK_FORMAT_R8G8B8A8_UNORM,
+    VkFormat format;
+
+    switch (channelCount) 
+    {
+        case 1: format = VK_FORMAT_R8_UNORM; break;
+        case 3: format = VK_FORMAT_R8G8B8A8_UNORM; break;
+        case 4: format = VK_FORMAT_R8G8B8A8_UNORM; break;
+        default: printf("ChannelCount %d not support.\n", channelCount); return TANTO_S_NONE;
+    }
+
+
+    tanto_v_LoadImage(filePath, channelCount, format,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_ASPECT_COLOR_BIT, 
             1, VK_FILTER_LINEAR, tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &texture.devImage);
@@ -143,6 +158,8 @@ Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath
     const Tanto_S_TextureId texId = scene->textureCount++;
     scene->textures[texId] = texture;
     assert(texId < TANTO_S_MAX_TEXTURES);
+
+    scene->dirt |= TANTO_S_TEXTURES_BIT;
 
     return texId;
 }
@@ -156,6 +173,8 @@ Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, floa
     scene->materials[matId].roughness = roughness;
     scene->materials[matId].textureAlbedo = albedoId;
     scene->materials[matId].textureRoughness = roughnessId;
+
+    scene->dirt |= TANTO_S_MATERIALS_BIT;
 
     return matId;
 }
@@ -172,6 +191,7 @@ Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 color, con
     const uint32_t curIndex = scene->lightCount++;
     assert(curIndex < TANTO_S_MAX_LIGHTS);
     scene->lights[curIndex] = light;
+    scene->dirt |= TANTO_S_LIGHTS_BIT;
     return curIndex;
 }
 
@@ -187,6 +207,7 @@ Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const V
     const uint32_t curIndex = scene->lightCount++;
     assert(curIndex < TANTO_S_MAX_LIGHTS);
     scene->lights[curIndex] = light;
+    scene->dirt |= TANTO_S_LIGHTS_BIT;
     return curIndex;
 }
 

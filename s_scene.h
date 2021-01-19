@@ -20,10 +20,11 @@ typedef Mat4       Tanto_S_Xform;
 
 
 typedef enum {
-    TANTO_S_CAMERA_BIT   = 0x00000001,
-    TANTO_S_LIGHTS_BIT   = 0x00000002,
-    TANTO_S_XFORMS_BIT   = 0x00000004,
-    TANTO_S_TEXTURES_BIT = 0x00000008,
+    TANTO_S_CAMERA_BIT    = 0x00000001,
+    TANTO_S_LIGHTS_BIT    = 0x00000002,
+    TANTO_S_XFORMS_BIT    = 0x00000004,
+    TANTO_S_MATERIALS_BIT = 0x00000008,
+    TANTO_S_TEXTURES_BIT  = 0x00000010,
 } Tanto_S_DirtyBits;
 
 typedef struct {
@@ -96,7 +97,7 @@ void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 void tanto_s_BindPrimToMaterial(Tanto_S_Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId);
 
 Tanto_S_PrimId    tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
-Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath);
+Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath, const uint8_t channelCount);
 Tanto_S_LightId   tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
 Tanto_S_LightId   tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);
 Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId);

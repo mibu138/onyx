@@ -26,7 +26,7 @@ static void initPrimBuffers(Tanto_R_Primitive* prim)
     }
 }
 
-static void transferPrimToDevice(Tanto_R_Primitive* prim)
+void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim)
 {
     tanto_v_TransferToDevice(&prim->vertexRegion);
     tanto_v_TransferToDevice(&prim->indexRegion);
