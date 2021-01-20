@@ -30,7 +30,7 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* bla
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
         .vertexFormat  = TANTO_VERT_POS_FORMAT,
-        .vertexStride  = sizeof(Tanto_R_Attribute),
+        .vertexStride  = sizeof(Vec3),
         .indexType     = TANTO_VERT_INDEX_TYPE,
         .maxVertex     = prim->vertexCount,
         .vertexData.deviceAddress = vertAddr,

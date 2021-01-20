@@ -8,8 +8,8 @@
 
 #define TANTO_R_MAX_VERT_ATTRIBUTES 8
 
-typedef Vec3       Tanto_R_Attribute;
 typedef uint32_t   Tanto_R_Index;
+typedef uint8_t    Tanto_R_AttributeSize;
 typedef Tanto_Mask Tanto_R_AttributeMask;
 
 typedef enum {
@@ -18,12 +18,13 @@ typedef enum {
 } Tanto_R_AttributeBits;
 
 typedef struct {
-    uint32_t     vertexCount;
-    Tanto_V_BufferRegion vertexRegion;
-    uint32_t     indexCount;
-    Tanto_V_BufferRegion indexRegion;
-    uint32_t     attrCount;
-    VkDeviceSize attrOffsets[TANTO_R_MAX_VERT_ATTRIBUTES];
+    uint32_t              vertexCount;
+    Tanto_V_BufferRegion  vertexRegion;
+    uint32_t              indexCount;
+    Tanto_V_BufferRegion  indexRegion;
+    uint32_t              attrCount;
+    VkDeviceSize          attrOffsets[TANTO_R_MAX_VERT_ATTRIBUTES];
+    Tanto_R_AttributeSize attrSizes[TANTO_R_MAX_VERT_ATTRIBUTES]; // individual element sizes
 } Tanto_R_Primitive;
 
 typedef struct {
@@ -39,9 +40,10 @@ Tanto_R_Primitive  tanto_r_CreateCubePrim(const bool isClockWise);
 Tanto_R_Primitive  tanto_r_CreatePoints(const uint32_t count);
 Tanto_R_Primitive  tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
 Tanto_R_Primitive  tanto_r_CreateQuad(const float width, const float height, const Tanto_R_AttributeBits attribBits);
-Tanto_R_Primitive  tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc);
-Tanto_R_Primitive  tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, const uint8_t attrCount);
-Tanto_R_Attribute* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, uint32_t index);
+Tanto_R_Primitive  tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height);
+Tanto_R_Primitive  tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
+                                           const uint8_t attrCount, const uint8_t attrSizes[attrCount]);
+void*              tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, const uint32_t index);
 Tanto_R_Index*     tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim);
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_4Vec3(void);
 Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_3Vec3(void);

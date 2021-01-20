@@ -197,7 +197,7 @@ static void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
     for (int i = 0; i < widget->primCount; i++) 
     {
         Tanto_R_Primitive* prim = &widget->primitives[i];
-        Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(prim, 0);
+        Vec3* pos = tanto_r_GetPrimAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++) 
         {
             pos[i].i += dx;
@@ -418,7 +418,7 @@ Tanto_U_Widget* tanto_u_CreateSimpleBox(const int16_t x, const int16_t y,
     Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, dfnSimpleBox, parent);
 
     widget->primCount = 1;
-    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height, NULL);
+    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
 
     return widget;
 }
@@ -430,7 +430,7 @@ Tanto_U_Widget* tanto_u_CreateSlider(const int16_t x, const int16_t y,
     printf("Slider X %d Y %d\n", x, y);
 
     widget->primCount = 1;
-    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height, NULL);
+    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
 
     widget->data.slider.sliderPos = 0.5;
 

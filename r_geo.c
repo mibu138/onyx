@@ -7,23 +7,30 @@
 
 const int CW = 1;
 
+typedef Tanto_R_AttributeSize AttrSize;
+
 static void initPrimBuffers(Tanto_R_Primitive* prim)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
     assert(prim->indexCount > 0);
+    assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
 
-    prim->vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim->attrCount * prim->vertexCount, 
+    size_t vertexBufferSize = 0;
+    for (int i = 0; i < prim->attrCount; i++) 
+    {
+        const AttrSize attrSize = prim->attrSizes[i];
+        assert(attrSize > 0);
+        const size_t attrRegionSize = prim->vertexCount * attrSize;
+        prim->attrOffsets[i] = i * attrRegionSize;
+        vertexBufferSize += attrRegionSize;
+    }
+
+    prim->vertexRegion = tanto_v_RequestBufferRegion(vertexBufferSize, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     prim->indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim->indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
-
-    assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
-    for (int i = 0; i < prim->attrCount; i++) 
-    {
-        prim->attrOffsets[i] = i * prim->vertexCount * sizeof(Tanto_R_Attribute);
-    }
 }
 
 void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim)
@@ -35,30 +42,21 @@ void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim)
 Tanto_R_Primitive tanto_r_CreateTriangle(void)
 {
     Tanto_R_Primitive prim = {
-        .attrCount = 2,
         .indexCount = 3, 
         .vertexCount = 3,
+        .attrCount = 2,
+        .attrSizes = {12, 12}
     };
 
-    prim.vertexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    initPrimBuffers(&prim);
 
-    prim.indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim.indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
-
-    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
-    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
-
-    prim.attrOffsets[0] = posOffset;
-    prim.attrOffsets[1] = colOffset;
-
-    Tanto_R_Attribute positions[] = {
+    Vec3 positions[] = {
         {0.0, 0.5, 0.0},
         {0.5, -0.5, 0.0},
         {-0.5, -0.5, 0.0},
     };
 
-    Tanto_R_Attribute colors[] = {
+    Vec3 colors[] = {
         {0.0, 0.9, 0.0},
         {0.9, 0.5, 0.0},
         {0.5, 0.3, 0.9}
@@ -66,9 +64,13 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void)
 
     Tanto_R_Index indices[] = {0, 1, 2};
 
-    memcpy(prim.vertexRegion.hostData + posOffset, positions, sizeof(positions));
-    memcpy(prim.vertexRegion.hostData + colOffset, colors, sizeof(colors));
-    memcpy(prim.indexRegion.hostData, indices, sizeof(indices));
+    void* posData = tanto_r_GetPrimAttribute(&prim, 0);
+    void* colData = tanto_r_GetPrimAttribute(&prim, 1);
+    Tanto_R_Index* indexData = tanto_r_GetPrimIndices(&prim);
+
+    memcpy(posData, positions, sizeof(positions));
+    memcpy(colData, colors, sizeof(colors));
+    memcpy(indexData, indices, sizeof(indices));
 
     return prim;
 }
@@ -83,13 +85,14 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount,
+        .attrSizes = {12, 12, 12}
     };
 
     initPrimBuffers(&prim);
 
-    Tanto_R_Attribute* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
-    Tanto_R_Attribute* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
-    Tanto_R_Attribute* pUvws      = tanto_r_GetPrimAttribute(&prim, 2);
+    Vec3* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
+    Vec3* pUvws      = tanto_r_GetPrimAttribute(&prim, 2);
 
     const Vec3 points[8] = {
         { -0.5,  0.5,  0.5 },
@@ -111,7 +114,7 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
         { -1.0,  0.0,  0.0 },
     };
 
-    const Tanto_R_Attribute uvws[4] = {
+    const Vec3 uvws[4] = {
         { 0.0, 0.0, 0.0 },
         { 1.0, 0.0, 0.0 },
         { 0.0, 1.0, 0.0 },
@@ -220,28 +223,29 @@ Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
 {
     Tanto_R_Primitive prim = {
         .attrCount = 2,
+        .attrSizes = {12, 12},
         .indexCount = 0, 
         .vertexCount = count,
     };
 
     prim.vertexRegion = tanto_v_RequestBufferRegion(
-            sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
+            12 * prim.attrCount * prim.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
             TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
-    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
+    const uint32_t posOffset = 0 * prim.vertexCount * 12;
+    const uint32_t colOffset = 1 * prim.vertexCount * 12;
 
     prim.attrOffsets[0] = posOffset;
     prim.attrOffsets[1] = colOffset;
 
-    Tanto_R_Attribute* positions = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + posOffset);
-    Tanto_R_Attribute* colors    = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + colOffset);
+    Vec3* positions = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* colors    = tanto_r_GetPrimAttribute(&prim, 1);
 
     for (int i = 0; i < count; i++) 
     {
-        positions[i] = (Tanto_R_Attribute){0, 0, 0};  
-        colors[i] = (Tanto_R_Attribute){1, 0, 0};  
+        positions[i] = (Vec3){0, 0, 0};  
+        colors[i] = (Vec3){1, 0, 0};  
     }
 
     return prim;
@@ -254,36 +258,23 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
 
     Tanto_R_Primitive prim = {
         .attrCount = 2,
+        .attrSizes = {12, 12},
         .indexCount = vertCount * patchSize, // to handle maximum restartOffset
         .vertexCount = vertCount,
     };
 
-    prim.vertexRegion = tanto_v_RequestBufferRegion(
-            sizeof(Tanto_R_Attribute) * prim.attrCount * prim.vertexCount, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    initPrimBuffers(&prim);
 
-    prim.indexRegion = tanto_v_RequestBufferRegion(
-            sizeof(Tanto_R_Index) * prim.indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
-
-    const uint32_t posOffset = 0 * prim.vertexCount * sizeof(Tanto_R_Attribute);
-    const uint32_t colOffset = 1 * prim.vertexCount * sizeof(Tanto_R_Attribute);
-
-    prim.attrOffsets[0] = posOffset;
-    prim.attrOffsets[1] = colOffset;
-
-    Tanto_R_Attribute* positions = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + posOffset);
-    Tanto_R_Attribute* colors    = (Tanto_R_Attribute*)(prim.vertexRegion.hostData + colOffset);
+    Vec3* positions = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* colors    = tanto_r_GetPrimAttribute(&prim, 1);
 
     for (int i = 0; i < vertCount; i++) 
     {
-        positions[i] = (Tanto_R_Attribute){0, 0, 0};  
-        colors[i] = (Tanto_R_Attribute){1, 0, 0};  
+        positions[i] = (Vec3){0, 0, 0};  
+        colors[i] = (Vec3){1, 0, 0};  
     }
 
-    Tanto_R_Index* indices = (Tanto_R_Index*)(prim.indexRegion.hostData);
+    Tanto_R_Index* indices = tanto_r_GetPrimIndices(&prim);
 
     for (int i = 0, vertid = 0; vertid < prim.vertexCount; ) 
     {
@@ -309,9 +300,14 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
         .vertexCount = 4,
     };
 
+    for (int i = 0; i < attrCount; i++) 
+    {
+        prim.attrSizes[i] = 12;
+    }
+
     initPrimBuffers(&prim);
 
-    Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* pos = tanto_r_GetPrimAttribute(&prim, 0);
 
     const float w = width / 2;
     const float h = height / 2;
@@ -325,7 +321,7 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
     {
         if (attribBits & TANTO_R_ATTRIBUTE_NORMAL_BIT)
         {
-            Tanto_R_Attribute* normals = tanto_r_GetPrimAttribute(&prim, i);
+            Vec3* normals = tanto_r_GetPrimAttribute(&prim, i);
             normals[0] = (Vec3){0, 0, 1};
             normals[1] = (Vec3){0, 0, 1};
             normals[2] = (Vec3){0, 0, 1};
@@ -334,7 +330,7 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
         }
         else if (attribBits & TANTO_R_ATTRIBUTE_UVW_BIT)
         {
-            Tanto_R_Attribute* uvw = tanto_r_GetPrimAttribute(&prim, i);
+            Vec3* uvw = tanto_r_GetPrimAttribute(&prim, i);
             uvw[0] = (Vec3){0, 0, 0};
             uvw[1] = (Vec3){0, 1, 0};
             uvw[2] = (Vec3){1, 0, 0};
@@ -358,24 +354,25 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height, Tanto_R_VertexDescription* desc)
+Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height)
 {
     Tanto_R_Primitive prim = {
         .attrCount = 2,
         .indexCount = 6,
         .vertexCount = 4,
+        .attrSizes = {12, 12}
     };
 
     initPrimBuffers(&prim);
 
-    Tanto_R_Attribute* pos = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* pos = tanto_r_GetPrimAttribute(&prim, 0);
     // upper left. x, y
     pos[0] = (Vec3){x, y, 0};
     pos[1] = (Vec3){x, y + height, 0};
     pos[2] = (Vec3){x + width, y, 0};
     pos[3] = (Vec3){x + width, y + height, 0};
 
-    Tanto_R_Attribute* uvw = tanto_r_GetPrimAttribute(&prim, 1);
+    Vec3* uvw = tanto_r_GetPrimAttribute(&prim, 1);
     uvw[0] = (Vec3){0, 0, 0};
     uvw[1] = (Vec3){0, 1, 0};
     uvw[2] = (Vec3){1, 0, 0};
@@ -389,21 +386,22 @@ Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const floa
     index[4] = 1;
     index[5] = 3;
 
-    if (desc)
-    {
-        *desc = tanto_r_GetVertexDescription3D_2Vec3();
-    }
-
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, const uint8_t attrCount)
+Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
+        const uint8_t attrCount, const uint8_t attrSizes[attrCount])
 {
     Tanto_R_Primitive prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount
     };
+
+    for (int i = 0; i < attrCount; i++) 
+    {
+        prim.attrSizes[i] = attrSizes[i];
+    }
 
     initPrimBuffers(&prim);
 
@@ -577,9 +575,10 @@ Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_2Vec3(void)
     return vertDesc;
 }
 
-Tanto_R_Attribute* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, uint32_t index)
+void* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, const uint32_t index)
 {
-    return (Tanto_R_Attribute*)(prim->vertexRegion.hostData + prim->attrOffsets[index]);
+    assert(index < TANTO_R_MAX_VERT_ATTRIBUTES);
+    return (prim->vertexRegion.hostData + prim->attrOffsets[index]);
 }
 
 Tanto_R_Index* tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim)

@@ -95,7 +95,7 @@ Tanto_R_Primitive tanto_f_CreateRPrimFromFPrim(const Tanto_F_Primitive *fprim)
     const size_t indexDataSize  = fprim->indexCount * sizeof(Tanto_R_Index);
     for (int i = 0; i < fprim->attrCount; i++) 
     {
-        Tanto_R_Attribute* dst = tanto_r_GetPrimAttribute(&rprim, i);
+        void* dst = tanto_r_GetPrimAttribute(&rprim, i);
         memcpy(dst, fprim->attributes[i], vertexDataSize);
     }
     memcpy(rprim.indexRegion.hostData, fprim->indices, indexDataSize);
