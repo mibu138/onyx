@@ -89,14 +89,13 @@ typedef struct {
 
 // counter-clockwise orientation
 void tanto_s_CreateSimpleScene(Tanto_S_Scene* scene);
-void tanto_s_CreateSimpleScene2(Tanto_S_Scene* scene);
-void tanto_s_CreateSimpleScene3(Tanto_S_Scene *scene);
 void tanto_s_UpdateCamera(Tanto_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
 void tanto_s_CreateEmptyScene(Tanto_S_Scene* scene);
 void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 void tanto_s_BindPrimToMaterial(Tanto_S_Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId);
 
 Tanto_S_PrimId    tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
+Tanto_S_PrimId    tanto_s_AddRPrim(Tanto_S_Scene* scene, const Tanto_R_Primitive prim, const Mat4* xform);
 Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath, const uint8_t channelCount);
 Tanto_S_LightId   tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
 Tanto_S_LightId   tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);

@@ -77,12 +77,16 @@ void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
 
     const Material cubeMat = {
         .color        = (Vec3){0.05, 0.18, 0.516},
-        .roughness    = .5
+        .roughness    = .5,
+        .textureAlbedo    = TANTO_S_NONE,
+        .textureRoughness = TANTO_S_NONE,
     };
 
     const Material quadMat = {
         .color        = (Vec3){0.75, 0.422, 0.245},
-        .roughness    = 1
+        .roughness    = 1,
+        .textureAlbedo    = TANTO_S_NONE,
+        .textureRoughness = TANTO_S_NONE,
     };
     
 
@@ -103,7 +107,7 @@ void tanto_s_CreateEmptyScene(Scene* scene)
     memset(scene, 0, sizeof(Scene));
     Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
     scene->camera.xform = m;
-    tanto_s_LoadTexture(scene, "data/chungus.jpg", 3); // for debugging, a tedId of zero gives you this
+    tanto_s_LoadTexture(scene, "data/chungus.jpg", 4); // for debugging, a tedId of zero gives you this
 }
 
 void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId)
@@ -111,6 +115,22 @@ void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const
     assert(scene->materialCount > matId);
     assert(scene->primCount > primId);
     scene->prims[primId].materialId = matId;
+}
+
+Tanto_S_PrimId tanto_s_AddRPrim(Scene* scene, const Tanto_R_Primitive prim, const Mat4* xform)
+{
+    const uint32_t curIndex = scene->primCount++;
+    assert(curIndex < TANTO_S_MAX_PRIMS);
+    scene->prims[curIndex].rprim = prim;
+
+    const Mat4 m = xform ? *xform : m_Ident_Mat4();
+    scene->xforms[curIndex] = m;
+
+    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0);
+
+    scene->dirt |= TANTO_S_XFORMS_BIT;
+
+    return curIndex;
 }
 
 Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xform)

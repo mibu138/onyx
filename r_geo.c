@@ -398,6 +398,8 @@ Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32
         .vertexCount = vertCount
     };
 
+    assert(attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
+
     for (int i = 0; i < attrCount; i++) 
     {
         prim.attrSizes[i] = attrSizes[i];

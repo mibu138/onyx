@@ -7,6 +7,7 @@
 #include <coal/coal.h>
 
 #define TANTO_R_MAX_VERT_ATTRIBUTES 8
+#define TANTO_R_ATTR_NAME_LEN 4
 
 typedef uint32_t   Tanto_R_Index;
 typedef uint8_t    Tanto_R_AttributeSize;
@@ -23,8 +24,9 @@ typedef struct {
     uint32_t              indexCount;
     Tanto_V_BufferRegion  indexRegion;
     uint32_t              attrCount;
-    VkDeviceSize          attrOffsets[TANTO_R_MAX_VERT_ATTRIBUTES];
+    char                  attrNames[TANTO_R_MAX_VERT_ATTRIBUTES][TANTO_R_ATTR_NAME_LEN];
     Tanto_R_AttributeSize attrSizes[TANTO_R_MAX_VERT_ATTRIBUTES]; // individual element sizes
+    VkDeviceSize          attrOffsets[TANTO_R_MAX_VERT_ATTRIBUTES];
 } Tanto_R_Primitive;
 
 typedef struct {
