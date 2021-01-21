@@ -90,6 +90,13 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
 
     initPrimBuffers(&prim);
 
+    const char attrNames[3][TANTO_R_ATTR_NAME_LEN] = {"pos", "nor", "uvw"};
+    for (int i = 0; i < attrCount; i++) 
+    {
+        memcpy(prim.attrNames[i], attrNames[i], TANTO_R_ATTR_NAME_LEN);
+    }
+
+
     Vec3* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
     Vec3* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
     Vec3* pUvws      = tanto_r_GetPrimAttribute(&prim, 2);

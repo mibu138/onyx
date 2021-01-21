@@ -89,7 +89,8 @@ typedef struct {
 
 // counter-clockwise orientation
 void tanto_s_CreateSimpleScene(Tanto_S_Scene* scene);
-void tanto_s_UpdateCamera(Tanto_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
+void tanto_s_UpdateCamera_ArcBall(Tanto_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
+void tanto_s_UpdateCamera_LookAt(Tanto_S_Scene* scene, Vec3 pos, Vec3 target, Vec3 up);
 void tanto_s_CreateEmptyScene(Tanto_S_Scene* scene);
 void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 void tanto_s_BindPrimToMaterial(Tanto_S_Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId);

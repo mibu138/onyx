@@ -5,7 +5,6 @@
 #include "tanto/r_geo.h"
 #include "tanto/v_image.h"
 #include <string.h>
-#include <vulkan/vulkan_core.h>
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
 
@@ -238,7 +237,13 @@ Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const V
 #define PAN_RATE    0.1
 #define TUMBLE_RATE 2
 
-void tanto_s_UpdateCamera(Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home)
+void tanto_s_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
+{
+    scene->camera.xform = m_LookAt(&pos, &target, &up);
+    scene->dirt |= TANTO_S_CAMERA_BIT;
+}
+
+void tanto_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home)
 {
     static Vec3 pos    = HOME_POS;
     static Vec3 target = HOME_TARGET;

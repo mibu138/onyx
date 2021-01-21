@@ -14,7 +14,7 @@ typedef struct {
 extern Tanto_D_XcbWindow d_XcbWindow;
 
 // if null name will default to "floating"
-void tanto_d_Init(const char* windowName);
+void tanto_d_Init(const uint16_t width, const uint16_t height, const char* name);
 void tanto_d_CleanUp(void);
 
 #endif /* end of include guard: D_INIT_H */
