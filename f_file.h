@@ -23,5 +23,6 @@ Tanto_R_Primitive tanto_f_CreateRPrimFromFPrim(const Tanto_F_Primitive* fprim);
 int               tanto_f_WritePrimitive(const char* filename, const Tanto_F_Primitive* fprim);
 int               tanto_f_ReadPrimitive(const char* filename, Tanto_F_Primitive* fprim);
 void              tanto_f_FreePrimitive(Tanto_F_Primitive* fprim);
+void              tanto_f_PrintPrim(const Tanto_F_Primitive* prim);
 
 #endif /* end of include guard: TANTO_F_FILE_H */

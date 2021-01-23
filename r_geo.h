@@ -54,5 +54,6 @@ void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* pri
 void tanto_r_DrawPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
 void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim);
 void tanto_r_FreePrim(Tanto_R_Primitive* prim);
+void tanto_r_PrintPrim(const Tanto_R_Primitive* prim);
 
 #endif /* end of include guard: R_GEO_H */

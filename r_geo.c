@@ -8,6 +8,7 @@
 const int CW = 1;
 
 typedef Tanto_R_AttributeSize AttrSize;
+typedef Tanto_R_Primitive     Prim;
 
 static void initPrimBuffers(Tanto_R_Primitive* prim)
 {
@@ -22,7 +23,7 @@ static void initPrimBuffers(Tanto_R_Primitive* prim)
         const AttrSize attrSize = prim->attrSizes[i];
         assert(attrSize > 0);
         const size_t attrRegionSize = prim->vertexCount * attrSize;
-        prim->attrOffsets[i] = i * attrRegionSize;
+        prim->attrOffsets[i] = vertexBufferSize;
         vertexBufferSize += attrRegionSize;
     }
 
@@ -31,6 +32,43 @@ static void initPrimBuffers(Tanto_R_Primitive* prim)
 
     prim->indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim->indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+}
+
+static void printPrim(const Prim* prim)
+{
+    printf(">>> printing Fprim info...\n");
+    printf(">>> attrCount %d vertexCount %d indexCount %d \n", prim->attrCount, prim->vertexCount, prim->indexCount);
+    printf(">>> attrSizes ");
+    for (int i = 0; i < prim->attrCount; i++) 
+        printf("%d ", prim->attrSizes[i]);
+    printf("\n>>> attrNames ");
+    for (int i = 0; i < prim->attrCount; i++) 
+        printf("%s ", prim->attrNames[i]);
+    printf("\n>>> Attributes: \n");
+    for (int i = 0; i < prim->attrCount; i++) 
+    {
+        const size_t offset = prim->attrOffsets[i];
+        printf(">>> %s @ offset %ld: ", prim->attrNames[i], offset);
+        for (int j = 0; j < prim->vertexCount; j++) 
+        {
+            printf("{");
+            const int dim = prim->attrSizes[i]/4;
+            const float* vals = &((float*)(prim->vertexRegion.hostData + offset))[j * dim];
+            for (int k = 0; k < dim; k++)
+                printf("%f%s", vals[k], k == dim - 1 ? "" : ", ");
+            printf("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
+        }
+        printf("\n");
+    }
+    printf("Indices: ");
+    for (int i = 0; i < prim->indexCount; i++) 
+        printf("%d%s", ((Tanto_R_Index*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
+    printf("\n");
+}
+
+void tanto_r_PrintPrim(const Tanto_R_Primitive* prim)
+{
+    printPrim(prim);
 }
 
 void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim)
@@ -95,7 +133,6 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
     {
         memcpy(prim.attrNames[i], attrNames[i], TANTO_R_ATTR_NAME_LEN);
     }
-
 
     Vec3* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
     Vec3* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
@@ -220,8 +257,8 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
             indices[face * 6 + 5] = 4 * face + 3;
         }
 
-    tanto_v_TransferToDevice(&prim.vertexRegion);
-    tanto_v_TransferToDevice(&prim.indexRegion);
+    //tanto_v_TransferToDevice(&prim.vertexRegion);
+    //tanto_v_TransferToDevice(&prim.indexRegion);
 
     return prim;
 }

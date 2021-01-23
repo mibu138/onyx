@@ -8,6 +8,44 @@
 
 _Static_assert(sizeof(uint8_t) == sizeof(Tanto_R_AttributeSize), "sizeof(Tanto_R_AttributeSize) must be 1");
 
+typedef Tanto_F_Primitive FPrim;
+
+static void printPrim(const FPrim* prim)
+{
+    printf(">>> printing Fprim info...\n");
+    printf(">>> attrCount %d vertexCount %d indexCount %d \n", prim->attrCount, prim->vertexCount, prim->indexCount);
+    printf(">>> attrSizes ");
+    for (int i = 0; i < prim->attrCount; i++) 
+        printf("%d ", prim->attrSizes[i]);
+    printf("\n>>> attrNames ");
+    for (int i = 0; i < prim->attrCount; i++) 
+        printf("%s ", prim->attrNames[i]);
+    printf("\n>>> Attributes: \n");
+    for (int i = 0; i < prim->attrCount; i++) 
+    {
+        printf(">>> %s: ", prim->attrNames[i]);
+        for (int j = 0; j < prim->vertexCount; j++) 
+        {
+            printf("{");
+            const int dim = prim->attrSizes[i]/4;
+            const float* vals = &((float**)prim->attributes)[i][j * dim];
+            for (int k = 0; k < dim; k++)
+                printf("%f%s", vals[k], k == dim - 1 ? "" : ", ");
+            printf("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
+        }
+        printf("\n");
+    }
+    printf("Indices: ");
+    for (int i = 0; i < prim->indexCount; i++) 
+        printf("%d%s", prim->indices[i], i == prim->indexCount - 1 ? "" : ", ");
+    printf("\n");
+}
+
+void tanto_f_PrintPrim(const Tanto_F_Primitive* prim)
+{
+    printPrim(prim);
+}
+
 Tanto_F_Primitive tanto_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount, 
         const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount])
 {
@@ -113,6 +151,9 @@ int tanto_f_WritePrimitive(const char* filename, const Tanto_F_Primitive* fprim)
     {
         r = fwrite(fprim->attrNames[i], TANTO_R_ATTR_NAME_LEN, 1, file);
         assert(r == 1);
+    }
+    for (int i = 0; i < fprim->attrCount; i++) 
+    {
         r = fwrite(fprim->attributes[i], fprim->vertexCount * fprim->attrSizes[i], 1, file);
         assert(r == 1);
     }
@@ -137,6 +178,7 @@ int tanto_f_ReadPrimitive(const char* filename, Tanto_F_Primitive* fprim)
     fprim->attrNames  = malloc(fprim->attrCount * sizeof(char*));
     fprim->attributes = malloc(fprim->attrCount * sizeof(void*));
     r = fread(fprim->attrSizes, fprim->attrCount * sizeof(Tanto_R_AttributeSize), 1, file);
+    assert(r);
     for (int i = 0; i < fprim->attrCount; i++) 
     {
         fprim->attrNames[i] = malloc(TANTO_R_ATTR_NAME_LEN);
@@ -149,7 +191,7 @@ int tanto_f_ReadPrimitive(const char* filename, Tanto_F_Primitive* fprim)
         r = fread(fprim->attributes[i], fprim->vertexCount * fprim->attrSizes[i], 1, file);
         assert(r);
     }
-    fread(fprim->indices, fprim->attrCount * sizeof(Tanto_R_Index), 1, file);
+    fread(fprim->indices, fprim->indexCount * sizeof(Tanto_R_Index), 1, file);
     assert(r == 1);
     return 1;
 }
