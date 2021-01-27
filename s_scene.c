@@ -125,7 +125,7 @@ Tanto_S_PrimId tanto_s_AddRPrim(Scene* scene, const Tanto_R_Primitive prim, cons
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
     scene->xforms[curIndex] = m;
 
-    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0);
+    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0);
 
     scene->dirt |= TANTO_S_XFORMS_BIT;
 
@@ -147,7 +147,7 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
     scene->xforms[curIndex] = m;
 
-    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, TANTO_S_NONE, TANTO_S_NONE);
+    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, TANTO_S_NONE, TANTO_S_NONE, TANTO_S_NONE);
 
     scene->dirt |= TANTO_S_XFORMS_BIT;
 
@@ -183,15 +183,17 @@ Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath
     return texId;
 }
 
-Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId)
+Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, 
+        Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId, Tanto_S_TextureId normalId)
 {
     Tanto_S_MaterialId matId = scene->materialCount++;
     assert(matId < TANTO_S_MAX_TEXTURES);
 
-    scene->materials[matId].color = color;
+    scene->materials[matId].color     = color;
     scene->materials[matId].roughness = roughness;
-    scene->materials[matId].textureAlbedo = albedoId;
+    scene->materials[matId].textureAlbedo    = albedoId;
     scene->materials[matId].textureRoughness = roughnessId;
+    scene->materials[matId].textureNormal    = normalId;
 
     scene->dirt |= TANTO_S_MATERIALS_BIT;
 
@@ -276,4 +278,11 @@ void tanto_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
     assert(id < scene->lightCount);
     scene->lights[id].intensity = intensity;
     scene->dirt |= TANTO_S_LIGHTS_BIT;
+}
+
+void tanto_s_UpdatePrimXform(Scene* scene, const Tanto_S_PrimId primId, const Mat4* delta)
+{
+    assert(primId < scene->primCount);
+    scene->xforms[primId] = m_Mult_Mat4(&scene->xforms[primId], delta);
+    scene->dirt |= TANTO_S_XFORMS_BIT;
 }

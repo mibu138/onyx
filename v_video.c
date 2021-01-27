@@ -432,7 +432,8 @@ static void initDevice(void)
         .wideLines = VK_TRUE,
         .largePoints = VK_TRUE,
         .sampleRateShading = VK_TRUE,
-        .tessellationShader = VK_TRUE
+        .tessellationShader = VK_TRUE,
+        .samplerAnisotropy = VK_TRUE
     };
 
     deviceFeatures.features = enabledFeatures; // only enable a subset of available features

@@ -47,7 +47,8 @@ void tanto_f_PrintPrim(const Tanto_F_Primitive* prim)
 }
 
 Tanto_F_Primitive tanto_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount, 
-        const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount])
+        const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount],
+        const char attrNames[attrCount][TANTO_R_ATTR_NAME_LEN])
 {
     Tanto_F_Primitive fprim = {
         .vertexCount = vertexCount,
@@ -67,12 +68,20 @@ Tanto_F_Primitive tanto_f_CreatePrimitive(const uint32_t vertexCount, const uint
         fprim.attributes[i] = malloc(vertexCount * attrSizes[i]);
     }
 
+    if (attrNames != NULL)
+    {
+        for (int i = 0; i < attrCount; i++) 
+        {
+            memcpy(fprim.attrNames[i], attrNames[i], TANTO_R_ATTR_NAME_LEN);
+        }
+    }
+
     return fprim;
 }
 
 Tanto_F_Primitive tanto_f_CreateFPrimFromRPrim(const Tanto_R_Primitive* rprim)
 {
-    Tanto_F_Primitive fprim = tanto_f_CreatePrimitive(rprim->vertexCount, rprim->indexCount, rprim->attrCount, rprim->attrSizes);
+    Tanto_F_Primitive fprim = tanto_f_CreatePrimitive(rprim->vertexCount, rprim->indexCount, rprim->attrCount, rprim->attrSizes, rprim->attrNames);
 
     Tanto_V_BufferRegion hostVertRegion;
     Tanto_V_BufferRegion hostIndexRegion;
@@ -105,8 +114,8 @@ Tanto_F_Primitive tanto_f_CreateFPrimFromRPrim(const Tanto_R_Primitive* rprim)
         const size_t chunkSize = rprim->attrSizes[i] * rprim->vertexCount;
         const void* src = hostVertRegion.hostData + rprim->attrOffsets[i];
         memcpy(fprim.attributes[i], src, chunkSize);
-        src = rprim->attrNames[i];
-        memcpy(fprim.attrNames[i], src, TANTO_R_ATTR_NAME_LEN);
+        //src = rprim->attrNames[i];
+        //memcpy(fprim.attrNames[i], src, TANTO_R_ATTR_NAME_LEN);
         fprim.attrSizes[i] = rprim->attrSizes[i];
     }
 
@@ -196,9 +205,23 @@ int tanto_f_ReadPrimitive(const char* filename, Tanto_F_Primitive* fprim)
     return 1;
 }
 
+Tanto_R_Primitive tanto_f_LoadRPrim(const char* filename, const bool transferToDevice)
+{
+    Tanto_F_Primitive fprim;
+    int r;
+    r = tanto_f_ReadPrimitive(filename, &fprim);
+    assert(r);
+    Tanto_R_Primitive rprim = tanto_f_CreateRPrimFromFPrim(&fprim);
+    tanto_f_FreePrimitive(&fprim);
+    if (transferToDevice)
+    {
+        tanto_r_TransferPrimToDevice(&rprim);
+    }
+    return rprim;
+}
+
 void tanto_f_FreePrimitive(Tanto_F_Primitive* fprim)
 {
-    printf("%s\n", __PRETTY_FUNCTION__);
     for (int i = 0; i < fprim->attrCount; i++) 
     {
         free(fprim->attributes[i]);

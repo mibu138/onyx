@@ -18,7 +18,11 @@ typedef enum {
     TANTO_R_ATTRIBUTE_UVW_BIT    = 0x00000002
 } Tanto_R_AttributeBits;
 
-typedef struct {
+typedef enum {
+    TANTO_R_ATTRIBUTE_SFLOAT_TYPE,
+} Tanto_R_AttributeType;
+
+typedef struct Tanto_R_Primitive {
     uint32_t              vertexCount;
     Tanto_V_BufferRegion  vertexRegion;
     uint32_t              indexCount;
@@ -39,17 +43,21 @@ typedef struct {
 // pos and color. clockwise for now.
 Tanto_R_Primitive  tanto_r_CreateTriangle(void);
 Tanto_R_Primitive  tanto_r_CreateCubePrim(const bool isClockWise);
+Tanto_R_Primitive  tanto_r_CreateCubePrimUV(const bool isClockWise);
 Tanto_R_Primitive  tanto_r_CreatePoints(const uint32_t count);
 Tanto_R_Primitive  tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
 Tanto_R_Primitive  tanto_r_CreateQuad(const float width, const float height, const Tanto_R_AttributeBits attribBits);
 Tanto_R_Primitive  tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height);
+#ifdef __cplusplus
+Tanto_R_Primitive  tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
+                                           const uint8_t attrCount, const uint8_t* attrSizes);
+#else
 Tanto_R_Primitive  tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
                                            const uint8_t attrCount, const uint8_t attrSizes[attrCount]);
+#endif
 void*              tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, const uint32_t index);
 Tanto_R_Index*     tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim);
-Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_4Vec3(void);
-Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_3Vec3(void);
-Tanto_R_VertexDescription tanto_r_GetVertexDescription3D_2Vec3(void);
+Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount]);
 void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
 void tanto_r_DrawPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
 void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim);

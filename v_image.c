@@ -129,8 +129,9 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
         .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
         .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-        .mipLodBias = -0.5, //TODO understand the actual lod calculation. -0.5 just seems to look better to me
-        .anisotropyEnable = VK_FALSE,
+        .mipLodBias = 0, //TODO understand the actual lod calculation. -0.5 just seems to look better to me
+        .anisotropyEnable = VK_TRUE,
+        .maxAnisotropy = 1.0,
         .compareEnable = VK_FALSE,
         .minLod = 0.0,
         .maxLod = mipLevels, // must both be 0 when using unnormalizedCoordinates

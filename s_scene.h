@@ -71,6 +71,7 @@ typedef struct {
     float             roughness;
     Tanto_S_TextureId textureAlbedo;
     Tanto_S_TextureId textureRoughness;
+    Tanto_S_TextureId textureNormal;
 } Tanto_S_Material;
 
 typedef struct {
@@ -94,12 +95,16 @@ void tanto_s_UpdateCamera_LookAt(Tanto_S_Scene* scene, Vec3 pos, Vec3 target, Ve
 void tanto_s_CreateEmptyScene(Tanto_S_Scene* scene);
 void tanto_s_UpdateLight(Tanto_S_Scene* scene, uint32_t id, float intensity);
 void tanto_s_BindPrimToMaterial(Tanto_S_Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId);
+void tanto_s_UpdatePrimXform(Tanto_S_Scene* scene, const Tanto_S_PrimId primId, const Mat4* delta);
 
 Tanto_S_PrimId    tanto_s_LoadPrim(Tanto_S_Scene* scene, const char* filePath, const Mat4* xform);
 Tanto_S_PrimId    tanto_s_AddRPrim(Tanto_S_Scene* scene, const Tanto_R_Primitive prim, const Mat4* xform);
 Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath, const uint8_t channelCount);
 Tanto_S_LightId   tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
 Tanto_S_LightId   tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);
-Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId);
+Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, 
+        Tanto_S_TextureId albedoId, 
+        Tanto_S_TextureId roughnessId,
+        Tanto_S_TextureId normalId);
 
 #endif /* end of include guard: TANTO_S_SCENE_H */

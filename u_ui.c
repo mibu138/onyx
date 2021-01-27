@@ -132,6 +132,7 @@ static void initPipelineLayouts(void)
 
 static void initPipelines(void)
 {
+    Tanto_R_AttributeSize attrSizes[2] = {12, 12};
     Tanto_R_GraphicsPipelineInfo pipeInfos[] = {{
         // simple box
         .renderPass = renderPass, 
@@ -139,7 +140,7 @@ static void initPipelines(void)
         .sampleCount = VK_SAMPLE_COUNT_1_BIT,
         .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode   = TANTO_R_BLEND_MODE_OVER,
-        .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
+        .vertexDescription = tanto_r_GetVertexDescription(2, attrSizes),
         .vertShader = TANTO_SPVDIR"/ui-vert.spv",
         .fragShader = TANTO_SPVDIR"/ui-box-frag.spv"
     },{ 
@@ -149,7 +150,7 @@ static void initPipelines(void)
         .sampleCount = VK_SAMPLE_COUNT_1_BIT,
         .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode   = TANTO_R_BLEND_MODE_OVER,
-        .vertexDescription = tanto_r_GetVertexDescription3D_2Vec3(),
+        .vertexDescription = tanto_r_GetVertexDescription(2, attrSizes),
         .vertShader = TANTO_SPVDIR"/ui-vert.spv",
         .fragShader = TANTO_SPVDIR"/ui-slider-frag.spv"
     }};
