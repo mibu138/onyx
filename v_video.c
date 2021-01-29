@@ -365,10 +365,14 @@ static void initDevice(void)
     // on to the pNext member of deviceFeatures. 
 
     
+    VkPhysicalDeviceScalarBlockLayoutFeatures scalarBlockLayoutFeatures = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SCALAR_BLOCK_LAYOUT_FEATURES,
+        .pNext = NULL
+    };
 
     VkPhysicalDeviceAccelerationStructureFeaturesKHR accelFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR,
-        .pNext = NULL
+        .pNext = &scalarBlockLayoutFeatures
     };
 
     VkPhysicalDeviceRayTracingPipelineFeaturesKHR rtFeatures = {
@@ -433,7 +437,7 @@ static void initDevice(void)
         .largePoints = VK_TRUE,
         .sampleRateShading = VK_TRUE,
         .tessellationShader = VK_TRUE,
-        .samplerAnisotropy = VK_TRUE
+        .samplerAnisotropy = VK_TRUE,
     };
 
     deviceFeatures.features = enabledFeatures; // only enable a subset of available features

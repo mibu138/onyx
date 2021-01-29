@@ -3,6 +3,7 @@
 #include "v_video.h"
 #include "t_def.h"
 #include "v_command.h"
+#include "t_utils.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -285,6 +286,8 @@ static bool chainIsOrdered(const struct BlockChain* chain)
     return true;
 }
 
+
+
 static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
 {
     const int curIndex = findAvailableBlockIndex(size, chain);
@@ -309,9 +312,7 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     Tanto_V_MemBlock* newBlock = &chain->blocks[newIndex];
     assert( newIndex < MAX_BLOCKS );
     assert( newBlock->inUse == false );
-    VkDeviceSize alignedOffset = curBlock->offset;
-    if (alignedOffset % alignment != 0) // not aligned
-        alignedOffset = (alignedOffset / alignment + 1) * alignment;
+    VkDeviceSize alignedOffset = tanto_GetAligned(curBlock->offset, alignment);
     const VkDeviceSize offsetDiff = alignedOffset - curBlock->offset;
     // take away the size lost due to alignment and the new size
     newBlock->size   = curBlock->size - offsetDiff - size;

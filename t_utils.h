@@ -18,6 +18,7 @@
 void bitprintRowLen(const void *const thing, const size_t bitcount, const size_t rowlength);
 void bytePrint(const void* const thing, const size_t byteCount);
 void bitprint(const void *const thing, const size_t bitcount);
+uint64_t tanto_GetAligned(const uint64_t quantity, const uint32_t alignment);
 
 typedef struct Tanto_Timer Tanto_Timer;
 

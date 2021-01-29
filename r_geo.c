@@ -2,6 +2,7 @@
 #include "r_render.h"
 #include "v_memory.h"
 #include "t_def.h"
+#include "t_utils.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -32,6 +33,31 @@ static void initPrimBuffers(Tanto_R_Primitive* prim)
 
     prim->indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim->indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+}
+
+static void initPrimBuffersAligned(Tanto_R_Primitive* prim, const uint32_t offsetAlignment)
+{
+    assert(prim->attrCount > 0);
+    assert(prim->vertexCount > 0);
+    assert(prim->indexCount > 0);
+    assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
+    assert(offsetAlignment != 0);
+
+    size_t vertexBufferSize = 0;
+    for (int i = 0; i < prim->attrCount; i++) 
+    {
+        const AttrSize attrSize = prim->attrSizes[i];
+        assert(attrSize > 0);
+        const size_t attrRegionSize = tanto_GetAligned(prim->vertexCount * attrSize, offsetAlignment);
+        prim->attrOffsets[i] = vertexBufferSize;
+        vertexBufferSize += attrRegionSize;
+    }
+
+    prim->vertexRegion = tanto_v_RequestBufferRegionAligned(vertexBufferSize, 
+            offsetAlignment, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    prim->indexRegion = tanto_v_RequestBufferRegionAligned(sizeof(Tanto_R_Index) * prim->indexCount, 
+            offsetAlignment, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
 static void printPrim(const Prim* prim)
@@ -615,7 +641,7 @@ Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32
         prim.attrSizes[i] = attrSizes[i];
     }
 
-    initPrimBuffers(&prim);
+    initPrimBuffersAligned(&prim, deviceProperties.limits.minStorageBufferOffsetAlignment); // for use in compute / rt shaders
 
     return prim;
 }

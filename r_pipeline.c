@@ -1,4 +1,5 @@
 #include "r_pipeline.h"
+#include "tanto/r_raytrace.h"
 #include "v_video.h"
 #include "r_render.h"
 #include "t_def.h"
@@ -290,7 +291,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
 #define MAX_RT_SHADER_COUNT 10
 
 void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTracePipelineInfo pipelineInfos[count], 
-        VkPipeline pipelines[count])
+        VkPipeline pipelines[count], Tanto_R_ShaderBindingTable shaderBindingTables[count])
 {
     assert(count > 0);
     assert(count < TANTO_MAX_PIPELINES);
@@ -305,6 +306,8 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
     
     memset(shaderStages, 0, sizeof(shaderStages));
     memset(shaderGroups, 0, sizeof(shaderGroups));
+    memset(libraryInfos, 0, sizeof(libraryInfos));
+    memset(createInfos,  0, sizeof(createInfos));
 
     for (int p = 0; p < count; p++) 
     {
@@ -312,9 +315,9 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
 
         assert(rayTraceInfo->layout != VK_NULL_HANDLE);
 
-        const int raygenCount = rayTraceInfo->raygenCount;
-        const int missCount   = rayTraceInfo->missCount;
-        const int chitCount   = rayTraceInfo->chitCount;
+        const uint8_t raygenCount = rayTraceInfo->raygenCount;
+        const uint8_t missCount   = rayTraceInfo->missCount;
+        const uint8_t chitCount   = rayTraceInfo->chitCount;
 
         assert( raygenCount == 1 ); // for now
         assert( missCount > 0 && missCount < 10 );
@@ -374,9 +377,9 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
                 shaderGroups[p][i].type = VK_RAY_TRACING_SHADER_GROUP_TYPE_GENERAL_KHR;
                 shaderGroups[p][i].generalShader = i;
             }
-            else if ( i - raygenCount - missCount < chitCount )
+            else if ( (i - raygenCount) - missCount < chitCount )
             {
-                int m = i - raygenCount - missCount;
+                int m = (i - raygenCount) - missCount;
                 shaderStages[p][i].stage = VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR;
                 shaderStages[p][i].module = chitSM[m];
 
@@ -390,6 +393,7 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
         };
 
         assert(rayTraceInfo->layout != VK_NULL_HANDLE);
+        assert(shaderCount == 3); // debugging an issue
 
         createInfos[p] = (VkRayTracingPipelineCreateInfoKHR){
             .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
@@ -404,6 +408,11 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
     }
 
     V_ASSERT( vkCreateRayTracingPipelinesKHR(device, VK_NULL_HANDLE, VK_NULL_HANDLE, count, createInfos, NULL, pipelines) );
+
+    for (int i = 0; i < count; i++) 
+    {
+        tanto_r_CreateShaderBindingTable(createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
+    }
 
     for (int i = 0; i < count; i++) 
     {

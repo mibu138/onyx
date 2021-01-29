@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
+#include <assert.h>
 
 void bytePrint(const void* const thing, const size_t byteCount)
 {
@@ -111,4 +112,13 @@ void tanto_FrameEnd(Tanto_LoopData *data)
     if (data->printNs)
         printf("Delta s: %09ld\n", data->loopStats.nsDelta);
     tanto_LoopSleep(&data->loopStats, data->targetNs);
+}
+
+uint64_t tanto_GetAligned(const uint64_t quantity, const uint32_t alignment)
+{
+    assert(alignment != 0);
+    if (quantity % alignment != 0) // not aligned
+        return (quantity / alignment + 1) * alignment;
+    else
+        return quantity;
 }

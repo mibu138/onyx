@@ -3,6 +3,7 @@
 
 #include "v_def.h"
 #include "r_geo.h"
+#include "r_raytrace.h"
 
 #define TANTO_MAX_PIPELINES 10
 #define TANTO_MAX_DESCRIPTOR_SETS 10
@@ -84,7 +85,8 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
 void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count]);
 void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
-void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTracePipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
+void tanto_r_CreateRayTracePipelines(const uint8_t count, 
+        const Tanto_R_RayTracePipelineInfo pipelineInfos[count], VkPipeline pipelines[count], Tanto_R_ShaderBindingTable[count]);
 void tanto_r_CleanUpPipelines(void);
 
 // has clockwise orientation

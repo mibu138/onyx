@@ -48,16 +48,17 @@ Tanto_R_Primitive  tanto_r_CreatePoints(const uint32_t count);
 Tanto_R_Primitive  tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
 Tanto_R_Primitive  tanto_r_CreateQuad(const float width, const float height, const Tanto_R_AttributeBits attribBits);
 Tanto_R_Primitive  tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height);
-#ifdef __cplusplus
+#ifdef __cplusplus // no real reason to be doing this... other than documentation
 Tanto_R_Primitive  tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
                                            const uint8_t attrCount, const uint8_t* attrSizes);
+Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount, const Tanto_R_AttributeSize* attrSizes);
 #else
 Tanto_R_Primitive  tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
                                            const uint8_t attrCount, const uint8_t attrSizes[attrCount]);
+Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount]);
 #endif
 void*              tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, const uint32_t index);
 Tanto_R_Index*     tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim);
-Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount]);
 void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
 void tanto_r_DrawPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim);
 void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim);
