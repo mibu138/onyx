@@ -30,11 +30,10 @@ void              tanto_v_CleanUp(void);
 VkSurfaceKHR      tanto_v_GetSurface(void);
 void              tanto_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t submitInfoCount, 
                      const VkSubmitInfo* submitInfos, VkFence fence);
-void              tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
-                        const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
-                        VkFence fence, const struct Tanto_V_Command* cmd);
+void              tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, const VkPipelineStageFlags waitDstStageMask, 
+                                    const VkSemaphore* pWaitSemephore, VkFence fence, const struct Tanto_V_Command* cmd);
 void              tanto_v_SubmitTransferCommand(const uint32_t queueIndex, 
-                     const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+                     const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
                      VkFence fence, const struct Tanto_V_Command* cmd);
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void);

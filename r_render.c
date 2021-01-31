@@ -35,6 +35,8 @@ static uint64_t            frameCounter;
 static uint8_t swapRecreateFnCount = 0;
 static Tanto_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
 
+static VkImageUsageFlags swapImageUsageFlags;
+
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
@@ -55,7 +57,7 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
     }
 }
 
-static void initSwapchain(void)
+static void initSwapchain()
 {
     VkBool32 supported;
     const VkSurfaceKHR surface = tanto_v_GetSurface();
@@ -99,7 +101,7 @@ static void initSwapchain(void)
         .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
         .imageExtent = extent,
         .imageArrayLayers = 1, // number of views in a multiview / stereo surface
-        .imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .imageUsage = swapImageUsageFlags,
         .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue sharing. see vkspec section 11.7. 
         .queueFamilyIndexCount = 0, // dont need with exclusive sharing
         .pQueueFamilyIndices = NULL, // ditto
@@ -162,6 +164,15 @@ static void bindFramesToSwapImages(void)
         };
 
         V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].swapImage.view) );
+
+        VkExtent3D extent = {
+            .width = TANTO_WINDOW_WIDTH,
+            .height = TANTO_WINDOW_HEIGHT,
+            .depth = 1
+        };
+
+        frames[i].swapImage.extent = extent;
+        frames[i].swapImage.size = extent.height * extent.width * 4; // TODO make this robust
     }
 }
 
@@ -181,12 +192,13 @@ static void recreateSwapchain(void)
     }
 }
 
-void tanto_r_Init(void)
+void tanto_r_Init(const VkImageUsageFlags swapImageUsageFlags_)
 {
     curFrameIndex = 0;
     frameCounter  = 0;
     swapRecreateFnCount = 0;
     imageAcquiredSemaphoreIndex = 0;
+    swapImageUsageFlags = swapImageUsageFlags_;
     initSwapchain();
     initSwapchainSemaphores();
     initFrames();

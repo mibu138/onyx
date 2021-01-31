@@ -63,7 +63,7 @@ static void initRenderCommands(void)
     }
 }
 
-static void initRenderPass(VkImageLayout initialLayout)
+static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayout finalLayout)
 {
     const VkAttachmentDescription attachmentColor = {
         .flags = 0,
@@ -74,7 +74,7 @@ static void initRenderPass(VkImageLayout initialLayout)
         .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = initialLayout,
-        .finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        .finalLayout = finalLayout,
     };
 
     const VkAttachmentDescription attachments[] = {
@@ -398,10 +398,10 @@ static void onSwapchainRecreate(void)
     initFrameBuffers();
 }
 
-void tanto_u_Init(const VkImageLayout inputLayout)
+void tanto_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
 {
     initRenderCommands();
-    initRenderPass(inputLayout);
+    initRenderPass(inputLayout, finalLayout);
     initPipelineLayouts();
     initPipelines();
     initFrameBuffers();
@@ -508,9 +508,7 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
 
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
-    VkPipelineStageFlags stageFlags = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-
-    tanto_v_SubmitGraphicsCommand(0, &stageFlags, pWaitSemephore, renderCommands[frameIndex].fence, &renderCommands[frameIndex]);
+    tanto_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, pWaitSemephore, renderCommands[frameIndex].fence, &renderCommands[frameIndex]);
 
     return &renderCommands[frameIndex].semaphore;
 }

@@ -101,12 +101,21 @@ void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
     *scene = s;
 }
 
+#define DEFAULT_MAT_ID 0
+
 void tanto_s_CreateEmptyScene(Scene* scene)
 {
     memset(scene, 0, sizeof(Scene));
     Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
     scene->camera.xform = m;
-    tanto_s_LoadTexture(scene, "data/chungus.jpg", 4); // for debugging, a tedId of zero gives you this
+    tanto_s_LoadTexture(scene, "data/chungus.jpg", 4); // for debugging, a texId of zero gives you this. if he shows up something went wrong
+    tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
+    for (int i = 0; i < TANTO_S_MAX_PRIMS; i++) 
+    {
+        scene->xforms[i] = m_Ident_Mat4();
+    }
+
+    scene->dirt |= TANTO_S_CAMERA_BIT | TANTO_S_TEXTURES_BIT | TANTO_S_MATERIALS_BIT | TANTO_S_XFORMS_BIT;
 }
 
 void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId)
@@ -114,6 +123,8 @@ void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const
     assert(scene->materialCount > matId);
     assert(scene->primCount > primId);
     scene->prims[primId].materialId = matId;
+
+    scene->dirt |= TANTO_S_PRIMS_BIT;
 }
 
 Tanto_S_PrimId tanto_s_AddRPrim(Scene* scene, const Tanto_R_Primitive prim, const Mat4* xform)
@@ -125,9 +136,9 @@ Tanto_S_PrimId tanto_s_AddRPrim(Scene* scene, const Tanto_R_Primitive prim, cons
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
     scene->xforms[curIndex] = m;
 
-    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0);
+    scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
 
-    scene->dirt |= TANTO_S_XFORMS_BIT;
+    scene->dirt |= TANTO_S_XFORMS_BIT | TANTO_S_PRIMS_BIT;
 
     return curIndex;
 }
@@ -147,9 +158,9 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
     scene->xforms[curIndex] = m;
 
-    scene->prims[curIndex].materialId = tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, TANTO_S_NONE, TANTO_S_NONE, TANTO_S_NONE);
+    scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
 
-    scene->dirt |= TANTO_S_XFORMS_BIT;
+    scene->dirt |= TANTO_S_XFORMS_BIT | TANTO_S_PRIMS_BIT;
 
     return curIndex;
 }
@@ -174,9 +185,9 @@ Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath
             1, VK_FILTER_LINEAR, tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
 
-    const Tanto_S_TextureId texId = scene->textureCount++;
+    const Tanto_S_TextureId texId = scene->textureCount++; 
     scene->textures[texId] = texture;
-    assert(texId < TANTO_S_MAX_TEXTURES);
+    assert(scene->textureCount < TANTO_S_MAX_TEXTURES);
 
     scene->dirt |= TANTO_S_TEXTURES_BIT;
 
@@ -212,7 +223,9 @@ Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 color, con
     const uint32_t curIndex = scene->lightCount++;
     assert(curIndex < TANTO_S_MAX_LIGHTS);
     scene->lights[curIndex] = light;
+
     scene->dirt |= TANTO_S_LIGHTS_BIT;
+
     return curIndex;
 }
 
@@ -228,7 +241,9 @@ Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const V
     const uint32_t curIndex = scene->lightCount++;
     assert(curIndex < TANTO_S_MAX_LIGHTS);
     scene->lights[curIndex] = light;
+
     scene->dirt |= TANTO_S_LIGHTS_BIT;
+
     return curIndex;
 }
 

@@ -21,7 +21,7 @@ VkFormat tanto_r_GetOffscreenColorFormat(void);
 VkFormat tanto_r_GetDepthFormat(void);
 VkFormat tanto_r_GetSwapFormat(void);
 
-void           tanto_r_Init(void);
+void           tanto_r_Init(const VkImageUsageFlags swapImageUsageFlags);
 void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);
 bool           tanto_r_PresentFrame(VkSemaphore waitSemaphore);
 void           tanto_r_CleanUp(void);

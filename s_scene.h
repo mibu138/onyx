@@ -18,13 +18,13 @@ typedef Mat4       Tanto_S_Xform;
 
 #define TANTO_S_NONE (uint32_t)-1
 
-
 typedef enum {
-    TANTO_S_CAMERA_BIT    = 0x00000001,
-    TANTO_S_LIGHTS_BIT    = 0x00000002,
-    TANTO_S_XFORMS_BIT    = 0x00000004,
-    TANTO_S_MATERIALS_BIT = 0x00000008,
-    TANTO_S_TEXTURES_BIT  = 0x00000010,
+    TANTO_S_CAMERA_BIT      = 0x00000001,
+    TANTO_S_LIGHTS_BIT      = 0x00000002,
+    TANTO_S_XFORMS_BIT      = 0x00000004,
+    TANTO_S_MATERIALS_BIT   = 0x00000008,
+    TANTO_S_TEXTURES_BIT    = 0x00000010,
+    TANTO_S_PRIMS_BIT       = 0x00000020,
 } Tanto_S_DirtyBits;
 
 typedef struct {
@@ -102,6 +102,7 @@ Tanto_S_PrimId    tanto_s_AddRPrim(Tanto_S_Scene* scene, const Tanto_R_Primitive
 Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath, const uint8_t channelCount);
 Tanto_S_LightId   tanto_s_CreateDirectionLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 direction);
 Tanto_S_LightId   tanto_s_CreatePointLight(Tanto_S_Scene* scene, const Vec3 color, const Vec3 position);
+// a texture id of 0 means no texture will be used
 Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, 
         Tanto_S_TextureId albedoId, 
         Tanto_S_TextureId roughnessId,

@@ -585,12 +585,12 @@ void tanto_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t su
 }
 
 void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
-        const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+        const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
         VkFence fence, const Tanto_V_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pWaitDstStageMask = pWaitDstStageMask,
+        .pWaitDstStageMask = &waitDstStageMask,
         .waitSemaphoreCount = pWaitSemephore == NULL ? 0 : 1,
         .pWaitSemaphores = pWaitSemephore,
         .signalSemaphoreCount = 1,
@@ -603,12 +603,12 @@ void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex,
 }
 
 void tanto_v_SubmitTransferCommand(const uint32_t queueIndex, 
-        const VkPipelineStageFlags* pWaitDstStageMask, const VkSemaphore* pWaitSemephore, 
+        const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
         VkFence fence, const Tanto_V_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pWaitDstStageMask = pWaitDstStageMask,
+        .pWaitDstStageMask = &waitDstStageMask,
         .waitSemaphoreCount = pWaitSemephore == NULL ? 0 : 1,
         .pWaitSemaphores = pWaitSemephore,
         .signalSemaphoreCount = 1,

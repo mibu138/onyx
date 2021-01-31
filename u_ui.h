@@ -36,7 +36,7 @@ struct Tanto_U_Widget {
     uint8_t              id;
 };
 
-void               tanto_u_Init(const VkImageLayout inputLayout);
+void               tanto_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout);
 void               tanto_u_DebugReport(void);
 Tanto_U_Widget*    tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
                         const int16_t width, const int16_t height, Tanto_U_Widget* parent);
