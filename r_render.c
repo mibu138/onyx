@@ -229,9 +229,9 @@ retry:
 
 static uint32_t requestOffscreenFrame(void)
 {
-    uint32_t frame = frameCounter % OBDN_FRAME_COUNT;
+    curFrameIndex = frameCounter % OBDN_FRAME_COUNT;
     frameCounter++;
-    return frame;
+    return curFrameIndex;
 }
 
 void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_, bool offscreenSwapchain)
