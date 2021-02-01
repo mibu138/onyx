@@ -585,18 +585,18 @@ void obdn_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t sub
 }
 
 void obdn_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
-        const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
-        VkFence fence, const Obdn_V_Command* cmd)
+        const VkPipelineStageFlags waitDstStageMask, const VkSemaphore waitSemephore, 
+        const VkSemaphore signalSemphore, VkFence fence, const VkCommandBuffer cmdBuf)
 {
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .pWaitDstStageMask = &waitDstStageMask,
-        .waitSemaphoreCount = pWaitSemephore == NULL ? 0 : 1,
-        .pWaitSemaphores = pWaitSemephore,
-        .signalSemaphoreCount = 1,
-        .pSignalSemaphores = &cmd->semaphore,
+        .waitSemaphoreCount = waitSemephore == 0 ? 0 : 1,
+        .pWaitSemaphores = &waitSemephore,
+        .signalSemaphoreCount = signalSemphore == 0 ? 0 : 1,
+        .pSignalSemaphores = &signalSemphore,
         .commandBufferCount = 1,
-        .pCommandBuffers = &cmd->buffer,
+        .pCommandBuffers = &cmdBuf
     };
 
     V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, fence) );

@@ -458,7 +458,7 @@ uint8_t obdn_u_GetWidgets(const Obdn_U_Widget** pToFirst)
     return widgetCount;
 }
 
-VkSemaphore* obdn_u_Render(const VkSemaphore* pWaitSemephore)
+VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
 {
     uint32_t frameIndex = obdn_r_GetCurrentFrameIndex();
 
@@ -508,9 +508,11 @@ VkSemaphore* obdn_u_Render(const VkSemaphore* pWaitSemephore)
 
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
-    obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, pWaitSemephore, renderCommands[frameIndex].fence, &renderCommands[frameIndex]);
+    obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
+            waitSemephore, renderCommands[frameIndex].semaphore,
+            renderCommands[frameIndex].fence, renderCommands[frameIndex].buffer);
 
-    return &renderCommands[frameIndex].semaphore;
+    return renderCommands[frameIndex].semaphore;
 }
 
 void obdn_u_CleanUp(void)

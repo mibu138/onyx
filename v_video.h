@@ -30,8 +30,9 @@ void              obdn_v_CleanUp(void);
 VkSurfaceKHR      obdn_v_GetSurface(void);
 void              obdn_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t submitInfoCount, 
                      const VkSubmitInfo* submitInfos, VkFence fence);
-void              obdn_v_SubmitGraphicsCommand(const uint32_t queueIndex, const VkPipelineStageFlags waitDstStageMask, 
-                                    const VkSemaphore* pWaitSemephore, VkFence fence, const struct Obdn_V_Command* cmd);
+void obdn_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
+        const VkPipelineStageFlags waitDstStageMask, const VkSemaphore waitSemephore, 
+        const VkSemaphore signalSemphore, VkFence fence, const VkCommandBuffer cmdBuf);
 void              obdn_v_SubmitTransferCommand(const uint32_t queueIndex, 
                      const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
                      VkFence fence, const struct Obdn_V_Command* cmd);

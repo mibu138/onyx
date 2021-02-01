@@ -43,7 +43,7 @@ Obdn_U_Widget*    obdn_u_CreateSimpleBox(const int16_t x, const int16_t y,
 Obdn_U_Widget*    obdn_u_CreateSlider(const int16_t x, const int16_t y, 
                         Obdn_U_Widget* parent);
 uint8_t            obdn_u_GetWidgets(const Obdn_U_Widget** pToFirst);
-VkSemaphore*       obdn_u_Render(const VkSemaphore* pWaitSemephore);
+VkSemaphore        obdn_u_Render(const VkSemaphore waitSemephore);
 void               obdn_u_CleanUp(void);
 
 #endif /* end of include guard: OBDN_U_UI_H */
