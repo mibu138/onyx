@@ -5,22 +5,22 @@
 #include <string.h>
 #include <stdio.h>
 
-Tanto_D_XcbWindow d_XcbWindow;
+Obdn_D_XcbWindow d_XcbWindow;
 
 static char windowName[32] = "floating";
 
-uint32_t TANTO_WINDOW_WIDTH  = 1000;
-uint32_t TANTO_WINDOW_HEIGHT = 1000;
+uint32_t OBDN_WINDOW_WIDTH  = 1000;
+uint32_t OBDN_WINDOW_HEIGHT = 1000;
 
-void tanto_d_Init(const uint16_t width, const uint16_t height, const char* name)
+void obdn_d_Init(const uint16_t width, const uint16_t height, const char* name)
 {
     if (name)
     {
         assert(strlen(name) < 32);
         strcpy(windowName, name);
     }
-    TANTO_WINDOW_WIDTH  = width;
-    TANTO_WINDOW_HEIGHT = height;
+    OBDN_WINDOW_WIDTH  = width;
+    OBDN_WINDOW_HEIGHT = height;
     int screenNum = 0;
     d_XcbWindow.connection =     xcb_connect(NULL, &screenNum);
     d_XcbWindow.window     =     xcb_generate_id(d_XcbWindow.connection);
@@ -56,7 +56,7 @@ void tanto_d_Init(const uint16_t width, const uint16_t height, const char* name)
             d_XcbWindow.window,                  // window id
             screen->root,                      // parent
             0, 0,                              // x and y coordinate of new window
-            TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, 
+            OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, 
             0,                                 // border wdith 
             XCB_WINDOW_CLASS_COPY_FROM_PARENT, // class 
             XCB_COPY_FROM_PARENT,              // visual 
@@ -70,10 +70,10 @@ void tanto_d_Init(const uint16_t width, const uint16_t height, const char* name)
 
     xcb_map_window(d_XcbWindow.connection, d_XcbWindow.window);
     xcb_flush(d_XcbWindow.connection);
-    printf("Tanto Display initialized.\n");
+    printf("Obdn Display initialized.\n");
 }
 
-void tanto_d_CleanUp(void)
+void obdn_d_CleanUp(void)
 {
     xcb_flush(d_XcbWindow.connection);
     xcb_destroy_window(d_XcbWindow.connection, d_XcbWindow.window);

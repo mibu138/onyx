@@ -8,15 +8,15 @@
 
 const int CW = 1;
 
-typedef Tanto_R_AttributeSize AttrSize;
-typedef Tanto_R_Primitive     Prim;
+typedef Obdn_R_AttributeSize AttrSize;
+typedef Obdn_R_Primitive     Prim;
 
-static void initPrimBuffers(Tanto_R_Primitive* prim)
+static void initPrimBuffers(Obdn_R_Primitive* prim)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
     assert(prim->indexCount > 0);
-    assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
+    assert(prim->attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
 
     size_t vertexBufferSize = 0;
     for (int i = 0; i < prim->attrCount; i++) 
@@ -28,19 +28,19 @@ static void initPrimBuffers(Tanto_R_Primitive* prim)
         vertexBufferSize += attrRegionSize;
     }
 
-    prim->vertexRegion = tanto_v_RequestBufferRegion(vertexBufferSize, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    prim->vertexRegion = obdn_v_RequestBufferRegion(vertexBufferSize, 
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    prim->indexRegion = tanto_v_RequestBufferRegion(sizeof(Tanto_R_Index) * prim->indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    prim->indexRegion = obdn_v_RequestBufferRegion(sizeof(Obdn_R_Index) * prim->indexCount, 
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
-static void initPrimBuffersAligned(Tanto_R_Primitive* prim, const uint32_t offsetAlignment)
+static void initPrimBuffersAligned(Obdn_R_Primitive* prim, const uint32_t offsetAlignment)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
     assert(prim->indexCount > 0);
-    assert(prim->attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
+    assert(prim->attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
     assert(offsetAlignment != 0);
 
     size_t vertexBufferSize = 0;
@@ -48,16 +48,16 @@ static void initPrimBuffersAligned(Tanto_R_Primitive* prim, const uint32_t offse
     {
         const AttrSize attrSize = prim->attrSizes[i];
         assert(attrSize > 0);
-        const size_t attrRegionSize = tanto_GetAligned(prim->vertexCount * attrSize, offsetAlignment);
+        const size_t attrRegionSize = obdn_GetAligned(prim->vertexCount * attrSize, offsetAlignment);
         prim->attrOffsets[i] = vertexBufferSize;
         vertexBufferSize += attrRegionSize;
     }
 
-    prim->vertexRegion = tanto_v_RequestBufferRegionAligned(vertexBufferSize, 
-            offsetAlignment, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    prim->vertexRegion = obdn_v_RequestBufferRegionAligned(vertexBufferSize, 
+            offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    prim->indexRegion = tanto_v_RequestBufferRegionAligned(sizeof(Tanto_R_Index) * prim->indexCount, 
-            offsetAlignment, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    prim->indexRegion = obdn_v_RequestBufferRegionAligned(sizeof(Obdn_R_Index) * prim->indexCount, 
+            offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
 static void printPrim(const Prim* prim)
@@ -88,15 +88,15 @@ static void printPrim(const Prim* prim)
     }
     printf("Indices: ");
     for (int i = 0; i < prim->indexCount; i++) 
-        printf("%d%s", ((Tanto_R_Index*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
+        printf("%d%s", ((Obdn_R_Index*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
     printf("\n");
 }
 
-static VkFormat getFormat(const Tanto_R_AttributeSize attrSize, const Tanto_R_AttributeType attrType)
+static VkFormat getFormat(const Obdn_R_AttributeSize attrSize, const Obdn_R_AttributeType attrType)
 {
     switch (attrType)
     {
-        case TANTO_R_ATTRIBUTE_SFLOAT_TYPE: switch (attrSize)
+        case OBDN_R_ATTRIBUTE_SFLOAT_TYPE: switch (attrSize)
         {
             case  4: return VK_FORMAT_R32_SFLOAT;
             case  8: return VK_FORMAT_R32G32_SFLOAT;
@@ -108,20 +108,20 @@ static VkFormat getFormat(const Tanto_R_AttributeSize attrSize, const Tanto_R_At
     }
 }
 
-void tanto_r_PrintPrim(const Tanto_R_Primitive* prim)
+void obdn_r_PrintPrim(const Obdn_R_Primitive* prim)
 {
     printPrim(prim);
 }
 
-void tanto_r_TransferPrimToDevice(Tanto_R_Primitive* prim)
+void obdn_r_TransferPrimToDevice(Obdn_R_Primitive* prim)
 {
-    tanto_v_TransferToDevice(&prim->vertexRegion);
-    tanto_v_TransferToDevice(&prim->indexRegion);
+    obdn_v_TransferToDevice(&prim->vertexRegion);
+    obdn_v_TransferToDevice(&prim->indexRegion);
 }
 
-Tanto_R_Primitive tanto_r_CreateTriangle(void)
+Obdn_R_Primitive obdn_r_CreateTriangle(void)
 {
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .indexCount = 3, 
         .vertexCount = 3,
         .attrCount = 2,
@@ -142,11 +142,11 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void)
         {0.5, 0.3, 0.9}
     };
 
-    Tanto_R_Index indices[] = {0, 1, 2};
+    Obdn_R_Index indices[] = {0, 1, 2};
 
-    void* posData = tanto_r_GetPrimAttribute(&prim, 0);
-    void* colData = tanto_r_GetPrimAttribute(&prim, 1);
-    Tanto_R_Index* indexData = tanto_r_GetPrimIndices(&prim);
+    void* posData = obdn_r_GetPrimAttribute(&prim, 0);
+    void* colData = obdn_r_GetPrimAttribute(&prim, 1);
+    Obdn_R_Index* indexData = obdn_r_GetPrimIndices(&prim);
 
     memcpy(posData, positions, sizeof(positions));
     memcpy(colData, colors, sizeof(colors));
@@ -155,13 +155,13 @@ Tanto_R_Primitive tanto_r_CreateTriangle(void)
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
+Obdn_R_Primitive obdn_r_CreateCubePrim(const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     const uint32_t attrCount  = 3; // position, normals, uvw
 
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount,
@@ -170,15 +170,15 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
 
     initPrimBuffers(&prim);
 
-    const char attrNames[3][TANTO_R_ATTR_NAME_LEN] = {"pos", "nor", "uvw"};
+    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {"pos", "nor", "uvw"};
     for (int i = 0; i < attrCount; i++) 
     {
-        memcpy(prim.attrNames[i], attrNames[i], TANTO_R_ATTR_NAME_LEN);
+        memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
     }
 
-    Vec3* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
-    Vec3* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
-    Vec3* pUvws      = tanto_r_GetPrimAttribute(&prim, 2);
+    Vec3* pPositions = obdn_r_GetPrimAttribute(&prim, 0);
+    Vec3* pNormals   = obdn_r_GetPrimAttribute(&prim, 1);
+    Vec3* pUvws      = obdn_r_GetPrimAttribute(&prim, 2);
 
     const Vec3 points[8] = {
         { -0.5,  0.5,  0.5 },
@@ -276,7 +276,7 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
         pUvws[i + 3] = uvws[3];
     }
 
-    Tanto_R_Index* indices = tanto_r_GetPrimIndices(&prim);
+    Obdn_R_Index* indices = obdn_r_GetPrimIndices(&prim);
 
     if (isClockWise)
         for (int face = 0; face < indexCount / 6; face++) 
@@ -299,19 +299,19 @@ Tanto_R_Primitive tanto_r_CreateCubePrim(const bool isClockWise)
             indices[face * 6 + 5] = 4 * face + 3;
         }
 
-    //tanto_v_TransferToDevice(&prim.vertexRegion);
-    //tanto_v_TransferToDevice(&prim.indexRegion);
+    //obdn_v_TransferToDevice(&prim.vertexRegion);
+    //obdn_v_TransferToDevice(&prim.indexRegion);
 
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreateCubePrimUV(const bool isClockWise)
+Obdn_R_Primitive obdn_r_CreateCubePrimUV(const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     const uint32_t attrCount  = 3; // position, normals, uvw
 
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount,
@@ -320,15 +320,15 @@ Tanto_R_Primitive tanto_r_CreateCubePrimUV(const bool isClockWise)
 
     initPrimBuffers(&prim);
 
-    const char attrNames[3][TANTO_R_ATTR_NAME_LEN] = {"pos", "nor", "uv"};
+    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {"pos", "nor", "uv"};
     for (int i = 0; i < attrCount; i++) 
     {
-        memcpy(prim.attrNames[i], attrNames[i], TANTO_R_ATTR_NAME_LEN);
+        memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
     }
 
-    Vec3* pPositions = tanto_r_GetPrimAttribute(&prim, 0);
-    Vec3* pNormals   = tanto_r_GetPrimAttribute(&prim, 1);
-    Vec2* pUvws      = tanto_r_GetPrimAttribute(&prim, 2);
+    Vec3* pPositions = obdn_r_GetPrimAttribute(&prim, 0);
+    Vec3* pNormals   = obdn_r_GetPrimAttribute(&prim, 1);
+    Vec2* pUvws      = obdn_r_GetPrimAttribute(&prim, 2);
 
     const Vec3 points[8] = {
         { -0.5,  0.5,  0.5 },
@@ -426,7 +426,7 @@ Tanto_R_Primitive tanto_r_CreateCubePrimUV(const bool isClockWise)
         pUvws[i + 3] = uvws[3];
     }
 
-    Tanto_R_Index* indices = tanto_r_GetPrimIndices(&prim);
+    Obdn_R_Index* indices = obdn_r_GetPrimIndices(&prim);
 
     if (isClockWise)
         for (int face = 0; face < indexCount / 6; face++) 
@@ -449,25 +449,25 @@ Tanto_R_Primitive tanto_r_CreateCubePrimUV(const bool isClockWise)
             indices[face * 6 + 5] = 4 * face + 3;
         }
 
-    //tanto_v_TransferToDevice(&prim.vertexRegion);
-    //tanto_v_TransferToDevice(&prim.indexRegion);
+    //obdn_v_TransferToDevice(&prim.vertexRegion);
+    //obdn_v_TransferToDevice(&prim.indexRegion);
 
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
+Obdn_R_Primitive obdn_r_CreatePoints(const uint32_t count)
 {
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = 2,
         .attrSizes = {12, 12},
         .indexCount = 0, 
         .vertexCount = count,
     };
 
-    prim.vertexRegion = tanto_v_RequestBufferRegion(
+    prim.vertexRegion = obdn_v_RequestBufferRegion(
             12 * prim.attrCount * prim.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     const uint32_t posOffset = 0 * prim.vertexCount * 12;
     const uint32_t colOffset = 1 * prim.vertexCount * 12;
@@ -475,8 +475,8 @@ Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
     prim.attrOffsets[0] = posOffset;
     prim.attrOffsets[1] = colOffset;
 
-    Vec3* positions = tanto_r_GetPrimAttribute(&prim, 0);
-    Vec3* colors    = tanto_r_GetPrimAttribute(&prim, 1);
+    Vec3* positions = obdn_r_GetPrimAttribute(&prim, 0);
+    Vec3* colors    = obdn_r_GetPrimAttribute(&prim, 1);
 
     for (int i = 0; i < count; i++) 
     {
@@ -487,12 +487,12 @@ Tanto_R_Primitive tanto_r_CreatePoints(const uint32_t count)
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
+Obdn_R_Primitive obdn_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
 {
     assert(patchSize < vertCount);
     assert(restartOffset < patchSize);
 
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = 2,
         .attrSizes = {12, 12},
         .indexCount = vertCount * patchSize, // to handle maximum restartOffset
@@ -501,8 +501,8 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
 
     initPrimBuffers(&prim);
 
-    Vec3* positions = tanto_r_GetPrimAttribute(&prim, 0);
-    Vec3* colors    = tanto_r_GetPrimAttribute(&prim, 1);
+    Vec3* positions = obdn_r_GetPrimAttribute(&prim, 0);
+    Vec3* colors    = obdn_r_GetPrimAttribute(&prim, 1);
 
     for (int i = 0; i < vertCount; i++) 
     {
@@ -510,7 +510,7 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
         colors[i] = (Vec3){1, 0, 0};  
     }
 
-    Tanto_R_Index* indices = tanto_r_GetPrimIndices(&prim);
+    Obdn_R_Index* indices = obdn_r_GetPrimIndices(&prim);
 
     for (int i = 0, vertid = 0; vertid < prim.vertexCount; ) 
     {
@@ -526,11 +526,11 @@ Tanto_R_Primitive tanto_r_CreateCurve(const uint32_t vertCount, const uint32_t p
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tanto_R_AttributeBits attribBits)
+Obdn_R_Primitive obdn_r_CreateQuad(const float width, const float height, Obdn_R_AttributeBits attribBits)
 {
     const int attrCount = __builtin_popcount(attribBits) + 1;
 
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = attrCount,
         .indexCount = 6,
         .vertexCount = 4,
@@ -543,7 +543,7 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
 
     initPrimBuffers(&prim);
 
-    Vec3* pos = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* pos = obdn_r_GetPrimAttribute(&prim, 0);
 
     const float w = width / 2;
     const float h = height / 2;
@@ -555,27 +555,27 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
 
     for (int i = 1; i < attrCount; i++) 
     {
-        if (attribBits & TANTO_R_ATTRIBUTE_NORMAL_BIT)
+        if (attribBits & OBDN_R_ATTRIBUTE_NORMAL_BIT)
         {
-            Vec3* normals = tanto_r_GetPrimAttribute(&prim, i);
+            Vec3* normals = obdn_r_GetPrimAttribute(&prim, i);
             normals[0] = (Vec3){0, 0, 1};
             normals[1] = (Vec3){0, 0, 1};
             normals[2] = (Vec3){0, 0, 1};
             normals[3] = (Vec3){0, 0, 1};
-            attribBits &= ~TANTO_R_ATTRIBUTE_NORMAL_BIT;
+            attribBits &= ~OBDN_R_ATTRIBUTE_NORMAL_BIT;
         }
-        else if (attribBits & TANTO_R_ATTRIBUTE_UVW_BIT)
+        else if (attribBits & OBDN_R_ATTRIBUTE_UVW_BIT)
         {
-            Vec3* uvw = tanto_r_GetPrimAttribute(&prim, i);
+            Vec3* uvw = obdn_r_GetPrimAttribute(&prim, i);
             uvw[0] = (Vec3){0, 0, 0};
             uvw[1] = (Vec3){0, 1, 0};
             uvw[2] = (Vec3){1, 0, 0};
             uvw[3] = (Vec3){1, 1, 0};
-            attribBits &= ~TANTO_R_ATTRIBUTE_UVW_BIT;
+            attribBits &= ~OBDN_R_ATTRIBUTE_UVW_BIT;
         }
     }
 
-    Tanto_R_Index* index = tanto_r_GetPrimIndices(&prim);
+    Obdn_R_Index* index = obdn_r_GetPrimIndices(&prim);
 
     index[0] = 0;
     index[1] = 1;
@@ -584,15 +584,15 @@ Tanto_R_Primitive tanto_r_CreateQuad(const float width, const float height, Tant
     index[4] = 1;
     index[5] = 3;
 
-    tanto_v_TransferToDevice(&prim.vertexRegion);
-    tanto_v_TransferToDevice(&prim.indexRegion);
+    obdn_v_TransferToDevice(&prim.vertexRegion);
+    obdn_v_TransferToDevice(&prim.indexRegion);
 
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const float width, const float height)
+Obdn_R_Primitive obdn_r_CreateQuadNDC(const float x, const float y, const float width, const float height)
 {
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = 2,
         .indexCount = 6,
         .vertexCount = 4,
@@ -601,20 +601,20 @@ Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const floa
 
     initPrimBuffers(&prim);
 
-    Vec3* pos = tanto_r_GetPrimAttribute(&prim, 0);
+    Vec3* pos = obdn_r_GetPrimAttribute(&prim, 0);
     // upper left. x, y
     pos[0] = (Vec3){x, y, 0};
     pos[1] = (Vec3){x, y + height, 0};
     pos[2] = (Vec3){x + width, y, 0};
     pos[3] = (Vec3){x + width, y + height, 0};
 
-    Vec3* uvw = tanto_r_GetPrimAttribute(&prim, 1);
+    Vec3* uvw = obdn_r_GetPrimAttribute(&prim, 1);
     uvw[0] = (Vec3){0, 0, 0};
     uvw[1] = (Vec3){0, 1, 0};
     uvw[2] = (Vec3){1, 0, 0};
     uvw[3] = (Vec3){1, 1, 0};
 
-    Tanto_R_Index* index = tanto_r_GetPrimIndices(&prim);
+    Obdn_R_Index* index = obdn_r_GetPrimIndices(&prim);
     index[0] = 0;
     index[1] = 1;
     index[2] = 2;
@@ -625,16 +625,16 @@ Tanto_R_Primitive tanto_r_CreateQuadNDC(const float x, const float y, const floa
     return prim;
 }
 
-Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
+Obdn_R_Primitive obdn_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
         const uint8_t attrCount, const uint8_t attrSizes[attrCount])
 {
-    Tanto_R_Primitive prim = {
+    Obdn_R_Primitive prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount
     };
 
-    assert(attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
+    assert(attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
 
     for (int i = 0; i < attrCount; i++) 
     {
@@ -646,10 +646,10 @@ Tanto_R_Primitive tanto_r_CreatePrimitive(const uint32_t vertCount, const uint32
     return prim;
 }
 
-Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount, const Tanto_R_AttributeSize attrSizes[attrCount])
+Obdn_R_VertexDescription obdn_r_GetVertexDescription(const uint32_t attrCount, const Obdn_R_AttributeSize attrSizes[attrCount])
 {
-    assert(attrCount < TANTO_R_MAX_VERT_ATTRIBUTES);
-    Tanto_R_VertexDescription desc = {
+    assert(attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
+    Obdn_R_VertexDescription desc = {
         .attributeCount = attrCount,
         .bindingCount   = attrCount
     };
@@ -665,7 +665,7 @@ Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount,
         desc.attributeDescriptions[i] = (VkVertexInputAttributeDescription){
             .binding  = i,
             .location = i,
-            .format   = getFormat(attrSizes[i], TANTO_R_ATTRIBUTE_SFLOAT_TYPE),
+            .format   = getFormat(attrSizes[i], OBDN_R_ATTRIBUTE_SFLOAT_TYPE),
             .offset   = 0
         };
     }
@@ -673,18 +673,18 @@ Tanto_R_VertexDescription tanto_r_GetVertexDescription(const uint32_t attrCount,
     return desc;
 }
 
-void* tanto_r_GetPrimAttribute(const Tanto_R_Primitive* prim, const uint32_t index)
+void* obdn_r_GetPrimAttribute(const Obdn_R_Primitive* prim, const uint32_t index)
 {
-    assert(index < TANTO_R_MAX_VERT_ATTRIBUTES);
+    assert(index < OBDN_R_MAX_VERT_ATTRIBUTES);
     return (prim->vertexRegion.hostData + prim->attrOffsets[index]);
 }
 
-Tanto_R_Index* tanto_r_GetPrimIndices(const Tanto_R_Primitive* prim)
+Obdn_R_Index* obdn_r_GetPrimIndices(const Obdn_R_Primitive* prim)
 {
-    return (Tanto_R_Index*)prim->indexRegion.hostData;
+    return (Obdn_R_Index*)prim->indexRegion.hostData;
 }
 
-void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim)
+void obdn_r_BindPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
 {
     VkBuffer     vertBuffers[prim->attrCount];
     VkDeviceSize attrOffsets[prim->attrCount];
@@ -698,18 +698,18 @@ void tanto_r_BindPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* pri
     vkCmdBindVertexBuffers(cmdBuf, 0, prim->attrCount, vertBuffers, attrOffsets);
 
     vkCmdBindIndexBuffer(cmdBuf, prim->indexRegion.buffer, 
-            prim->indexRegion.offset, TANTO_VERT_INDEX_TYPE);
+            prim->indexRegion.offset, OBDN_VERT_INDEX_TYPE);
 }
 
-void tanto_r_DrawPrim(const VkCommandBuffer cmdBuf, const Tanto_R_Primitive* prim)
+void obdn_r_DrawPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
 {
-    tanto_r_BindPrim(cmdBuf, prim);
+    obdn_r_BindPrim(cmdBuf, prim);
     vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
-void tanto_r_FreePrim(Tanto_R_Primitive *prim)
+void obdn_r_FreePrim(Obdn_R_Primitive *prim)
 {
-    tanto_v_FreeBufferRegion(&prim->vertexRegion);
-    tanto_v_FreeBufferRegion(&prim->indexRegion);
+    obdn_v_FreeBufferRegion(&prim->vertexRegion);
+    obdn_v_FreeBufferRegion(&prim->indexRegion);
 }
 

@@ -162,7 +162,7 @@ static void initVkInstance(void)
         .pNext = &extraValidation,
     };
 
-    if (!tanto_v_config.validationEnabled)
+    if (!obdn_v_config.validationEnabled)
     {
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
@@ -327,14 +327,14 @@ static void initDevice(void)
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
     };
 
-    if (tanto_v_config.rayTraceEnabled)
+    if (obdn_v_config.rayTraceEnabled)
         phsicalDeviceProperties2.pNext = &rayTracingProps;
     else
         phsicalDeviceProperties2.pNext = NULL;
 
     vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
 
-    if (tanto_v_config.rayTraceEnabled)
+    if (obdn_v_config.rayTraceEnabled)
         rtProperties = rayTracingProps;
 
     const char* extensionsRT[] = {
@@ -395,7 +395,7 @@ static void initDevice(void)
         .pNext = &descIndexingFeatures
     };
 
-    if (tanto_v_config.rayTraceEnabled)
+    if (obdn_v_config.rayTraceEnabled)
         devAddressFeatures.pNext = &rtFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
@@ -410,7 +410,7 @@ static void initDevice(void)
             "rayTracingPipelineTraceRaysIndirect",
             "rayTraversalPrimitiveCulling",
         };
-        int len = TANTO_ARRAY_SIZE(rtMemberNames);
+        int len = OBDN_ARRAY_SIZE(rtMemberNames);
         for (int i = 0; i < len; i++) 
         {
             printf("%s available: %s\n", rtMemberNames[i], iter[i] ? "TRUE" : "FALSE");
@@ -421,7 +421,7 @@ static void initDevice(void)
             "bufferDeviceAddressCaptureReplay",
             "bufferDeviceAddressMultiDevice",
         };
-        len = TANTO_ARRAY_SIZE(daMemberNames);
+        len = OBDN_ARRAY_SIZE(daMemberNames);
         for (int i = 0; i < len; i++) 
         {
             printf("%s available: %s\n", daMemberNames[i], iter[i] ? "TRUE" : "FALSE");
@@ -449,18 +449,18 @@ static void initDevice(void)
         .ppEnabledLayerNames = NULL,
         .pEnabledFeatures = NULL, // not used in newer vulkan versions
         .pQueueCreateInfos = qci,
-        .queueCreateInfoCount = TANTO_ARRAY_SIZE(qci),
+        .queueCreateInfoCount = OBDN_ARRAY_SIZE(qci),
     };
 
-    if (tanto_v_config.rayTraceEnabled)
+    if (obdn_v_config.rayTraceEnabled)
     {
         V1_PRINT("Ray tracing enabled...\n");
-        dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsRT);
+        dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsRT);
         dci.ppEnabledExtensionNames = extensionsRT;
     }
     else
     {
-        dci.enabledExtensionCount = TANTO_ARRAY_SIZE(extensionsReg);
+        dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsReg);
         dci.ppEnabledExtensionNames = extensionsReg;
     }
 
@@ -485,21 +485,21 @@ static void initQueues(void)
     presentQueue = graphicsQueues[0]; // use the first queue to present
 }
 
-const VkInstance* tanto_v_Init(void)
+const VkInstance* obdn_v_Init(void)
 {
     nativeSurface = VK_NULL_HANDLE;
     initVkInstance();
-    if (tanto_v_config.validationEnabled)
+    if (obdn_v_config.validationEnabled)
         initDebugMessenger();
     initDevice();
-    tanto_v_LoadFunctions(&device);
+    obdn_v_LoadFunctions(&device);
     initQueues();
-    tanto_v_InitMemory();
-    printf("Tanto Video initialized.\n");
+    obdn_v_InitMemory();
+    printf("Obdn Video initialized.\n");
     return &instance;
 }
 
-void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
+void obdn_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
 {
     const VkXcbSurfaceCreateInfoKHR ci = {
         .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
@@ -512,9 +512,9 @@ void tanto_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window)
     pSurface = &nativeSurface;
 }
 
-void tanto_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Tanto_V_QueueType queueType, const uint32_t index)
+void obdn_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Obdn_V_QueueType queueType, const uint32_t index)
 {
-    assert( TANTO_V_QUEUE_GRAPHICS_TYPE == queueType );
+    assert( OBDN_V_QUEUE_GRAPHICS_TYPE == queueType );
     assert( graphicsQueueCount > index );
 
     const VkSubmitInfo info = {
@@ -528,18 +528,18 @@ void tanto_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Tanto_V_QueueTyp
     V_ASSERT( vkQueueSubmit(graphicsQueues[index], 1, &info, VK_NULL_HANDLE) );
 }
 
-void tanto_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Tanto_V_QueueType type, const uint32_t queueIndex)
+void obdn_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Obdn_V_QueueType type, const uint32_t queueIndex)
 {
-    tanto_v_SubmitToQueue(buffer, type, queueIndex);
+    obdn_v_SubmitToQueue(buffer, type, queueIndex);
     V_ASSERT( vkQueueWaitIdle(graphicsQueues[queueIndex]) );
 }
 
-void tanto_v_CleanUp(void)
+void obdn_v_CleanUp(void)
 {
     PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT = (PFN_vkDestroyDebugUtilsMessengerEXT)
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         
-    tanto_v_CleanUpMemory();
+    obdn_v_CleanUpMemory();
     if (nativeSurface != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(instance, nativeSurface, NULL);
     vkDestroyDevice(device, NULL);
@@ -547,46 +547,46 @@ void tanto_v_CleanUp(void)
     vkDestroyInstance(instance, NULL);
 }
 
-VkPhysicalDeviceRayTracingPipelinePropertiesKHR tanto_v_GetPhysicalDeviceRayTracingProperties(void)
+VkPhysicalDeviceRayTracingPipelinePropertiesKHR obdn_v_GetPhysicalDeviceRayTracingProperties(void)
 {
     return rtProperties;
 }
 
-uint32_t tanto_v_GetQueueFamilyIndex(Tanto_V_QueueType type)
+uint32_t obdn_v_GetQueueFamilyIndex(Obdn_V_QueueType type)
 {
     switch (type)
     {
-        case TANTO_V_QUEUE_GRAPHICS_TYPE: return graphicsQueueFamilyIndex;
-        case TANTO_V_QUEUE_TRANSFER_TYPE: return transferQueueFamilyIndex;
-        case TANTO_V_QUEUE_COMPUTE_TYPE:  assert(0); return -1; //not supported yet
+        case OBDN_V_QUEUE_GRAPHICS_TYPE: return graphicsQueueFamilyIndex;
+        case OBDN_V_QUEUE_TRANSFER_TYPE: return transferQueueFamilyIndex;
+        case OBDN_V_QUEUE_COMPUTE_TYPE:  assert(0); return -1; //not supported yet
     }
     return -1;
 }
 
-VkDevice tanto_v_GetDevice(void)
+VkDevice obdn_v_GetDevice(void)
 {
     return device;
 }
 
-VkSurfaceKHR tanto_v_GetSurface(void)
+VkSurfaceKHR obdn_v_GetSurface(void)
 {
     return *pSurface;
 }
 
-VkQueue tanto_v_GetPresentQueue(void)
+VkQueue obdn_v_GetPresentQueue(void)
 {
     return presentQueue;
 }
 
-void tanto_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t submitInfoCount, 
+void obdn_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t submitInfoCount, 
         const VkSubmitInfo* submitInfos, VkFence fence)
 {
     V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], submitInfoCount, submitInfos, fence) );
 }
 
-void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
+void obdn_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
         const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
-        VkFence fence, const Tanto_V_Command* cmd)
+        VkFence fence, const Obdn_V_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -602,9 +602,9 @@ void tanto_v_SubmitGraphicsCommand(const uint32_t queueIndex,
     V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, fence) );
 }
 
-void tanto_v_SubmitTransferCommand(const uint32_t queueIndex, 
+void obdn_v_SubmitTransferCommand(const uint32_t queueIndex, 
         const VkPipelineStageFlags waitDstStageMask, const VkSemaphore* pWaitSemephore, 
-        VkFence fence, const Tanto_V_Command* cmd)
+        VkFence fence, const Obdn_V_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,

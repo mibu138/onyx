@@ -5,7 +5,7 @@
 #include "r_pipeline.h"
 #include "t_def.h"
 #include "i_input.h"
-#include "tanto/v_command.h"
+#include "v_command.h"
 #include "v_video.h"
 #include <stdio.h>
 #include <vulkan/vulkan_core.h>
@@ -14,7 +14,7 @@
 
 #define SPVDIR "./shaders/spv"
 
-typedef Tanto_U_Widget Widget;
+typedef Obdn_U_Widget Widget;
 
 typedef struct {
     int16_t prevX;
@@ -42,12 +42,12 @@ static DragData dragData[MAX_WIDGETS];
 
 static VkRenderPass     renderPass;
 
-static VkPipelineLayout pipelineLayouts[TANTO_MAX_PIPELINES];
-static VkPipeline       pipelines[TANTO_MAX_PIPELINES];
+static VkPipelineLayout pipelineLayouts[OBDN_MAX_PIPELINES];
+static VkPipeline       pipelines[OBDN_MAX_PIPELINES];
 
-static VkFramebuffer    framebuffers[TANTO_FRAME_COUNT];
+static VkFramebuffer    framebuffers[OBDN_FRAME_COUNT];
 
-static Tanto_V_Command  renderCommands[TANTO_FRAME_COUNT];
+static Obdn_V_Command  renderCommands[OBDN_FRAME_COUNT];
 
 enum {
     PIPELINE_BOX,
@@ -56,9 +56,9 @@ enum {
 
 static void initRenderCommands(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
-        renderCommands[i] = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+        renderCommands[i] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
         printf("UI COMMAND BUF: %p\n", renderCommands[i].buffer);
     }
 }
@@ -67,7 +67,7 @@ static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayou
 {
     const VkAttachmentDescription attachmentColor = {
         .flags = 0,
-        .format = tanto_r_GetSwapFormat(),
+        .format = obdn_r_GetSwapFormat(),
         .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
@@ -99,14 +99,14 @@ static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayou
         .pPreserveAttachments    = NULL,
     };
 
-    Tanto_R_RenderPassInfo rpi = {
+    Obdn_R_RenderPassInfo rpi = {
         .attachmentCount = 1,
         .pAttachments = attachments,
         .subpassCount = 1,
         .pSubpasses = &subpass,
     };
 
-    tanto_r_CreateRenderPass(&rpi, &renderPass);
+    obdn_r_CreateRenderPass(&rpi, &renderPass);
 }
 
 static void initPipelineLayouts(void)
@@ -121,47 +121,47 @@ static void initPipelineLayouts(void)
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
     }};
 
-    const Tanto_R_PipelineLayoutInfo pipelayoutInfos[] = {{
-        .pushConstantCount = TANTO_ARRAY_SIZE(pcRanges),
+    const Obdn_R_PipelineLayoutInfo pipelayoutInfos[] = {{
+        .pushConstantCount = OBDN_ARRAY_SIZE(pcRanges),
         .pushConstantsRanges = pcRanges
     }};
 
-    tanto_r_CreatePipelineLayouts(TANTO_ARRAY_SIZE(pipelayoutInfos), 
+    obdn_r_CreatePipelineLayouts(OBDN_ARRAY_SIZE(pipelayoutInfos), 
             pipelayoutInfos, pipelineLayouts);
 }
 
 static void initPipelines(void)
 {
-    Tanto_R_AttributeSize attrSizes[2] = {12, 12};
-    Tanto_R_GraphicsPipelineInfo pipeInfos[] = {{
+    Obdn_R_AttributeSize attrSizes[2] = {12, 12};
+    Obdn_R_GraphicsPipelineInfo pipeInfos[] = {{
         // simple box
         .renderPass = renderPass, 
         .layout     = pipelineLayouts[0],
         .sampleCount = VK_SAMPLE_COUNT_1_BIT,
         .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        .blendMode   = TANTO_R_BLEND_MODE_OVER,
-        .vertexDescription = tanto_r_GetVertexDescription(2, attrSizes),
-        .vertShader = TANTO_SPVDIR"/ui-vert.spv",
-        .fragShader = TANTO_SPVDIR"/ui-box-frag.spv"
+        .blendMode   = OBDN_R_BLEND_MODE_OVER,
+        .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+        .vertShader = OBDN_SPVDIR"/ui-vert.spv",
+        .fragShader = OBDN_SPVDIR"/ui-box-frag.spv"
     },{ 
         // slider
         .renderPass = renderPass, 
         .layout     = pipelineLayouts[0],
         .sampleCount = VK_SAMPLE_COUNT_1_BIT,
         .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        .blendMode   = TANTO_R_BLEND_MODE_OVER,
-        .vertexDescription = tanto_r_GetVertexDescription(2, attrSizes),
-        .vertShader = TANTO_SPVDIR"/ui-vert.spv",
-        .fragShader = TANTO_SPVDIR"/ui-slider-frag.spv"
+        .blendMode   = OBDN_R_BLEND_MODE_OVER,
+        .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+        .vertShader = OBDN_SPVDIR"/ui-vert.spv",
+        .fragShader = OBDN_SPVDIR"/ui-slider-frag.spv"
     }};
 
-    tanto_r_CreateGraphicsPipelines(TANTO_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
+    obdn_r_CreateGraphicsPipelines(OBDN_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
 }
 
 static Widget* addWidget(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, 
-        const Tanto_U_ResponderFn rfn, 
-        const Tanto_U_DrawFn      dfn,
+        const Obdn_U_ResponderFn rfn, 
+        const Obdn_U_DrawFn      dfn,
         Widget* parent)
 {
     widgets[widgetCount] = (Widget){
@@ -197,8 +197,8 @@ static void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
     widget->y += dy;
     for (int i = 0; i < widget->primCount; i++) 
     {
-        Tanto_R_Primitive* prim = &widget->primitives[i];
-        Vec3* pos = tanto_r_GetPrimAttribute(prim, 0);
+        Obdn_R_Primitive* prim = &widget->primitives[i];
+        Vec3* pos = obdn_r_GetPrimAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++) 
         {
             pos[i].i += dx;
@@ -214,7 +214,7 @@ static void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
     }
 }
 
-static bool propogateEventToChildren(const Tanto_I_Event* event, Widget* widget)
+static bool propogateEventToChildren(const Obdn_I_Event* event, Widget* widget)
 {
     const uint8_t widgetCount = widget->widgetCount;
     for (int i = widgetCount - 1; i >= 0 ; i--) 
@@ -231,9 +231,9 @@ static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[PIPELINE_BOX]);
 
-    const Tanto_R_Primitive* prim = &widget->primitives[0];
+    const Obdn_R_Primitive* prim = &widget->primitives[0];
 
-    tanto_r_BindPrim(cmdBuf, prim);
+    obdn_r_BindPrim(cmdBuf, prim);
 
     PushConstantFrag pc = {
         .i0 = widget->width,
@@ -246,14 +246,14 @@ static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
     vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
-static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
+static bool rfnSimpleBox(const Obdn_I_Event* event, Widget* widget)
 {
     if (propogateEventToChildren(event, widget)) return true;
     const uint8_t id = widget->id;
 
     switch (event->type)
     {
-        case TANTO_I_MOUSEDOWN: 
+        case OBDN_I_MOUSEDOWN: 
         {
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
@@ -264,8 +264,8 @@ static bool rfnSimpleBox(const Tanto_I_Event* event, Widget* widget)
             dragData[id].prevY = my;
             return true;
         }
-        case TANTO_I_MOUSEUP: dragData[id].active = false; break;
-        case TANTO_I_MOTION: 
+        case OBDN_I_MOUSEUP: dragData[id].active = false; break;
+        case OBDN_I_MOTION: 
         {
             if (!dragData[id].active) return false;
             const int16_t mx = event->data.mouseData.x;
@@ -288,9 +288,9 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
 
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[PIPELINE_SLIDER]);
 
-    const Tanto_R_Primitive* prim = &widget->primitives[0];
+    const Obdn_R_Primitive* prim = &widget->primitives[0];
 
-    tanto_r_BindPrim(cmdBuf, prim);
+    obdn_r_BindPrim(cmdBuf, prim);
 
     PushConstantFrag pc = {
         .i0 = widget->width,
@@ -304,13 +304,13 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
     vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
-static bool rfnSlider(const Tanto_I_Event* event, Widget* widget)
+static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
 {
     const uint8_t id = widget->id;
 
     switch (event->type)
     {
-        case TANTO_I_MOUSEDOWN: 
+        case OBDN_I_MOUSEDOWN: 
         {
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
@@ -320,8 +320,8 @@ static bool rfnSlider(const Tanto_I_Event* event, Widget* widget)
             widget->data.slider.sliderPos = (float)(mx - widget->x) / widget->width;
             return true;
         }
-        case TANTO_I_MOUSEUP: dragData[id].active = false; break;
-        case TANTO_I_MOTION: 
+        case OBDN_I_MOUSEUP: dragData[id].active = false; break;
+        case OBDN_I_MOTION: 
         {
             if (!dragData[id].active) return false;
             const int16_t mx = event->data.mouseData.x;
@@ -334,21 +334,21 @@ static bool rfnSlider(const Tanto_I_Event* event, Widget* widget)
     return false;
 }
 
-static bool rfnPassThrough(const Tanto_I_Event* event, Widget* widget)
+static bool rfnPassThrough(const Obdn_I_Event* event, Widget* widget)
 {
     return propogateEventToChildren(event, widget);
 }
 
-static bool responder(const Tanto_I_Event* event)
+static bool responder(const Obdn_I_Event* event)
 {
     return widgets[0].inputHandlerFn(event, &widgets[0]);
 }
 
 static void initFrameBuffers(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
-        Tanto_R_Frame* frame = tanto_r_GetFrame(i);
+        Obdn_R_Frame* frame = obdn_r_GetFrame(i);
 
         const VkImageView attachments[] = {
             frame->swapImage.view
@@ -361,8 +361,8 @@ static void initFrameBuffers(void)
             .renderPass = renderPass,
             .attachmentCount = 1,
             .pAttachments = attachments,
-            .width = TANTO_WINDOW_WIDTH,
-            .height = TANTO_WINDOW_HEIGHT,
+            .width = OBDN_WINDOW_WIDTH,
+            .height = OBDN_WINDOW_HEIGHT,
             .layers = 1,
         };
 
@@ -372,7 +372,7 @@ static void initFrameBuffers(void)
 
 static void destroyPipelines(void)
 {
-    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
+    for (int i = 0; i < OBDN_MAX_PIPELINES; i++) 
     {
         if (pipelines[i])
         {
@@ -384,7 +384,7 @@ static void destroyPipelines(void)
 
 static void destroyFramebuffers(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         vkDestroyFramebuffer(device, framebuffers[i], NULL);   
     }
@@ -398,7 +398,7 @@ static void onSwapchainRecreate(void)
     initFrameBuffers();
 }
 
-void tanto_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
+void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
 {
     initRenderCommands();
     initRenderPass(inputLayout, finalLayout);
@@ -406,41 +406,41 @@ void tanto_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayo
     initPipelines();
     initFrameBuffers();
 
-    rootWidget = addWidget(0, 0, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL);
+    rootWidget = addWidget(0, 0, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL);
 
-    tanto_i_Subscribe(responder);
-    tanto_r_RegisterSwapchainRecreationFn(onSwapchainRecreate);
-    printf("Tanto UI initialized.\n");
+    obdn_i_Subscribe(responder);
+    obdn_r_RegisterSwapchainRecreationFn(onSwapchainRecreate);
+    printf("Obdn UI initialized.\n");
 }
 
-Tanto_U_Widget* tanto_u_CreateSimpleBox(const int16_t x, const int16_t y, 
+Obdn_U_Widget* obdn_u_CreateSimpleBox(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, Widget* parent)
 {
     Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, dfnSimpleBox, parent);
 
     widget->primCount = 1;
-    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
+    widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
 
     return widget;
 }
 
-Tanto_U_Widget* tanto_u_CreateSlider(const int16_t x, const int16_t y, 
+Obdn_U_Widget* obdn_u_CreateSlider(const int16_t x, const int16_t y, 
         Widget* parent)
 {
     Widget* widget = addWidget(x, y, 300, 40, rfnSlider, dfnSlider, parent);
     printf("Slider X %d Y %d\n", x, y);
 
     widget->primCount = 1;
-    widget->primitives[0] = tanto_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
+    widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
 
     widget->data.slider.sliderPos = 0.5;
 
     return widget;
 }
 
-void tanto_u_DebugReport(void)
+void obdn_u_DebugReport(void)
 {
-    printf("========== Tanto_U_Report ==========\n");
+    printf("========== Obdn_U_Report ==========\n");
     printf("Number of widgets: %d\n", widgetCount);
     for (int i = 0; i < widgetCount; i++) 
     {
@@ -452,15 +452,15 @@ void tanto_u_DebugReport(void)
     }
 }
 
-uint8_t tanto_u_GetWidgets(const Tanto_U_Widget** pToFirst)
+uint8_t obdn_u_GetWidgets(const Obdn_U_Widget** pToFirst)
 {
     *pToFirst = widgets;
     return widgetCount;
 }
 
-VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
+VkSemaphore* obdn_u_Render(const VkSemaphore* pWaitSemephore)
 {
-    uint32_t frameIndex = tanto_r_GetCurrentFrameIndex();
+    uint32_t frameIndex = obdn_r_GetCurrentFrameIndex();
 
     vkWaitForFences(device, 1, &renderCommands[frameIndex].fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &renderCommands[frameIndex].fence);
@@ -471,8 +471,8 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
 
     V_ASSERT( vkBeginCommandBuffer(renderCommands[frameIndex].buffer, &cbbi) );
 
-    const Tanto_U_Widget* iter = NULL;
-    const uint8_t widgetCount = tanto_u_GetWidgets(&iter);
+    const Obdn_U_Widget* iter = NULL;
+    const uint8_t widgetCount = obdn_u_GetWidgets(&iter);
 
     VkCommandBuffer cmdBuf = renderCommands[frameIndex].buffer;
 
@@ -482,7 +482,7 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .clearValueCount = 1,
         .pClearValues = &clear,
-        .renderArea = {{0, 0}, {TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT}},
+        .renderArea = {{0, 0}, {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT}},
         .renderPass =  renderPass,
         .framebuffer = framebuffers[frameIndex],
     };
@@ -490,8 +490,8 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
     vkCmdBeginRenderPass(cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
 
     PushConstantVert pc = {
-        .i0 = TANTO_WINDOW_WIDTH,
-        .i1 = TANTO_WINDOW_HEIGHT
+        .i0 = OBDN_WINDOW_WIDTH,
+        .i1 = OBDN_WINDOW_HEIGHT
     };
 
     vkCmdPushConstants(cmdBuf, pipelineLayouts[0], 
@@ -500,7 +500,7 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
 
     for (int w = 0; w < widgetCount; w++) 
     {
-        const Tanto_U_Widget* widget = &(iter[w]);
+        const Obdn_U_Widget* widget = &(iter[w]);
         if (widget->drawFn)
             widget->drawFn(cmdBuf, widget);
     }
@@ -508,15 +508,15 @@ VkSemaphore* tanto_u_Render(const VkSemaphore* pWaitSemephore)
 
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
-    tanto_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, pWaitSemephore, renderCommands[frameIndex].fence, &renderCommands[frameIndex]);
+    obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, pWaitSemephore, renderCommands[frameIndex].fence, &renderCommands[frameIndex]);
 
     return &renderCommands[frameIndex].semaphore;
 }
 
-void tanto_u_CleanUp(void)
+void obdn_u_CleanUp(void)
 {
     destroyFramebuffers();
-    for (int i = 0; i < TANTO_MAX_PIPELINES; i++) 
+    for (int i = 0; i < OBDN_MAX_PIPELINES; i++) 
     {
         if (pipelineLayouts[i])
         {
@@ -526,9 +526,9 @@ void tanto_u_CleanUp(void)
     }
     destroyPipelines();
     vkDestroyRenderPass(device, renderPass, NULL);
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
-        tanto_v_DestroyCommand(renderCommands[i]);
+        obdn_v_DestroyCommand(renderCommands[i]);
     }
     rootWidget = NULL;
     widgetCount = 0;

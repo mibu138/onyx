@@ -35,36 +35,36 @@ void bitprint(const void* const thing, const size_t bitcount)
     putchar('\n');
 }
 
-void tanto_TimerStart(Tanto_Timer* t)
+void obdn_TimerStart(Obdn_Timer* t)
 {
     clock_gettime(t->clockId, &t->startTime);
 }
 
-void tanto_TimerStop(Tanto_Timer* t)
+void obdn_TimerStop(Obdn_Timer* t)
 {
     clock_gettime(t->clockId, &t->endTime);
 }
 
-void tanto_TimerInit(Tanto_Timer* t)
+void obdn_TimerInit(Obdn_Timer* t)
 {
-    memset(t, 0, sizeof(Tanto_Timer));
+    memset(t, 0, sizeof(Obdn_Timer));
     t->clockId = CLOCK_MONOTONIC;
 }
 
-void tanto_PrintTime(const Tanto_Timer* t)
+void obdn_PrintTime(const Obdn_Timer* t)
 {
     const uint32_t seconds = t->endTime.tv_sec - t->startTime.tv_sec;
     const uint32_t ns = t->endTime.tv_nsec - t->startTime.tv_nsec;
     printf("%d.%09d\n",seconds,ns);
 }
 
-void tanto_LoopStatsInit(Tanto_LoopStats* stats)
+void obdn_LoopStatsInit(Obdn_LoopStats* stats)
 {
-    memset(stats, 0, sizeof(Tanto_LoopStats));
+    memset(stats, 0, sizeof(Obdn_LoopStats));
     stats->longestFrame = UINT32_MAX;
 }
 
-void tanto_LoopStatsUpdate(const Tanto_Timer* t, Tanto_LoopStats* s)
+void obdn_LoopStatsUpdate(const Obdn_Timer* t, Obdn_LoopStats* s)
 {
     s->nsDelta  = (t->endTime.tv_sec * 1000000000 + t->endTime.tv_nsec) - (t->startTime.tv_sec * 1000000000 + t->startTime.tv_nsec);
     s->nsTotal += s->nsDelta;
@@ -75,7 +75,7 @@ void tanto_LoopStatsUpdate(const Tanto_Timer* t, Tanto_LoopStats* s)
     s->frameCount++;
 }
 
-void tanto_LoopSleep(const Tanto_LoopStats* s, const uint32_t nsTarget)
+void obdn_LoopSleep(const Obdn_LoopStats* s, const uint32_t nsTarget)
 {
     struct timespec diffTime;
     diffTime.tv_nsec = nsTarget > s->nsDelta ? nsTarget - s->nsDelta : 0;
@@ -84,9 +84,9 @@ void tanto_LoopSleep(const Tanto_LoopStats* s, const uint32_t nsTarget)
     nanosleep(&diffTime, NULL);
 }
 
-Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS)
+Obdn_LoopData obdn_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS)
 {
-    Tanto_LoopData data = {
+    Obdn_LoopData data = {
         .targetNs = targetNs,
         .printFps = printFps,
         .printNs  = printNS
@@ -98,23 +98,23 @@ Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps
     return data;
 }
 
-void tanto_FrameStart(Tanto_LoopData *data)
+void obdn_FrameStart(Obdn_LoopData *data)
 {
-    tanto_TimerStart(&data->timer);
+    obdn_TimerStart(&data->timer);
 }
 
-void tanto_FrameEnd(Tanto_LoopData *data)
+void obdn_FrameEnd(Obdn_LoopData *data)
 {
-    tanto_TimerStop(&data->timer);
-    tanto_LoopStatsUpdate(&data->timer, &data->loopStats);
+    obdn_TimerStop(&data->timer);
+    obdn_LoopStatsUpdate(&data->timer, &data->loopStats);
     if (data->printFps)
         printf("FPS: %f\n", 1000000000.0 / data->loopStats.nsDelta );
     if (data->printNs)
         printf("Delta s: %09ld\n", data->loopStats.nsDelta);
-    tanto_LoopSleep(&data->loopStats, data->targetNs);
+    obdn_LoopSleep(&data->loopStats, data->targetNs);
 }
 
-uint64_t tanto_GetAligned(const uint64_t quantity, const uint32_t alignment)
+uint64_t obdn_GetAligned(const uint64_t quantity, const uint32_t alignment)
 {
     assert(alignment != 0);
     if (quantity % alignment != 0) // not aligned

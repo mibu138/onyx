@@ -1,10 +1,10 @@
- #ifndef TANTO_TEXT_H
- #define TANTO_TEXT_H
+ #ifndef OBDN_TEXT_H
+ #define OBDN_TEXT_H
 
 #include "v_image.h"
 
-Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, 
+Obdn_V_Image obdn_CreateTextImage(const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text);
  
- #endif /* end of include guard: TANTO_TEXT_H */
+ #endif /* end of include guard: OBDN_TEXT_H */

@@ -1,5 +1,5 @@
-#ifndef TANTO_T_DEF_H
-#define TANTO_T_DEF_H
+#ifndef OBDN_T_DEF_H
+#define OBDN_T_DEF_H
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -13,11 +13,11 @@
 #endif
 // print if condition is true
 // make sure arguments have NO side effects
-#define TANTO_DEBUG_PRINT(msg, args...) printf("%s: " msg "\n", __PRETTY_FUNCTION__, ## args)
-#define TANTO_COND_PRINT(condition, msg, args...) if (condition) printf("%s: " msg "\n", __PRETTY_FUNCTION__, ## args)
+#define OBDN_DEBUG_PRINT(msg, args...) printf("%s: " msg "\n", __PRETTY_FUNCTION__, ## args)
+#define OBDN_COND_PRINT(condition, msg, args...) if (condition) printf("%s: " msg "\n", __PRETTY_FUNCTION__, ## args)
 #else
-#define TANTO_COND_PRINT(condition, msg, args...) 
-#define TANTO_DEBUG_PRINT(msg, args...) 
+#define OBDN_COND_PRINT(condition, msg, args...) 
+#define OBDN_DEBUG_PRINT(msg, args...) 
 #endif
 
 #if VERBOSE > 0
@@ -27,43 +27,43 @@
 #endif
 
 // key values are ascii lower case
-#define TANTO_KEY_SPACE 32
-#define TANTO_KEY_CTRL  24
-#define TANTO_KEY_ESC   27
+#define OBDN_KEY_SPACE 32
+#define OBDN_KEY_CTRL  24
+#define OBDN_KEY_ESC   27
 
-#define TANTO_KEY_A    97
-#define TANTO_KEY_B    98
-#define TANTO_KEY_C    99
-#define TANTO_KEY_D    100
-#define TANTO_KEY_E    101
-#define TANTO_KEY_F    102
-#define TANTO_KEY_G    103
-#define TANTO_KEY_H    104
-#define TANTO_KEY_I    105
-#define TANTO_KEY_J    106
-#define TANTO_KEY_K    107
-#define TANTO_KEY_L    108
-#define TANTO_KEY_M    109
-#define TANTO_KEY_N    110
-#define TANTO_KEY_O    111
-#define TANTO_KEY_P    112
-#define TANTO_KEY_Q    113
-#define TANTO_KEY_R    114
-#define TANTO_KEY_S    115
-#define TANTO_KEY_T    116
-#define TANTO_KEY_U    117
-#define TANTO_KEY_V    118
-#define TANTO_KEY_W    119
-#define TANTO_KEY_X    120
-#define TANTO_KEY_Y    121
-#define TANTO_KEY_Z    122
+#define OBDN_KEY_A    97
+#define OBDN_KEY_B    98
+#define OBDN_KEY_C    99
+#define OBDN_KEY_D    100
+#define OBDN_KEY_E    101
+#define OBDN_KEY_F    102
+#define OBDN_KEY_G    103
+#define OBDN_KEY_H    104
+#define OBDN_KEY_I    105
+#define OBDN_KEY_J    106
+#define OBDN_KEY_K    107
+#define OBDN_KEY_L    108
+#define OBDN_KEY_M    109
+#define OBDN_KEY_N    110
+#define OBDN_KEY_O    111
+#define OBDN_KEY_P    112
+#define OBDN_KEY_Q    113
+#define OBDN_KEY_R    114
+#define OBDN_KEY_S    115
+#define OBDN_KEY_T    116
+#define OBDN_KEY_U    117
+#define OBDN_KEY_V    118
+#define OBDN_KEY_W    119
+#define OBDN_KEY_X    120
+#define OBDN_KEY_Y    121
+#define OBDN_KEY_Z    122
 
-#define TANTO_MOUSE_LEFT  1
-#define TANTO_MOUSE_RIGHT 2
-#define TANTO_MOUSE_MID   3
+#define OBDN_MOUSE_LEFT  1
+#define OBDN_MOUSE_RIGHT 2
+#define OBDN_MOUSE_MID   3
 
-#define TANTO_ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
+#define OBDN_ARRAY_SIZE(array) (sizeof(array) / sizeof(array[0]))
 
-typedef uint32_t Tanto_Mask;
+typedef uint32_t Obdn_Mask;
 
 #endif /* end of include guard: DEF_H */

@@ -18,24 +18,24 @@
 void bitprintRowLen(const void *const thing, const size_t bitcount, const size_t rowlength);
 void bytePrint(const void* const thing, const size_t byteCount);
 void bitprint(const void *const thing, const size_t bitcount);
-uint64_t tanto_GetAligned(const uint64_t quantity, const uint32_t alignment);
+uint64_t obdn_GetAligned(const uint64_t quantity, const uint32_t alignment);
 
-typedef struct Tanto_Timer Tanto_Timer;
+typedef struct Obdn_Timer Obdn_Timer;
 
-struct Tanto_Timer {
+struct Obdn_Timer {
     struct timespec startTime;
     struct timespec endTime;
     clockid_t clockId;
 };
 
-void tanto_TimerStart(Tanto_Timer* t);
-void tanto_TimerStop(Tanto_Timer* t);
-void tanto_TimerInit(Tanto_Timer* t);
-void tanto_PrintTime(const Tanto_Timer* t);
+void obdn_TimerStart(Obdn_Timer* t);
+void obdn_TimerStop(Obdn_Timer* t);
+void obdn_TimerInit(Obdn_Timer* t);
+void obdn_PrintTime(const Obdn_Timer* t);
 
-typedef struct Tanto_LoopStats Tanto_LoopStats;
+typedef struct Obdn_LoopStats Obdn_LoopStats;
 
-struct Tanto_LoopStats {
+struct Obdn_LoopStats {
     uint64_t frameCount;
     uint64_t nsTotal;
     unsigned long nsDelta;
@@ -43,20 +43,20 @@ struct Tanto_LoopStats {
     uint32_t longestFrame;
 };
 
-void tanto_LoopStatsInit(Tanto_LoopStats* stats);
-void tanto_LoopStatsUpdate(const Tanto_Timer* t, Tanto_LoopStats* s);
-void tanto_LoopSleep(const Tanto_LoopStats* s, const uint32_t nsTarget);
+void obdn_LoopStatsInit(Obdn_LoopStats* stats);
+void obdn_LoopStatsUpdate(const Obdn_Timer* t, Obdn_LoopStats* s);
+void obdn_LoopSleep(const Obdn_LoopStats* s, const uint32_t nsTarget);
 
 typedef struct {
-    Tanto_Timer     timer;
-    Tanto_LoopStats loopStats;
+    Obdn_Timer     timer;
+    Obdn_LoopStats loopStats;
     const uint32_t  targetNs;
     const bool      printFps;
     const bool      printNs;
-} Tanto_LoopData;
+} Obdn_LoopData;
 
-Tanto_LoopData tanto_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS);
-void tanto_FrameStart(Tanto_LoopData* data);
-void tanto_FrameEnd(Tanto_LoopData*   data);
+Obdn_LoopData obdn_CreateLoopData(const uint32_t targetNs, const bool printFps, const bool printNS);
+void obdn_FrameStart(Obdn_LoopData* data);
+void obdn_FrameEnd(Obdn_LoopData*   data);
 
 #endif /* end of include guard: UTILS_H */

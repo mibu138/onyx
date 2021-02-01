@@ -1,10 +1,10 @@
 #include "r_renderpass.h"
 #include "r_render.h"
 
-#include "tanto/t_def.h"
+#include "t_def.h"
 #include "v_video.h"
 
-void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo *info, VkRenderPass *pRenderPass)
+void obdn_r_CreateRenderPass(const Obdn_R_RenderPassInfo *info, VkRenderPass *pRenderPass)
 {
     // only allow one subpass for now
     assert(info->subpassCount == 1);
@@ -46,7 +46,7 @@ void tanto_r_CreateRenderPass(const Tanto_R_RenderPassInfo *info, VkRenderPass *
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void tanto_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp, 
+void obdn_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
         VkRenderPass* pRenderPass)
@@ -89,7 +89,7 @@ void tanto_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp,
     VkRenderPassCreateInfo ci = {
         .subpassCount = 1,
         .pSubpasses = &subpass,
-        .attachmentCount = TANTO_ARRAY_SIZE(attachments),
+        .attachmentCount = OBDN_ARRAY_SIZE(attachments),
         .pAttachments = attachments,
         .dependencyCount = 1,
         .pDependencies = &dependency,
@@ -99,7 +99,7 @@ void tanto_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp,
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
+void obdn_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
         const VkFormat depthFormat,
@@ -176,7 +176,7 @@ void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp,
         .pSubpasses = &subpass,
         .attachmentCount = 2,
         .pAttachments = attachments,
-        .dependencyCount = TANTO_ARRAY_SIZE(dependencies),
+        .dependencyCount = OBDN_ARRAY_SIZE(dependencies),
         .pDependencies = dependencies,
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
     };
@@ -184,7 +184,7 @@ void tanto_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp,
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void tanto_r_CreateRenderPass_ColorDepthMSAA(const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
+void obdn_r_CreateRenderPass_ColorDepthMSAA(const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
         const VkFormat depthFormat,

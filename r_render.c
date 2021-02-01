@@ -1,7 +1,7 @@
 #include "t_def.h"
 #include "r_render.h"
-#include "tanto/r_geo.h"
-#include "tanto/v_command.h"
+#include "r_geo.h"
+#include "v_command.h"
 #include "v_video.h"
 #include "v_memory.h"
 #include "r_pipeline.h"
@@ -21,19 +21,19 @@ const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
 const VkFormat depthFormat          = VK_FORMAT_D32_SFLOAT;
 const VkFormat swapFormat           = VK_FORMAT_B8G8R8A8_SRGB;
 
-static Tanto_R_Frame  frames[TANTO_FRAME_COUNT];
+static Obdn_R_Frame  frames[OBDN_FRAME_COUNT];
 static uint32_t     curFrameIndex;
 
 static VkSwapchainKHR      swapchain;
-static VkImage             swapchainImages[TANTO_FRAME_COUNT];
+static VkImage             swapchainImages[OBDN_FRAME_COUNT];
 
-static VkSemaphore  imageAcquiredSemaphores[TANTO_FRAME_COUNT];
+static VkSemaphore  imageAcquiredSemaphores[OBDN_FRAME_COUNT];
 static uint8_t      imageAcquiredSemaphoreIndex = 0;
 static uint64_t            frameCounter;
 
 #define MAX_SWAP_RECREATE_FNS 8
 static uint8_t swapRecreateFnCount = 0;
-static Tanto_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
+static Obdn_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
 
 static VkImageUsageFlags swapImageUsageFlags;
 
@@ -46,8 +46,8 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
     } else {
 
         VkExtent2D actualExtent = {
-            TANTO_WINDOW_WIDTH,
-            TANTO_WINDOW_HEIGHT
+            OBDN_WINDOW_WIDTH,
+            OBDN_WINDOW_HEIGHT
         };
 
         actualExtent.width =  MAX(capabilities.minImageExtent.width,  MIN(capabilities.maxImageExtent.width, actualExtent.width));
@@ -60,7 +60,7 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
 static void initSwapchain()
 {
     VkBool32 supported;
-    const VkSurfaceKHR surface = tanto_v_GetSurface();
+    const VkSurfaceKHR surface = obdn_v_GetSurface();
     vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, surface, &supported);
 
     assert(supported == VK_TRUE);
@@ -90,8 +90,8 @@ static void initSwapchain()
     V1_PRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
 
     const VkExtent2D extent = chooseSwapExtent(capabilities);
-    TANTO_WINDOW_WIDTH =  extent.width;
-    TANTO_WINDOW_HEIGHT = extent.height;
+    OBDN_WINDOW_WIDTH =  extent.width;
+    OBDN_WINDOW_HEIGHT = extent.height;
 
     const VkSwapchainCreateInfoKHR ci = {
         .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -116,7 +116,7 @@ static void initSwapchain()
 
     uint32_t imageCount;
     V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL) );
-    assert(TANTO_FRAME_COUNT == imageCount);
+    assert(OBDN_FRAME_COUNT == imageCount);
     V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages) );
 
     V1_PRINT("Swapchain created successfully.\n");
@@ -124,7 +124,7 @@ static void initSwapchain()
 
 static void initSwapchainSemaphores(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
@@ -134,7 +134,7 @@ static void initSwapchainSemaphores(void)
 
 static void initFrames(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         frames[i].index = i;
     }
@@ -143,7 +143,7 @@ static void initFrames(void)
 
 static void bindFramesToSwapImages(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         frames[i].swapImage.handle = swapchainImages[i];
 
@@ -166,8 +166,8 @@ static void bindFramesToSwapImages(void)
         V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].swapImage.view) );
 
         VkExtent3D extent = {
-            .width = TANTO_WINDOW_WIDTH,
-            .height = TANTO_WINDOW_HEIGHT,
+            .width = OBDN_WINDOW_WIDTH,
+            .height = OBDN_WINDOW_HEIGHT,
             .depth = 1
         };
 
@@ -179,7 +179,7 @@ static void bindFramesToSwapImages(void)
 static void recreateSwapchain(void)
 {
     vkDeviceWaitIdle(device);
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         vkDestroyImageView(device, frames[i].swapImage.view, NULL);   
     }
@@ -192,7 +192,7 @@ static void recreateSwapchain(void)
     }
 }
 
-void tanto_r_Init(const VkImageUsageFlags swapImageUsageFlags_)
+void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_)
 {
     curFrameIndex = 0;
     frameCounter  = 0;
@@ -203,13 +203,13 @@ void tanto_r_Init(const VkImageUsageFlags swapImageUsageFlags_)
     initSwapchainSemaphores();
     initFrames();
     bindFramesToSwapImages();
-    printf("Tanto Renderer initialized.\n");
+    printf("Obdn Renderer initialized.\n");
 }
 
-const uint32_t tanto_r_RequestFrame(void)
+const uint32_t obdn_r_RequestFrame(void)
 {
-    //const uint32_t i = frameCounter % TANTO_FRAME_COUNT;
-    imageAcquiredSemaphoreIndex = frameCounter % TANTO_FRAME_COUNT;
+    //const uint32_t i = frameCounter % OBDN_FRAME_COUNT;
+    imageAcquiredSemaphoreIndex = frameCounter % OBDN_FRAME_COUNT;
     VkResult r;
 retry:
     r = vkAcquireNextImageKHR(device, 
@@ -227,7 +227,7 @@ retry:
     return curFrameIndex;
 }
 
-bool tanto_r_PresentFrame(VkSemaphore waitSemaphore)
+bool obdn_r_PresentFrame(VkSemaphore waitSemaphore)
 {
     VkResult r;
     VkSemaphore waitSemaphores[2] = {waitSemaphore, imageAcquiredSemaphores[imageAcquiredSemaphoreIndex]};
@@ -242,35 +242,35 @@ bool tanto_r_PresentFrame(VkSemaphore waitSemaphore)
     };
 
     VkResult presentResult;
-    presentResult = vkQueuePresentKHR(tanto_v_GetPresentQueue(), &info);
+    presentResult = vkQueuePresentKHR(obdn_v_GetPresentQueue(), &info);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
         return false;
     assert( VK_SUCCESS == r );
     return true;
 }
 
-void tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn)
+void obdn_r_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn)
 {
     swapchainRecreationFns[swapRecreateFnCount] = fn;
     swapRecreateFnCount++;
     assert(swapRecreateFnCount < MAX_SWAP_RECREATE_FNS);
 }
 
-Tanto_R_Frame* tanto_r_GetFrame(const int8_t index)
+Obdn_R_Frame* obdn_r_GetFrame(const int8_t index)
 {
     assert( index >= 0 );
-    assert( index < TANTO_FRAME_COUNT );
+    assert( index < OBDN_FRAME_COUNT );
     return &frames[index];
 }
 
-const uint32_t tanto_r_GetCurrentFrameIndex(void)
+const uint32_t obdn_r_GetCurrentFrameIndex(void)
 {
     return curFrameIndex;
 }
 
-void tanto_r_CleanUp(void)
+void obdn_r_CleanUp(void)
 {
-    for (int i = 0; i < TANTO_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
         vkDestroyImageView(device, frames[i].swapImage.view, NULL);
@@ -279,14 +279,14 @@ void tanto_r_CleanUp(void)
     swapRecreateFnCount = 0;
 }
 
-VkFormat tanto_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }
-VkFormat tanto_r_GetDepthFormat(void)          { return depthFormat; }
-VkFormat tanto_r_GetSwapFormat(void)           { return swapFormat; }
+VkFormat obdn_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }
+VkFormat obdn_r_GetDepthFormat(void)          { return depthFormat; }
+VkFormat obdn_r_GetSwapFormat(void)           { return swapFormat; }
 
-void tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene)
+void obdn_r_DrawScene(const VkCommandBuffer cmdBuf, const Obdn_S_Scene* scene)
 {
     for (int i = 0; i < scene->primCount; i++) 
     {
-        tanto_r_DrawPrim(cmdBuf, &scene->prims[i].rprim);
+        obdn_r_DrawPrim(cmdBuf, &scene->prims[i].rprim);
     }
 }

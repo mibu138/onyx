@@ -2,25 +2,25 @@
 #include "f_file.h"
 #include "coal/m_math.h"
 #include "coal/util.h"
-#include "tanto/r_geo.h"
-#include "tanto/v_image.h"
+#include "r_geo.h"
+#include "v_image.h"
 #include <string.h>
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
 
-typedef Tanto_R_Primitive Primitive;
-typedef Tanto_S_Xform     Xform;
-typedef Tanto_S_Scene     Scene;
-typedef Tanto_S_Light     Light;
-typedef Tanto_S_Material  Material;
-typedef Tanto_S_Camera    Camera;
-typedef Tanto_S_Texture   Texture;
+typedef Obdn_R_Primitive Primitive;
+typedef Obdn_S_Xform     Xform;
+typedef Obdn_S_Scene     Scene;
+typedef Obdn_S_Light     Light;
+typedef Obdn_S_Material  Material;
+typedef Obdn_S_Camera    Camera;
+typedef Obdn_S_Texture   Texture;
 
 // TODO: this function needs to updated
-void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
+void obdn_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
 {
-    const Primitive cube = tanto_r_CreateCubePrim(false);
-    const Primitive quad = tanto_r_CreateQuad(3, 4, TANTO_R_ATTRIBUTE_UVW_BIT | TANTO_R_ATTRIBUTE_NORMAL_BIT);
+    const Primitive cube = obdn_r_CreateCubePrim(false);
+    const Primitive quad = obdn_r_CreateQuad(3, 4, OBDN_R_ATTRIBUTE_UVW_BIT | OBDN_R_ATTRIBUTE_NORMAL_BIT);
 
     Xform cubeXform = m_Ident_Mat4();
     Xform quadXform = m_Ident_Mat4();
@@ -36,14 +36,14 @@ void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
     coal_PrintMat4(&quadXform);
 
     const Light dirLight = {
-        .type = TANTO_S_LIGHT_TYPE_DIRECTION,
+        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
         .intensity = 1,
         .color     = (Vec3){1, 1, 1},
         .structure.directionLight.dir = (Vec3){-0.37904902,  -0.53066863, -0.75809804}
     };
 
     const Light dirLight2 = {
-        .type = TANTO_S_LIGHT_TYPE_DIRECTION,
+        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
         .intensity = 1,
         .color     = (Vec3){1, 1, 1},
         .structure.directionLight.dir = (Vec3){0.37904902,  0.53066863, 0.75809804}
@@ -77,15 +77,15 @@ void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
     const Material cubeMat = {
         .color        = (Vec3){0.05, 0.18, 0.516},
         .roughness    = .5,
-        .textureAlbedo    = TANTO_S_NONE,
-        .textureRoughness = TANTO_S_NONE,
+        .textureAlbedo    = OBDN_S_NONE,
+        .textureRoughness = OBDN_S_NONE,
     };
 
     const Material quadMat = {
         .color        = (Vec3){0.75, 0.422, 0.245},
         .roughness    = 1,
-        .textureAlbedo    = TANTO_S_NONE,
-        .textureRoughness = TANTO_S_NONE,
+        .textureAlbedo    = OBDN_S_NONE,
+        .textureRoughness = OBDN_S_NONE,
     };
     
 
@@ -103,34 +103,34 @@ void tanto_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
 
 #define DEFAULT_MAT_ID 0
 
-void tanto_s_CreateEmptyScene(Scene* scene)
+void obdn_s_CreateEmptyScene(Scene* scene)
 {
     memset(scene, 0, sizeof(Scene));
     Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
     scene->camera.xform = m;
-    tanto_s_LoadTexture(scene, "data/chungus.jpg", 4); // for debugging, a texId of zero gives you this. if he shows up something went wrong
-    tanto_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
-    for (int i = 0; i < TANTO_S_MAX_PRIMS; i++) 
+    obdn_s_LoadTexture(scene, "data/chungus.jpg", 4); // for debugging, a texId of zero gives you this. if he shows up something went wrong
+    obdn_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
+    for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
         scene->xforms[i] = m_Ident_Mat4();
     }
 
-    scene->dirt |= TANTO_S_CAMERA_BIT | TANTO_S_TEXTURES_BIT | TANTO_S_MATERIALS_BIT | TANTO_S_XFORMS_BIT;
+    scene->dirt |= OBDN_S_CAMERA_BIT | OBDN_S_TEXTURES_BIT | OBDN_S_MATERIALS_BIT | OBDN_S_XFORMS_BIT;
 }
 
-void tanto_s_BindPrimToMaterial(Scene* scene, const Tanto_S_PrimId primId, const Tanto_S_MaterialId matId)
+void obdn_s_BindPrimToMaterial(Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId)
 {
     assert(scene->materialCount > matId);
     assert(scene->primCount > primId);
     scene->prims[primId].materialId = matId;
 
-    scene->dirt |= TANTO_S_PRIMS_BIT;
+    scene->dirt |= OBDN_S_PRIMS_BIT;
 }
 
-Tanto_S_PrimId tanto_s_AddRPrim(Scene* scene, const Tanto_R_Primitive prim, const Mat4* xform)
+Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive prim, const Mat4* xform)
 {
     const uint32_t curIndex = scene->primCount++;
-    assert(curIndex < TANTO_S_MAX_PRIMS);
+    assert(curIndex < OBDN_S_MAX_PRIMS);
     scene->prims[curIndex].rprim = prim;
 
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
@@ -138,21 +138,21 @@ Tanto_S_PrimId tanto_s_AddRPrim(Scene* scene, const Tanto_R_Primitive prim, cons
 
     scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
 
-    scene->dirt |= TANTO_S_XFORMS_BIT | TANTO_S_PRIMS_BIT;
+    scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
 
     return curIndex;
 }
 
-Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xform)
+Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xform)
 {
-    Tanto_F_Primitive fprim;
-    int r = tanto_f_ReadPrimitive(filePath, &fprim);
+    Obdn_F_Primitive fprim;
+    int r = obdn_f_ReadPrimitive(filePath, &fprim);
     assert(r);
-    Tanto_R_Primitive prim = tanto_f_CreateRPrimFromFPrim(&fprim);
-    tanto_r_TransferPrimToDevice(&prim);
-    tanto_f_FreePrimitive(&fprim);
+    Obdn_R_Primitive prim = obdn_f_CreateRPrimFromFPrim(&fprim);
+    obdn_r_TransferPrimToDevice(&prim);
+    obdn_f_FreePrimitive(&fprim);
     const uint32_t curIndex = scene->primCount++;
-    assert(curIndex < TANTO_S_MAX_PRIMS);
+    assert(curIndex < OBDN_S_MAX_PRIMS);
     scene->prims[curIndex].rprim = prim;
 
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
@@ -160,12 +160,12 @@ Tanto_S_PrimId tanto_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* 
 
     scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
 
-    scene->dirt |= TANTO_S_XFORMS_BIT | TANTO_S_PRIMS_BIT;
+    scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
 
     return curIndex;
 }
 
-Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath, const uint8_t channelCount)
+Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount)
 {
     Texture texture = {0};
 
@@ -176,29 +176,29 @@ Tanto_S_TextureId tanto_s_LoadTexture(Tanto_S_Scene* scene, const char* filePath
         case 1: format = VK_FORMAT_R8_UNORM; break;
         case 3: format = VK_FORMAT_R8G8B8A8_UNORM; break;
         case 4: format = VK_FORMAT_R8G8B8A8_UNORM; break;
-        default: printf("ChannelCount %d not support.\n", channelCount); return TANTO_S_NONE;
+        default: printf("ChannelCount %d not support.\n", channelCount); return OBDN_S_NONE;
     }
 
-    tanto_v_LoadImage(filePath, channelCount, format,
+    obdn_v_LoadImage(filePath, channelCount, format,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
-            1, VK_FILTER_LINEAR, tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE), 
+            1, VK_FILTER_LINEAR, obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE), 
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
 
-    const Tanto_S_TextureId texId = scene->textureCount++; 
+    const Obdn_S_TextureId texId = scene->textureCount++; 
     scene->textures[texId] = texture;
-    assert(scene->textureCount < TANTO_S_MAX_TEXTURES);
+    assert(scene->textureCount < OBDN_S_MAX_TEXTURES);
 
-    scene->dirt |= TANTO_S_TEXTURES_BIT;
+    scene->dirt |= OBDN_S_TEXTURES_BIT;
 
     return texId;
 }
 
-Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, float roughness, 
-        Tanto_S_TextureId albedoId, Tanto_S_TextureId roughnessId, Tanto_S_TextureId normalId)
+Obdn_S_MaterialId obdn_s_CreateMaterial(Obdn_S_Scene* scene, Vec3 color, float roughness, 
+        Obdn_S_TextureId albedoId, Obdn_S_TextureId roughnessId, Obdn_S_TextureId normalId)
 {
-    Tanto_S_MaterialId matId = scene->materialCount++;
-    assert(matId < TANTO_S_MAX_TEXTURES);
+    Obdn_S_MaterialId matId = scene->materialCount++;
+    assert(matId < OBDN_S_MAX_TEXTURES);
 
     scene->materials[matId].color     = color;
     scene->materials[matId].roughness = roughness;
@@ -206,43 +206,43 @@ Tanto_S_MaterialId tanto_s_CreateMaterial(Tanto_S_Scene* scene, Vec3 color, floa
     scene->materials[matId].textureRoughness = roughnessId;
     scene->materials[matId].textureNormal    = normalId;
 
-    scene->dirt |= TANTO_S_MATERIALS_BIT;
+    scene->dirt |= OBDN_S_MATERIALS_BIT;
 
     return matId;
 }
 
-Tanto_S_LightId tanto_s_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
+Obdn_S_LightId obdn_s_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
 {
     Light light = {
         .color = color,
         .intensity = 1,
-        .type = TANTO_S_LIGHT_TYPE_DIRECTION,
+        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
         .structure.directionLight.dir = m_Normalize_Vec3(&direction)
     };
 
     const uint32_t curIndex = scene->lightCount++;
-    assert(curIndex < TANTO_S_MAX_LIGHTS);
+    assert(curIndex < OBDN_S_MAX_LIGHTS);
     scene->lights[curIndex] = light;
 
-    scene->dirt |= TANTO_S_LIGHTS_BIT;
+    scene->dirt |= OBDN_S_LIGHTS_BIT;
 
     return curIndex;
 }
 
-Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
+Obdn_S_LightId obdn_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
 {
     Light light = {
         .color = color,
         .intensity = 1,
-        .type = TANTO_S_LIGHT_TYPE_POINT,
+        .type = OBDN_S_LIGHT_TYPE_POINT,
         .structure.pointLight.pos = position
     };
 
     const uint32_t curIndex = scene->lightCount++;
-    assert(curIndex < TANTO_S_MAX_LIGHTS);
+    assert(curIndex < OBDN_S_MAX_LIGHTS);
     scene->lights[curIndex] = light;
 
-    scene->dirt |= TANTO_S_LIGHTS_BIT;
+    scene->dirt |= OBDN_S_LIGHTS_BIT;
 
     return curIndex;
 }
@@ -254,13 +254,13 @@ Tanto_S_LightId tanto_s_CreatePointLight(Scene* scene, const Vec3 color, const V
 #define PAN_RATE    0.1
 #define TUMBLE_RATE 2
 
-void tanto_s_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
+void obdn_s_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
 {
     scene->camera.xform = m_LookAt(&pos, &target, &up);
-    scene->dirt |= TANTO_S_CAMERA_BIT;
+    scene->dirt |= OBDN_S_CAMERA_BIT;
 }
 
-void tanto_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home)
+void obdn_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home)
 {
     static Vec3 pos    = HOME_POS;
     static Vec3 target = HOME_TARGET;
@@ -279,25 +279,25 @@ void tanto_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my
     }
     //pos = m_RotateY_Vec3(dt, &pos);
     arcball_camera_update(pos.x, target.x, up.x, NULL, dt, 
-            ZOOM_RATE, PAN_RATE, TUMBLE_RATE, TANTO_WINDOW_WIDTH, TANTO_WINDOW_HEIGHT, xPrev, mx, yPrev, my, 
+            ZOOM_RATE, PAN_RATE, TUMBLE_RATE, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, xPrev, mx, yPrev, my, 
             panning, tumbling, zoom_ticks, 0);
     Mat4 m = m_LookAt(&pos, &target, &up);
     scene->camera.xform = m;
     xPrev = mx;
     yPrev = my;
-    scene->dirt |= TANTO_S_CAMERA_BIT;
+    scene->dirt |= OBDN_S_CAMERA_BIT;
 }
 
-void tanto_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
+void obdn_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
 {
     assert(id < scene->lightCount);
     scene->lights[id].intensity = intensity;
-    scene->dirt |= TANTO_S_LIGHTS_BIT;
+    scene->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
-void tanto_s_UpdatePrimXform(Scene* scene, const Tanto_S_PrimId primId, const Mat4* delta)
+void obdn_s_UpdatePrimXform(Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta)
 {
     assert(primId < scene->primCount);
     scene->xforms[primId] = m_Mult_Mat4(&scene->xforms[primId], delta);
-    scene->dirt |= TANTO_S_XFORMS_BIT;
+    scene->dirt |= OBDN_S_XFORMS_BIT;
 }

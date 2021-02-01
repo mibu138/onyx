@@ -1,5 +1,5 @@
-#ifndef TANTO_V_LOADER_H
-#define TANTO_V_LOADER_H
+#ifndef OBDN_V_LOADER_H
+#define OBDN_V_LOADER_H
 
 #include "v_vulkan.h"
 
@@ -56,7 +56,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         const VkStridedDeviceAddressRegionKHR* pCallableShaderBindingTable, 
         uint32_t width, uint32_t height, uint32_t depth);
 
-void tanto_v_LoadFunctions(const VkDevice* device);
+void obdn_v_LoadFunctions(const VkDevice* device);
 
-#endif /* end of include guard: TANTO_V_LOADER_H */
+#endif /* end of include guard: OBDN_V_LOADER_H */
 

@@ -9,12 +9,12 @@
 #include <stdio.h>
 #include <string.h>
 
-typedef Tanto_V_BufferRegion          BufferRegion;
-typedef Tanto_R_AccelerationStructure AccelerationStructure;
-typedef Tanto_V_Command               Command;
-typedef Tanto_R_ShaderBindingTable    ShaderBindingTable;
+typedef Obdn_V_BufferRegion          BufferRegion;
+typedef Obdn_R_AccelerationStructure AccelerationStructure;
+typedef Obdn_V_Command               Command;
+typedef Obdn_R_ShaderBindingTable    ShaderBindingTable;
 
-void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* blas)
+void obdn_r_BuildBlas(const Obdn_R_Primitive* prim, AccelerationStructure* blas)
 {
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -29,9 +29,9 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* bla
 
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-        .vertexFormat  = TANTO_VERT_POS_FORMAT,
+        .vertexFormat  = OBDN_VERT_POS_FORMAT,
         .vertexStride  = sizeof(Vec3),
-        .indexType     = TANTO_VERT_INDEX_TYPE,
+        .indexType     = OBDN_VERT_INDEX_TYPE,
         .maxVertex     = prim->vertexCount,
         .vertexData.deviceAddress = vertAddr,
         .indexData.deviceAddress = indexAddr,
@@ -62,9 +62,9 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* bla
 
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildAS, &numTrianlges, &buildSizes); 
 
-    blas->bufferRegion = tanto_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
+    blas->bufferRegion = obdn_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
-            TANTO_V_MEMORY_DEVICE_TYPE);
+            OBDN_V_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR accelStructInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -76,13 +76,13 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* bla
 
     V_ASSERT( vkCreateAccelerationStructureKHR(device, &accelStructInfo, NULL, &blas->handle) );
 
-    Tanto_V_BufferRegion scratchBufferRegion = tanto_v_RequestBufferRegion(buildSizes.buildScratchSize, 
+    Obdn_V_BufferRegion scratchBufferRegion = obdn_v_RequestBufferRegion(buildSizes.buildScratchSize, 
             VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            TANTO_V_MEMORY_DEVICE_TYPE);
+            OBDN_V_MEMORY_DEVICE_TYPE);
 
     buildAS.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildAS.dstAccelerationStructure = blas->handle;
-    buildAS.scratchData.deviceAddress = tanto_v_GetBufferRegionAddress(&scratchBufferRegion);
+    buildAS.scratchData.deviceAddress = obdn_v_GetBufferRegionAddress(&scratchBufferRegion);
 
     VkAccelerationStructureBuildRangeInfoKHR buildRange = {
         .firstVertex = 0,
@@ -93,22 +93,22 @@ void tanto_r_BuildBlas(const Tanto_R_Primitive* prim, AccelerationStructure* bla
 
     const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
 
-    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &buildAS, ranges);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_DestroyCommand(cmd);
+    obdn_v_DestroyCommand(cmd);
 
-    tanto_v_FreeBufferRegion(&scratchBufferRegion);
+    obdn_v_FreeBufferRegion(&scratchBufferRegion);
 }
 
-void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure* tlas)
+void obdn_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure* tlas)
 {
     VkTransformMatrixKHR transform = {
         1.0, 0.0, 0.0, 0.0,
@@ -122,7 +122,7 @@ void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure*
     //transform = m_Transpose_Mat4(&transform); // we don't need to because its identity, but leaving here to impress the point
 
     VkAccelerationStructureInstanceKHR instance = {
-        .accelerationStructureReference = tanto_v_GetBufferRegionAddress(&blas->bufferRegion),
+        .accelerationStructureReference = obdn_v_GetBufferRegionAddress(&blas->bufferRegion),
         .instanceCustomIndex = 0, // 0'th instance it
         .instanceShaderBindingTableRecordOffset = 0, 
         .flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR,
@@ -130,16 +130,16 @@ void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure*
         .transform = transform
     };
 
-    BufferRegion instBuffer = tanto_v_RequestBufferRegion(1 * sizeof(VkAccelerationStructureInstanceKHR),
+    BufferRegion instBuffer = obdn_v_RequestBufferRegion(1 * sizeof(VkAccelerationStructureInstanceKHR),
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     assert(instBuffer.hostData);
     memcpy(instBuffer.hostData, &instance, 1 * sizeof(instance));
 
     const VkAccelerationStructureGeometryInstancesDataKHR instanceData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-        .data.deviceAddress = tanto_v_GetBufferRegionAddress(&instBuffer),
+        .data.deviceAddress = obdn_v_GetBufferRegionAddress(&instBuffer),
         .arrayOfPointers = VK_FALSE
     };
 
@@ -170,9 +170,9 @@ void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure*
 
     vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &topAsInfo, &maxPrimCount, &buildSizes); 
 
-    tlas->bufferRegion = tanto_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
+    tlas->bufferRegion = obdn_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            TANTO_V_MEMORY_DEVICE_TYPE);
+            OBDN_V_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR asCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -186,13 +186,13 @@ void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure*
 
     // allocate and bind memory
 
-    BufferRegion scratchBuffer = tanto_v_RequestBufferRegion(buildSizes.buildScratchSize,
+    BufferRegion scratchBuffer = obdn_v_RequestBufferRegion(buildSizes.buildScratchSize,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            TANTO_V_MEMORY_DEVICE_TYPE);
+            OBDN_V_MEMORY_DEVICE_TYPE);
 
     topAsInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     topAsInfo.dstAccelerationStructure = tlas->handle;
-    topAsInfo.scratchData.deviceAddress = tanto_v_GetBufferRegionAddress(&scratchBuffer);
+    topAsInfo.scratchData.deviceAddress = obdn_v_GetBufferRegionAddress(&scratchBuffer);
 
     const VkAccelerationStructureBuildRangeInfoKHR buildRange = {
         .firstVertex = 0,
@@ -203,24 +203,24 @@ void tanto_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure*
 
     const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
 
-    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &topAsInfo, ranges);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, TANTO_V_QUEUE_GRAPHICS_TYPE);
+    obdn_v_SubmitAndWait(&cmd, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_DestroyCommand(cmd);
-    tanto_v_FreeBufferRegion(&scratchBuffer);
-    tanto_v_FreeBufferRegion(&instBuffer);
+    obdn_v_DestroyCommand(cmd);
+    obdn_v_FreeBufferRegion(&scratchBuffer);
+    obdn_v_FreeBufferRegion(&instBuffer);
 }
 
-void tanto_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
+void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
 {
-    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = tanto_v_GetPhysicalDeviceRayTracingProperties();
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = obdn_v_GetPhysicalDeviceRayTracingProperties();
     const uint32_t groupHandleSize = rtprops.shaderGroupHandleSize;
     const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
     const uint32_t sbtSize = groupCount * baseAlignment; // 3 shader groups: raygen, miss, closest hit
@@ -234,7 +234,7 @@ void tanto_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipelin
     VkResult r;
     r = vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleData);
     assert( VK_SUCCESS == r );
-    sbt->bufferRegion = tanto_v_RequestBufferRegionAligned(sbtSize, baseAlignment, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+    sbt->bufferRegion = obdn_v_RequestBufferRegionAligned(sbtSize, baseAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
     sbt->groupCount = groupCount;
 
     uint8_t* pSrc    = shaderHandleData;
@@ -249,9 +249,9 @@ void tanto_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipelin
     printf("Created shader binding table\n");
 }
 
-void tanto_r_DestroyAccelerationStruct(AccelerationStructure* as)
+void obdn_r_DestroyAccelerationStruct(AccelerationStructure* as)
 {
     vkDestroyAccelerationStructureKHR(device, as->handle, NULL);
-    tanto_v_FreeBufferRegion(&as->bufferRegion);
+    obdn_v_FreeBufferRegion(&as->bufferRegion);
 }
 

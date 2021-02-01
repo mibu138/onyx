@@ -1,4 +1,4 @@
-#include "tanto/f_file.h"
+#include "obdn/f_file.h"
 
 int main(int argc, char *argv[])
 {
@@ -7,14 +7,14 @@ int main(int argc, char *argv[])
         fprintf(stderr, "Usage: %s file.tnt\n", argv[0]);
         return 2;
     }
-    Tanto_F_Primitive fprim;
-    int r = tanto_f_ReadPrimitive(argv[1], &fprim);
+    Obdn_F_Primitive fprim;
+    int r = obdn_f_ReadPrimitive(argv[1], &fprim);
     if (r != 1)
     {
         fprintf(stderr, "Error reading file.\n");
         return 2;
     }
-    tanto_f_PrintPrim(&fprim);
-    tanto_f_FreePrimitive(&fprim);
+    obdn_f_PrintPrim(&fprim);
+    obdn_f_FreePrimitive(&fprim);
     return 0;
 }

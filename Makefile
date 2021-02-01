@@ -8,7 +8,7 @@ LIBS = -lm -lcarbon -lvulkan -lxcb -lxcb-keysyms -lfreetype
 LIB  = $(HOME)/lib
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
-LIBNAME = tanto
+LIBNAME = obsidian
 
 O = build
 GLSL = shaders

@@ -1,16 +1,16 @@
-#ifndef TANTO_V_MEMORY_H
-#define TANTO_V_MEMORY_H
+#ifndef OBDN_V_MEMORY_H
+#define OBDN_V_MEMORY_H
 
 #include "v_def.h"
 #include <stdbool.h>
 
-typedef uint32_t Tanto_V_BlockId;
+typedef uint32_t Obdn_V_BlockId;
 
 typedef enum {
-    TANTO_V_MEMORY_HOST_GRAPHICS_TYPE,
-    TANTO_V_MEMORY_HOST_TRANSFER_TYPE,
-    TANTO_V_MEMORY_DEVICE_TYPE,
-} Tanto_V_MemoryType;
+    OBDN_V_MEMORY_HOST_GRAPHICS_TYPE,
+    OBDN_V_MEMORY_HOST_TRANSFER_TYPE,
+    OBDN_V_MEMORY_DEVICE_TYPE,
+} Obdn_V_MemoryType;
 
 struct BlockChain;
 
@@ -19,9 +19,9 @@ typedef struct {
     VkDeviceSize           offset;
     VkBuffer               buffer;
     uint8_t*               hostData; // if hostData not null, its mapped
-    Tanto_V_BlockId        memBlockId;
+    Obdn_V_BlockId        memBlockId;
     struct BlockChain*     pChain;
-} Tanto_V_BufferRegion;
+} Obdn_V_BufferRegion;
 
 typedef struct {
     VkImage           handle;
@@ -29,23 +29,23 @@ typedef struct {
     VkSampler         sampler;
     VkDeviceSize      size; // size in bytes. taken from GetMemReqs
     VkExtent3D        extent;
-    Tanto_V_BlockId   memBlockId;
+    Obdn_V_BlockId   memBlockId;
     VkImageLayout     layout;
     uint32_t          mipLevels;
     uint32_t          queueFamily;
-} Tanto_V_Image;
+} Obdn_V_Image;
 
-void tanto_v_InitMemory(void);
+void obdn_v_InitMemory(void);
 
-Tanto_V_BufferRegion tanto_v_RequestBufferRegion(size_t size, 
-        const VkBufferUsageFlags, const Tanto_V_MemoryType);
+Obdn_V_BufferRegion obdn_v_RequestBufferRegion(size_t size, 
+        const VkBufferUsageFlags, const Obdn_V_MemoryType);
 
-Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
-        const size_t size, uint32_t alignment, const Tanto_V_MemoryType);
+Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
+        const size_t size, uint32_t alignment, const Obdn_V_MemoryType);
 
-uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties);
+uint32_t obdn_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties);
 
-Tanto_V_Image tanto_v_CreateImage(
+Obdn_V_Image obdn_v_CreateImage(
         const uint32_t width, 
         const uint32_t height,
         const VkFormat format,
@@ -55,23 +55,23 @@ Tanto_V_Image tanto_v_CreateImage(
         const uint32_t mipLevels,
         const uint32_t queueFamilyIndex);
 
-void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst);
+void obdn_v_CopyBufferRegion(const Obdn_V_BufferRegion* src, Obdn_V_BufferRegion* dst);
 
-void tanto_v_CopyImageToBufferRegion(const Tanto_V_Image* image, Tanto_V_BufferRegion* bufferRegion);
+void obdn_v_CopyImageToBufferRegion(const Obdn_V_Image* image, Obdn_V_BufferRegion* bufferRegion);
 
-void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion);
+void obdn_v_TransferToDevice(Obdn_V_BufferRegion* pRegion);
 
-void tanto_v_FreeImage(Tanto_V_Image* image);
+void obdn_v_FreeImage(Obdn_V_Image* image);
 
-void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion);
+void obdn_v_FreeBufferRegion(Obdn_V_BufferRegion* pRegion);
 
-VkDeviceAddress tanto_v_GetBufferRegionAddress(const Tanto_V_BufferRegion* region);
+VkDeviceAddress obdn_v_GetBufferRegionAddress(const Obdn_V_BufferRegion* region);
 
-void tanto_v_CleanUpMemory(void);
+void obdn_v_CleanUpMemory(void);
 
 // application's job to destroy this buffer and free the memory
-void tanto_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
-        const uint32_t memorySize, const Tanto_V_MemoryType type, 
+void obdn_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
+        const uint32_t memorySize, const Obdn_V_MemoryType type, 
         VkDeviceMemory* pMemory, VkBuffer* pBuffer);
 
 #endif /* end of include guard: V_MEMORY_H */

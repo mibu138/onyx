@@ -1,6 +1,6 @@
 #include "t_text.h"
-#include <tanto/v_image.h>
-#include <tanto/v_memory.h>
+#include "v_image.h"
+#include "v_memory.h"
 #include <ft2build.h>
 
 #include FT_FREETYPE_H
@@ -69,7 +69,7 @@ static void drawString(const char* string, const size_t width, const size_t heig
     }
 }
 
-Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height, 
+Obdn_V_Image obdn_CreateTextImage(const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text)
 {
@@ -85,25 +85,25 @@ Tanto_V_Image tanto_CreateTextImage(const size_t width, const size_t height,
         initialized = true;
     }
 
-    Tanto_V_Image image = tanto_v_CreateImageAndSampler(width, height, VK_FORMAT_R8_UINT, 
+    Obdn_V_Image image = obdn_v_CreateImageAndSampler(width, height, VK_FORMAT_R8_UINT, 
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
             1,
             VK_FILTER_NEAREST,
-            tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE)); 
+            obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE)); 
 
-    tanto_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
+    obdn_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 
-    Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(width * height, 
+    Obdn_V_BufferRegion region = obdn_v_RequestBufferRegion(width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            TANTO_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 
-    tanto_v_CopyBufferToImage(&region, &image);
+    obdn_v_CopyBufferToImage(&region, &image);
 
-    tanto_v_FreeBufferRegion(&region);
+    obdn_v_FreeBufferRegion(&region);
 
     return image;
 }

@@ -1,5 +1,5 @@
-#ifndef TANTO_R_INIT_H
-#define TANTO_R_INIT_H
+#ifndef OBDN_R_INIT_H
+#define OBDN_R_INIT_H
 
 #include "v_def.h"
 #include "v_memory.h"
@@ -7,28 +7,28 @@
 #include "v_command.h"
 #include "s_scene.h"
 
-#define TANTO_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
-#define TANTO_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
+#define OBDN_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
+#define OBDN_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
 
 typedef struct {
-    Tanto_V_Image       swapImage;
+    Obdn_V_Image       swapImage;
     uint32_t            index;
-} Tanto_R_Frame;
+} Obdn_R_Frame;
 
-typedef void (*Tanto_R_SwapchainRecreationFn)(void);
+typedef void (*Obdn_R_SwapchainRecreationFn)(void);
 
-VkFormat tanto_r_GetOffscreenColorFormat(void);
-VkFormat tanto_r_GetDepthFormat(void);
-VkFormat tanto_r_GetSwapFormat(void);
+VkFormat obdn_r_GetOffscreenColorFormat(void);
+VkFormat obdn_r_GetDepthFormat(void);
+VkFormat obdn_r_GetSwapFormat(void);
 
-void           tanto_r_Init(const VkImageUsageFlags swapImageUsageFlags);
-void           tanto_r_DrawScene(const VkCommandBuffer cmdBuf, const Tanto_S_Scene* scene);
-bool           tanto_r_PresentFrame(VkSemaphore waitSemaphore);
-void           tanto_r_CleanUp(void);
-void           tanto_r_RegisterSwapchainRecreationFn(Tanto_R_SwapchainRecreationFn fn);
-void           tanto_r_RecreateSwapchain(void);
-Tanto_R_Frame* tanto_r_GetFrame(const int8_t index);
-const uint32_t tanto_r_GetCurrentFrameIndex(void);
-const uint32_t tanto_r_RequestFrame(void); // returns available frame index.
+void           obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags);
+void           obdn_r_DrawScene(const VkCommandBuffer cmdBuf, const Obdn_S_Scene* scene);
+bool           obdn_r_PresentFrame(VkSemaphore waitSemaphore);
+void           obdn_r_CleanUp(void);
+void           obdn_r_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn);
+void           obdn_r_RecreateSwapchain(void);
+Obdn_R_Frame* obdn_r_GetFrame(const int8_t index);
+const uint32_t obdn_r_GetCurrentFrameIndex(void);
+const uint32_t obdn_r_RequestFrame(void); // returns available frame index.
 
 #endif /* end of include guard: R_INIT_H */

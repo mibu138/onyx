@@ -1,5 +1,5 @@
-#ifndef TANTO_F_FILE_H
-#define TANTO_F_FILE_H
+#ifndef OBDN_F_FILE_H
+#define OBDN_F_FILE_H
 
 #include <stdint.h>
 #include "r_geo.h"
@@ -12,28 +12,28 @@ typedef struct {
     uint8_t*  attrSizes;
     char**    attrNames;
     void**    attributes;
-    Tanto_R_Index*      indices;
-} Tanto_F_Primitive;
+    Obdn_R_Index*      indices;
+} Obdn_F_Primitive;
 
 // Must be freed
 #ifdef __cplusplus
-Tanto_F_Primitive tanto_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount, 
+Obdn_F_Primitive obdn_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount, 
         const uint32_t attrCount, 
-        const Tanto_R_AttributeSize attrSizes[], 
-        const char attrNames[][TANTO_R_ATTR_NAME_LEN]);
+        const Obdn_R_AttributeSize attrSizes[], 
+        const char attrNames[][OBDN_R_ATTR_NAME_LEN]);
 #else
-Tanto_F_Primitive tanto_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount, 
+Obdn_F_Primitive obdn_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount, 
         const uint32_t attrCount, 
-        const Tanto_R_AttributeSize attrSizes[attrCount], 
-        const char attrNames[attrCount][TANTO_R_ATTR_NAME_LEN]);
+        const Obdn_R_AttributeSize attrSizes[attrCount], 
+        const char attrNames[attrCount][OBDN_R_ATTR_NAME_LEN]);
 #endif
-Tanto_F_Primitive tanto_f_CreateFPrimFromRPrim(const Tanto_R_Primitive* rprim);
-Tanto_R_Primitive tanto_f_CreateRPrimFromFPrim(const Tanto_F_Primitive* fprim);
-int               tanto_f_WritePrimitive(const char* filename, const Tanto_F_Primitive* fprim);
+Obdn_F_Primitive obdn_f_CreateFPrimFromRPrim(const Obdn_R_Primitive* rprim);
+Obdn_R_Primitive obdn_f_CreateRPrimFromFPrim(const Obdn_F_Primitive* fprim);
+int               obdn_f_WritePrimitive(const char* filename, const Obdn_F_Primitive* fprim);
 // 1 is success
-int               tanto_f_ReadPrimitive(const char* filename, Tanto_F_Primitive* fprim);
-void              tanto_f_FreePrimitive(Tanto_F_Primitive* fprim);
-void              tanto_f_PrintPrim(const Tanto_F_Primitive* prim);
-Tanto_R_Primitive tanto_f_LoadRPrim(const char* filename, const bool transferToDevice);
+int               obdn_f_ReadPrimitive(const char* filename, Obdn_F_Primitive* fprim);
+void              obdn_f_FreePrimitive(Obdn_F_Primitive* fprim);
+void              obdn_f_PrintPrim(const Obdn_F_Primitive* prim);
+Obdn_R_Primitive obdn_f_LoadRPrim(const char* filename, const bool transferToDevice);
 
-#endif /* end of include guard: TANTO_F_FILE_H */
+#endif /* end of include guard: OBDN_F_FILE_H */

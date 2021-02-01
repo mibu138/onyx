@@ -1,16 +1,16 @@
 #include "v_command.h"
-#include "tanto/v_video.h"
+#include "v_video.h"
 #include <vulkan/vulkan_core.h>
 
-void tanto_v_SubmitAndWait(Tanto_V_Command* cmd, const uint32_t queueIndex)
+void obdn_v_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
 {
-    tanto_v_SubmitToQueueWait(&cmd->buffer, cmd->queueFamily, queueIndex);
+    obdn_v_SubmitToQueueWait(&cmd->buffer, cmd->queueFamily, queueIndex);
 }
 
-Tanto_V_Command tanto_v_CreateCommand(const Tanto_V_QueueType queueFamilyType)
+Obdn_V_Command obdn_v_CreateCommand(const Obdn_V_QueueType queueFamilyType)
 {
-    Tanto_V_Command cmd = {
-        .queueFamily = tanto_v_GetQueueFamilyIndex(queueFamilyType),
+    Obdn_V_Command cmd = {
+        .queueFamily = obdn_v_GetQueueFamilyIndex(queueFamilyType),
     };
 
     const VkCommandPoolCreateInfo cmdPoolCi = {
@@ -45,7 +45,7 @@ Tanto_V_Command tanto_v_CreateCommand(const Tanto_V_QueueType queueFamilyType)
     return cmd;
 }
 
-void tanto_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
+void obdn_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -54,7 +54,7 @@ void tanto_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
-void tanto_v_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
+void obdn_v_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -64,26 +64,26 @@ void tanto_v_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
-void tanto_v_EndCommandBuffer(VkCommandBuffer cmdBuf)
+void obdn_v_EndCommandBuffer(VkCommandBuffer cmdBuf)
 {
     vkEndCommandBuffer(cmdBuf);
 }
 
 
-void tanto_v_WaitForFence(VkFence* fence)
+void obdn_v_WaitForFence(VkFence* fence)
 {
     vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, fence);
 }
 
-void tanto_v_DestroyCommand(Tanto_V_Command cmd)
+void obdn_v_DestroyCommand(Obdn_V_Command cmd)
 {
     vkDestroyCommandPool(device, cmd.pool, NULL);
     vkDestroyFence(device, cmd.fence, NULL);
     vkDestroySemaphore(device, cmd.semaphore, NULL);
 }
 
-void tanto_v_ResetCommand(Tanto_V_Command* cmd)
+void obdn_v_ResetCommand(Obdn_V_Command* cmd)
 {
     vkResetCommandPool(device, cmd->pool, 0);
 }

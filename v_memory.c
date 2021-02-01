@@ -1,5 +1,5 @@
 #include "v_memory.h"
-#include "tanto/t_utils.h"
+#include "t_utils.h"
 #include "v_video.h"
 #include "t_def.h"
 #include "v_command.h"
@@ -18,16 +18,16 @@
 #define MEMORY_SIZE_DEV_IMAGE   0x120000000 // 
 #define MAX_BLOCKS 100000
 
-typedef Tanto_V_BufferRegion BufferRegion;
+typedef Obdn_V_BufferRegion BufferRegion;
 
 static VkPhysicalDeviceMemoryProperties memoryProperties;
 
-typedef struct tanto_V_MemBlock {
+typedef struct obdn_V_MemBlock {
     VkDeviceSize    size;
     VkDeviceSize    offset;
     bool            inUse;
-    Tanto_V_BlockId id; // global unique identifier
-} Tanto_V_MemBlock;
+    Obdn_V_BlockId id; // global unique identifier
+} Obdn_V_MemBlock;
 
 typedef struct BlockChain {
     char               name[16]; // for debugging
@@ -42,7 +42,7 @@ typedef struct BlockChain {
     VkBuffer           buffer;
     VkBufferUsageFlags bufferFlags;
     uint8_t*           hostData;
-    Tanto_V_MemBlock   blocks[MAX_BLOCKS];
+    Obdn_V_MemBlock   blocks[MAX_BLOCKS];
 } BlockChain;
 
 static BlockChain blockChainHostGraphicsBuffer;
@@ -69,7 +69,7 @@ void printBlockChainInfo(const BlockChain* chain)
     printf("Blocks: \n");
     for (int i = 0; i < chain->count; i++) 
     {
-        const Tanto_V_MemBlock* block = &chain->blocks[i];
+        const Obdn_V_MemBlock* block = &chain->blocks[i];
         printf("{ Block %d: size = %ld, offset = %ld, inUse = %s, id: %d}, ", i, block->size, block->offset, block->inUse ? "true" : "false", block->id);
     }
     printf("\n");
@@ -86,7 +86,7 @@ static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 }
 
 static void initBlockChain(
-        const Tanto_V_MemoryType memType,
+        const Obdn_V_MemoryType memType,
         const VkDeviceSize memorySize, 
         const uint32_t memTypeIndex, 
         const VkBufferUsageFlags bufferUsageFlags, 
@@ -94,7 +94,7 @@ static void initBlockChain(
         const char* name,
         struct BlockChain* chain)
 {
-    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
+    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_V_MemBlock));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
     chain->count = 1;
     chain->cur   = 0;
@@ -130,9 +130,9 @@ static void initBlockChain(
         uint32_t queueFamilyIndex; 
         switch (memType) 
         {
-            case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE); break;
-            case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_TRANSFER_TYPE); break;
-            case TANTO_V_MEMORY_DEVICE_TYPE:        queueFamilyIndex = tanto_v_GetQueueFamilyIndex(TANTO_V_QUEUE_GRAPHICS_TYPE); break;
+            case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE: queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
+            case OBDN_V_MEMORY_HOST_TRANSFER_TYPE: queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_TRANSFER_TYPE); break;
+            case OBDN_V_MEMORY_DEVICE_TYPE:        queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
             default: assert(0); break;
         }
 
@@ -142,7 +142,7 @@ static void initBlockChain(
             .queueFamilyIndexCount = 1,
             .pQueueFamilyIndices = &queueFamilyIndex,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue family determined by first use
-            // TODO this sharing mode is why we need to expand Tanto_V_MemoryType to specify
+            // TODO this sharing mode is why we need to expand Obdn_V_MemoryType to specify
             // queue usage as well. So we do need graphics type, transfer type, and compute types
             .size = memorySize 
         };
@@ -180,7 +180,7 @@ static void initBlockChain(
 
 static void freeBlockChain(struct BlockChain* chain)
 {
-    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Tanto_V_MemBlock));
+    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_V_MemBlock));
     if (chain->buffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(device, chain->buffer, NULL);
@@ -222,7 +222,7 @@ static void rotateBlockUp(const size_t fromIndex, const size_t toIndex, struct B
     assert ( toIndex > fromIndex );
     for (int i = fromIndex; i < toIndex; i++) 
     {
-        Tanto_V_MemBlock temp = chain->blocks[i];
+        Obdn_V_MemBlock temp = chain->blocks[i];
         chain->blocks[i] = chain->blocks[i + 1];
         chain->blocks[i + 1] = temp;
     }
@@ -235,7 +235,7 @@ static void rotateBlockDown(const size_t fromIndex, const size_t toIndex, struct
     assert ( fromIndex > toIndex );
     for (int i = fromIndex; i > toIndex; i--) 
     {
-        Tanto_V_MemBlock temp = chain->blocks[i];
+        Obdn_V_MemBlock temp = chain->blocks[i];
         chain->blocks[i] = chain->blocks[i - 1];
         chain->blocks[i - 1] = temp;
     }
@@ -246,8 +246,8 @@ static void mergeBlocks(struct BlockChain* chain)
     assert (chain->count > 1); // must have at least 2 blocks to defragment
     for (int i = 0; i < chain->count - 1; i++) 
     {
-        Tanto_V_MemBlock* curr = &chain->blocks[i];   
-        Tanto_V_MemBlock* next = &chain->blocks[i + 1];   
+        Obdn_V_MemBlock* curr = &chain->blocks[i];   
+        Obdn_V_MemBlock* next = &chain->blocks[i + 1];   
         if (!curr->inUse && !next->inUse)
         {
             // combine them together
@@ -255,7 +255,7 @@ static void mergeBlocks(struct BlockChain* chain)
             // we could make the other id available for re-use as well
             curr->size   = cSize;
             // set next block to 0
-            memset(next, 0, sizeof(Tanto_V_MemBlock));
+            memset(next, 0, sizeof(Obdn_V_MemBlock));
             // rotate blocks down past i so that next goes to chain->count - 1
             // and the block at chain->size - 1 goes to chain->count - 2
             if (i + 1 != chain->count - 1)
@@ -279,8 +279,8 @@ static bool chainIsOrdered(const struct BlockChain* chain)
 {
     for (int i = 0; i < chain->count - 1; i++) 
     {
-        const Tanto_V_MemBlock* curr = &chain->blocks[i];
-        const Tanto_V_MemBlock* next = &chain->blocks[i + 1];
+        const Obdn_V_MemBlock* curr = &chain->blocks[i];
+        const Obdn_V_MemBlock* next = &chain->blocks[i + 1];
         if (curr->offset > next->offset) return false;
     }
     return true;
@@ -288,7 +288,7 @@ static bool chainIsOrdered(const struct BlockChain* chain)
 
 
 
-static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
+static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
 {
     const int curIndex = findAvailableBlockIndex(size, chain);
     if (curIndex < 0) // try defragmenting. if that fails we're done.
@@ -301,7 +301,7 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
             exit(0);
         }
     }
-    Tanto_V_MemBlock* curBlock = &chain->blocks[curIndex];
+    Obdn_V_MemBlock* curBlock = &chain->blocks[curIndex];
     if (curBlock->size == size && curBlock->offset % alignment == 0) // just reuse this block;
     {
         curBlock->inUse = true;
@@ -309,10 +309,10 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     }
     // split the block
     const size_t newIndex = chain->count++;
-    Tanto_V_MemBlock* newBlock = &chain->blocks[newIndex];
+    Obdn_V_MemBlock* newBlock = &chain->blocks[newIndex];
     assert( newIndex < MAX_BLOCKS );
     assert( newBlock->inUse == false );
-    VkDeviceSize alignedOffset = tanto_GetAligned(curBlock->offset, alignment);
+    VkDeviceSize alignedOffset = obdn_GetAligned(curBlock->offset, alignment);
     const VkDeviceSize offsetDiff = alignedOffset - curBlock->offset;
     // take away the size lost due to alignment and the new size
     newBlock->size   = curBlock->size - offsetDiff - size;
@@ -329,7 +329,7 @@ static Tanto_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignm
     return curBlock;
 }
 
-static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
+static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
 {
     assert( id < chain->nextBlockId);
     const size_t blockCount = chain->count;
@@ -340,7 +340,7 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
             break;
     }
     assert( blockIndex < blockCount ); // block must not have come from this chain
-    Tanto_V_MemBlock* block = &chain->blocks[blockIndex];
+    Obdn_V_MemBlock* block = &chain->blocks[blockIndex];
     const VkDeviceSize size = block->size;
     block->inUse = false;
     mergeBlocks(chain);
@@ -348,7 +348,7 @@ static void freeBlock(struct BlockChain* chain, const Tanto_V_BlockId id)
     V1_PRINT(">> Freeing block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", blockIndex, size, chain->name, chain->usedSize, chain->totalSize);
 }
 
-void tanto_v_InitMemory(void)
+void obdn_v_InitMemory(void)
 {
     hostVisibleCoherentTypeIndex = 0;
     deviceLocalTypeIndex = 0;
@@ -429,47 +429,47 @@ void tanto_v_InitMemory(void)
          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
-    initBlockChain(TANTO_V_MEMORY_HOST_GRAPHICS_TYPE, MEMORY_SIZE_HOST_GRAPHICS_BUFFER, 
+    initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, MEMORY_SIZE_HOST_GRAPHICS_BUFFER, 
             hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
             true, "hostGraphBuffer", &blockChainHostGraphicsBuffer);
-    initBlockChain(TANTO_V_MEMORY_HOST_TRANSFER_TYPE, MEMORY_SIZE_HOST_TRANSFER_BUFFER, 
+    initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, MEMORY_SIZE_HOST_TRANSFER_BUFFER, 
             hostVisibleCoherentTypeIndex, hostTransferFlags, 
             true, "hostTransBuffer", &blockChainHostTransferBuffer);
-    initBlockChain(TANTO_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_BUFFER, 
+    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_BUFFER, 
             deviceLocalTypeIndex, devBufFlags, 
             false, "devBuffer", &blockChainDeviceBuffer);
-    initBlockChain(TANTO_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_IMAGE, 
+    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_IMAGE, 
             deviceLocalTypeIndex, 0, 
             false, "devImage", &blockChainDeviceImage);
 }
 
-Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
+Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
         const size_t size, 
-        uint32_t alignment, const Tanto_V_MemoryType memType)
+        uint32_t alignment, const Obdn_V_MemoryType memType)
 {
     if( size % 4 != 0 ) // only allow for word-sized blocks
     {
-        TANTO_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);
+        OBDN_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);
     }
-    Tanto_V_MemBlock*  block = NULL;
+    Obdn_V_MemBlock*  block = NULL;
     struct BlockChain* chain = NULL;
     switch (memType) 
     {
-        case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE:   chain = &blockChainHostGraphicsBuffer; break;
-        case TANTO_V_MEMORY_HOST_TRANSFER_TYPE:   chain = &blockChainHostTransferBuffer; break;
-        case TANTO_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceBuffer; break;
+        case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:   chain = &blockChainHostGraphicsBuffer; break;
+        case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:   chain = &blockChainHostTransferBuffer; break;
+        case OBDN_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceBuffer; break;
         default: block = NULL; assert(0);
     }
 
     if (0 == alignment)
         alignment = chain->defaultAlignment;
     block = requestBlock(size, alignment, chain); 
-    Tanto_V_BufferRegion region;
+    Obdn_V_BufferRegion region;
     region.offset = block->offset;
     region.memBlockId = block->id;
     region.size = block->size;
     region.buffer = chain->buffer;
-    if (memType != TANTO_V_MEMORY_DEVICE_TYPE)
+    if (memType != OBDN_V_MEMORY_DEVICE_TYPE)
         region.hostData = chain->hostData + block->offset;
     else
         region.hostData = NULL;
@@ -478,8 +478,8 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegionAligned(
     return region;
 }
 
-Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size, 
-        const VkBufferUsageFlags flags, const Tanto_V_MemoryType memType)
+Obdn_V_BufferRegion obdn_v_RequestBufferRegion(const size_t size, 
+        const VkBufferUsageFlags flags, const Obdn_V_MemoryType memType)
 {
     uint32_t alignment = 16;
     if ( VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
@@ -488,10 +488,10 @@ Tanto_V_BufferRegion tanto_v_RequestBufferRegion(const size_t size,
         alignment = MAX(deviceProperties.limits.minUniformBufferOffsetAlignment, alignment);
     if ( VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR & flags)
         alignment = MAX(256, alignment); // 256 comes from spec for VkAccelerationStructureCreateInfoKHR - see offset
-    return tanto_v_RequestBufferRegionAligned(size, alignment, memType); //TODO: fix this. find the maximum alignment and choose that
+    return obdn_v_RequestBufferRegionAligned(size, alignment, memType); //TODO: fix this. find the maximum alignment and choose that
 }
 
-uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
+uint32_t obdn_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags properties)
 {
     for(uint32_t i = 0; i < memoryProperties.memoryTypeCount; i++)
     {
@@ -504,7 +504,7 @@ uint32_t tanto_v_GetMemoryType(uint32_t typeBits, const VkMemoryPropertyFlags pr
     return ~0u;
 }
 
-Tanto_V_Image tanto_v_CreateImage(
+Obdn_V_Image obdn_v_CreateImage(
         const uint32_t width, 
         const uint32_t height,
         const VkFormat format,
@@ -536,7 +536,7 @@ Tanto_V_Image tanto_v_CreateImage(
         .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
     };
 
-    Tanto_V_Image image = {0};
+    Obdn_V_Image image = {0};
 
     V_ASSERT( vkCreateImage(device, &imageInfo, NULL, &image.handle) );
 
@@ -554,7 +554,7 @@ Tanto_V_Image tanto_v_CreateImage(
     image.extent.height = height;
     image.mipLevels = mipLevels;
 
-    const Tanto_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
+    const Obdn_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
     image.memBlockId = block->id;
 
     vkBindImageMemory(device, image.handle, blockChainDeviceImage.memory, block->offset);
@@ -582,7 +582,7 @@ Tanto_V_Image tanto_v_CreateImage(
     return image;
 }
 
-void tanto_v_FreeImage(Tanto_V_Image* image)
+void obdn_v_FreeImage(Obdn_V_Image* image)
 {
     if (image->sampler != VK_NULL_HANDLE)
     {
@@ -591,22 +591,22 @@ void tanto_v_FreeImage(Tanto_V_Image* image)
     vkDestroyImageView(device, image->view, NULL);
     vkDestroyImage(device, image->handle, NULL);
     freeBlock(&blockChainDeviceImage, image->memBlockId);
-    memset(image, 0, sizeof(Tanto_V_Image));
+    memset(image, 0, sizeof(Obdn_V_Image));
 }
 
-void tanto_v_FreeBufferRegion(Tanto_V_BufferRegion* pRegion)
+void obdn_v_FreeBufferRegion(Obdn_V_BufferRegion* pRegion)
 {
     freeBlock(pRegion->pChain, pRegion->memBlockId);
     if (pRegion->hostData)
         memset(pRegion->hostData, 0, pRegion->size);
-    memset(pRegion, 0, sizeof(Tanto_V_BufferRegion));
+    memset(pRegion, 0, sizeof(Obdn_V_BufferRegion));
 }
 
-void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferRegion* dst)
+void obdn_v_CopyBufferRegion(const Obdn_V_BufferRegion* src, Obdn_V_BufferRegion* dst)
 {
-    Tanto_V_Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE); // arbitrary index;
+    Obdn_V_Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE); // arbitrary index;
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     VkBufferCopy copy;
     copy.srcOffset = src->offset;
@@ -615,32 +615,32 @@ void tanto_v_CopyBufferRegion(const Tanto_V_BufferRegion* src, Tanto_V_BufferReg
 
     vkCmdCopyBuffer(cmd.buffer, src->buffer, dst->buffer, 1, &copy);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_DestroyCommand(cmd);
+    obdn_v_DestroyCommand(cmd);
 }
 
-void tanto_v_CopyImageToBufferRegion(const Tanto_V_Image* image, Tanto_V_BufferRegion* bufferRegion)
+void obdn_v_CopyImageToBufferRegion(const Obdn_V_Image* image, Obdn_V_BufferRegion* bufferRegion)
 {
     // TODO
 }
 
-void tanto_v_TransferToDevice(Tanto_V_BufferRegion* pRegion)
+void obdn_v_TransferToDevice(Obdn_V_BufferRegion* pRegion)
 {
-    const Tanto_V_BufferRegion srcRegion = *pRegion;
+    const Obdn_V_BufferRegion srcRegion = *pRegion;
     assert( srcRegion.pChain == &blockChainHostGraphicsBuffer); // only chain it makes sense to transfer from
-    Tanto_V_BufferRegion destRegion = tanto_v_RequestBufferRegion(srcRegion.size, 0, TANTO_V_MEMORY_DEVICE_TYPE);
+    Obdn_V_BufferRegion destRegion = obdn_v_RequestBufferRegion(srcRegion.size, 0, OBDN_V_MEMORY_DEVICE_TYPE);
 
-    tanto_v_CopyBufferRegion(&srcRegion, &destRegion);
+    obdn_v_CopyBufferRegion(&srcRegion, &destRegion);
 
-    tanto_v_FreeBufferRegion(pRegion);
+    obdn_v_FreeBufferRegion(pRegion);
 
     *pRegion = destRegion;
 }
 
-void tanto_v_CleanUpMemory(void)
+void obdn_v_CleanUpMemory(void)
 {
     freeBlockChain(&blockChainHostGraphicsBuffer);
     freeBlockChain(&blockChainHostTransferBuffer);
@@ -648,22 +648,22 @@ void tanto_v_CleanUpMemory(void)
     freeBlockChain(&blockChainDeviceBuffer);
 }
 
-VkDeviceAddress tanto_v_GetBufferRegionAddress(const BufferRegion* region)
+VkDeviceAddress obdn_v_GetBufferRegionAddress(const BufferRegion* region)
 {
     assert(region->pChain->bufferAddress != 0);
     return region->pChain->bufferAddress + region->offset;
 }
 
-void tanto_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
-        const uint32_t memorySize, const Tanto_V_MemoryType type, 
+void obdn_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
+        const uint32_t memorySize, const Obdn_V_MemoryType type, 
         VkDeviceMemory* pMemory, VkBuffer* pBuffer)
 {
     uint32_t typeIndex;
     switch (type) 
     {
-        case TANTO_V_MEMORY_HOST_GRAPHICS_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
-        case TANTO_V_MEMORY_HOST_TRANSFER_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
-        case TANTO_V_MEMORY_DEVICE_TYPE:        typeIndex = deviceLocalTypeIndex; break;
+        case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
+        case OBDN_V_MEMORY_HOST_TRANSFER_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
+        case OBDN_V_MEMORY_DEVICE_TYPE:        typeIndex = deviceLocalTypeIndex; break;
     }
 
     const VkMemoryAllocateInfo allocInfo = {

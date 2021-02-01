@@ -1,5 +1,5 @@
-#ifndef TANTO_H
-#define TANTO_H
+#ifndef OBDN_H
+#define OBDN_H
 
 #include "m_math.h"
 #include "t_utils.h"
@@ -13,4 +13,4 @@
 #include "r_geo.h"
 #include "i_input.h"
 
-#endif /* end of include guard: TANTO_H */
+#endif /* end of include guard: OBDN_H */

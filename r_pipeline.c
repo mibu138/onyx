@@ -1,5 +1,5 @@
 #include "r_pipeline.h"
-#include "tanto/r_raytrace.h"
+#include "r_raytrace.h"
 #include "v_video.h"
 #include "r_render.h"
 #include "t_def.h"
@@ -69,7 +69,7 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
 #define MAX_GP_SHADER_STAGES 4
 #define MAX_ATTACHMENT_STATES 4
 
-void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], 
+void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPipelineInfo pipelineInfos[count], 
         VkPipeline pipelines[count])
 {
     VkPipelineShaderStageCreateInfo           shaderStages[count][MAX_GP_SHADER_STAGES];
@@ -92,7 +92,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
 
     for (int i = 0; i < count; i++) 
     {
-        const Tanto_R_GraphicsPipelineInfo* rasterInfo = &pipelineInfos[i];
+        const Obdn_R_GraphicsPipelineInfo* rasterInfo = &pipelineInfos[i];
         assert( rasterInfo->vertShader && rasterInfo->fragShader ); // must have at least these 2
 
         VkShaderModule vertModule;
@@ -137,7 +137,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
             shaderStageCount += 2;
         }
 
-        TANTO_COND_PRINT(rasterInfo->vertexDescription.attributeCount == 0, 
+        OBDN_COND_PRINT(rasterInfo->vertexDescription.attributeCount == 0, 
                 "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.");
 
         vertexInputStates[i] = (VkPipelineVertexInputStateCreateInfo){
@@ -166,8 +166,8 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
         VkExtent2D viewportDim = rasterInfo->viewportDim;
         if (viewportDim.width < 1) // use window size
         {
-            viewportDim.width = TANTO_WINDOW_WIDTH;
-            viewportDim.height = TANTO_WINDOW_HEIGHT;
+            viewportDim.width = OBDN_WINDOW_WIDTH;
+            viewportDim.height = OBDN_WINDOW_HEIGHT;
         }
 
         viewports[i] = (VkViewport){
@@ -210,18 +210,23 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
             // TODO: alot more settings here. more to look into
         };
 
-        attachmentStates[i][0] = (VkPipelineColorBlendAttachmentState){
-            .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
-                VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
-                                                                        write anything to the
-                                                                        framebuffer */
-            .blendEnable = (rasterInfo->blendMode == TANTO_R_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
-        };
+        const uint32_t attachmentCount = rasterInfo->attachmentCount > 0 ? rasterInfo->attachmentCount : 1;
+        assert(attachmentCount < MAX_ATTACHMENT_STATES);
+        for (int j = 0; j < attachmentCount; j++) 
+        {
+            attachmentStates[i][j] = (VkPipelineColorBlendAttachmentState){
+                .colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | 
+                    VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
+                                                                            write anything to the
+                                                                            framebuffer */
+                .blendEnable = (rasterInfo->blendMode == OBDN_R_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
+            };
+        }
 
         switch (rasterInfo->blendMode)
         {
-            case TANTO_R_BLEND_MODE_OVER:  setBlendModeOver(&attachmentStates[i][0]); break;
-            case TANTO_R_BLEND_MODE_ERASE: setBlendModeErase(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_OVER:  setBlendModeOver(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_ERASE: setBlendModeErase(&attachmentStates[i][0]); break;
             default: break;
         }
 
@@ -229,7 +234,7 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
             .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
             .logicOpEnable = VK_FALSE, // only for integer framebuffer formats
             .logicOp = 0,
-            .attachmentCount = 1,
+            .attachmentCount = attachmentCount,
             .pAttachments = attachmentStates[i] /* must have independentBlending device   
                 feature enabled for these to be different. each entry would correspond 
                 to the blending for a different framebuffer. */
@@ -290,11 +295,11 @@ void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_Graphics
 
 #define MAX_RT_SHADER_COUNT 10
 
-void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTracePipelineInfo pipelineInfos[count], 
-        VkPipeline pipelines[count], Tanto_R_ShaderBindingTable shaderBindingTables[count])
+void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePipelineInfo pipelineInfos[count], 
+        VkPipeline pipelines[count], Obdn_R_ShaderBindingTable shaderBindingTables[count])
 {
     assert(count > 0);
-    assert(count < TANTO_MAX_PIPELINES);
+    assert(count < OBDN_MAX_PIPELINES);
 
     VkRayTracingPipelineCreateInfoKHR createInfos[count];
 
@@ -311,7 +316,7 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
 
     for (int p = 0; p < count; p++) 
     {
-        const Tanto_R_RayTracePipelineInfo* rayTraceInfo = &pipelineInfos[p];
+        const Obdn_R_RayTracePipelineInfo* rayTraceInfo = &pipelineInfos[p];
 
         assert(rayTraceInfo->layout != VK_NULL_HANDLE);
 
@@ -411,7 +416,7 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
 
     for (int i = 0; i < count; i++) 
     {
-        tanto_r_CreateShaderBindingTable(createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
+        obdn_r_CreateShaderBindingTable(createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
     }
 
     for (int i = 0; i < count; i++) 
@@ -424,16 +429,16 @@ void tanto_r_CreateRayTracePipelines(const uint8_t count, const Tanto_R_RayTrace
     }
 }
 
-void tanto_r_CreateDescriptorSetLayouts(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
+void obdn_r_CreateDescriptorSetLayouts(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
         VkDescriptorSetLayout layouts[count])
 {
     // counters for different descriptors
-    assert( count < TANTO_MAX_DESCRIPTOR_SETS);
+    assert( count < OBDN_MAX_DESCRIPTOR_SETS);
     for (int i = 0; i < count; i++) 
     {
-        const Tanto_R_DescriptorSetInfo set = sets[i];
+        const Obdn_R_DescriptorSetInfo set = sets[i];
         assert(set.bindingCount > 0);
-        assert(set.bindingCount <= TANTO_MAX_BINDINGS);
+        assert(set.bindingCount <= OBDN_MAX_BINDINGS);
         VkDescriptorBindingFlags bindFlags[set.bindingCount];
         VkDescriptorSetLayoutBinding bindings[set.bindingCount];
         for (int b = 0; b < set.bindingCount; b++) 
@@ -469,21 +474,21 @@ void tanto_r_CreateDescriptorSetLayouts(const uint8_t count, const Tanto_R_Descr
     }
 }
 
-void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count], 
+void obdn_r_CreateDescriptorSets(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count], 
         const VkDescriptorSetLayout layouts[count],
-        Tanto_R_Description* out)
+        Obdn_R_Description* out)
 {
     // counters for different descriptors
-    assert( count < TANTO_MAX_DESCRIPTOR_SETS);
+    assert( count < OBDN_MAX_DESCRIPTOR_SETS);
 
     out->descriptorSetCount = count;
 
     int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0, dcIa = 0;
     for (int i = 0; i < count; i++) 
     {
-        const Tanto_R_DescriptorSetInfo set = sets[i];
+        const Obdn_R_DescriptorSetInfo set = sets[i];
         assert(set.bindingCount > 0);
-        assert(set.bindingCount <= TANTO_MAX_BINDINGS);
+        assert(set.bindingCount <= OBDN_MAX_BINDINGS);
         assert(out->descriptorSets[i] == VK_NULL_HANDLE);
         for (int b = 0; b < set.bindingCount; b++) 
         {
@@ -533,7 +538,7 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
     const VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .maxSets = count,
-        .poolSizeCount = TANTO_ARRAY_SIZE(poolSizes),
+        .poolSizeCount = OBDN_ARRAY_SIZE(poolSizes),
         .pPoolSizes = poolSizes, 
     };
 
@@ -549,17 +554,17 @@ void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorS
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, out->descriptorSets));
 }
 
-void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
+void obdn_r_CreatePipelineLayouts(const uint8_t count, const Obdn_R_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count])
 {
-    assert(count < TANTO_MAX_PIPELINES);
+    assert(count < OBDN_MAX_PIPELINES);
     for (int i = 0; i < count; i++) 
     {
-        const Tanto_R_PipelineLayoutInfo* layoutInfo = &layoutInfos[i];
-        assert(layoutInfo->pushConstantCount  < TANTO_MAX_PUSH_CONSTANTS);
-        assert(layoutInfo->descriptorSetCount < TANTO_MAX_DESCRIPTOR_SETS);
+        const Obdn_R_PipelineLayoutInfo* layoutInfo = &layoutInfos[i];
+        assert(layoutInfo->pushConstantCount  < OBDN_MAX_PUSH_CONSTANTS);
+        assert(layoutInfo->descriptorSetCount < OBDN_MAX_DESCRIPTOR_SETS);
 
-        //assert(dsCount > 0 && dsCount < TANTO_MAX_DESCRIPTOR_SETS);
+        //assert(dsCount > 0 && dsCount < OBDN_MAX_DESCRIPTOR_SETS);
 
         VkPipelineLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -575,12 +580,12 @@ void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLa
     }
 }
 
-void tanto_r_CleanUpPipelines()
+void obdn_r_CleanUpPipelines()
 {
     printf("%s called. no longer does anything\n", __PRETTY_FUNCTION__);
 }
 
-char* tanto_r_FullscreenTriVertShader(void)
+char* obdn_r_FullscreenTriVertShader(void)
 {
-    return TANTO_SPVDIR"/post-vert.spv";
+    return OBDN_SPVDIR"/post-vert.spv";
 }

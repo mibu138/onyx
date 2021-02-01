@@ -1,71 +1,72 @@
-#ifndef TANTO_R_PIPELINE_H
-#define TANTO_R_PIPELINE_H
+#ifndef OBDN_R_PIPELINE_H
+#define OBDN_R_PIPELINE_H
 
 #include "v_def.h"
 #include "r_geo.h"
 #include "r_raytrace.h"
 
-#define TANTO_MAX_PIPELINES 10
-#define TANTO_MAX_DESCRIPTOR_SETS 10
-#define TANTO_MAX_BINDINGS 10
-#define TANTO_MAX_PUSH_CONSTANTS 5
+#define OBDN_MAX_PIPELINES 10
+#define OBDN_MAX_DESCRIPTOR_SETS 10
+#define OBDN_MAX_BINDINGS 10
+#define OBDN_MAX_PUSH_CONSTANTS 5
 
-#define TANTO_SPVDIR "./tanto/shaders/spv"
+#define OBDN_SPVDIR "./obsidian/shaders/spv"
 
 typedef struct {
     uint32_t                 descriptorCount;
     VkDescriptorType         type;
     VkShaderStageFlags       stageFlags;
     VkDescriptorBindingFlags bindingFlags; //optional
-} Tanto_R_DescriptorBinding;
+} Obdn_R_DescriptorBinding;
 
 typedef struct {
     size_t                    bindingCount;
-    Tanto_R_DescriptorBinding bindings[TANTO_MAX_BINDINGS];
-} Tanto_R_DescriptorSetInfo;
+    Obdn_R_DescriptorBinding bindings[OBDN_MAX_BINDINGS];
+} Obdn_R_DescriptorSetInfo;
 
 typedef struct {
     VkDescriptorPool      descriptorPool;
-    //VkDescriptorSetLayout descriptorSetLayouts[TANTO_MAX_DESCRIPTOR_SETS]; 
-    VkDescriptorSet       descriptorSets[TANTO_MAX_DESCRIPTOR_SETS];
+    //VkDescriptorSetLayout descriptorSetLayouts[OBDN_MAX_DESCRIPTOR_SETS]; 
+    VkDescriptorSet       descriptorSets[OBDN_MAX_DESCRIPTOR_SETS];
     uint32_t              descriptorSetCount;
-} Tanto_R_Description;
+} Obdn_R_Description;
 
 typedef struct {
     size_t descriptorSetCount;
     const VkDescriptorSetLayout* descriptorSetLayouts;
     size_t pushConstantCount;
     const VkPushConstantRange* pushConstantsRanges;
-} Tanto_R_PipelineLayoutInfo;
+} Obdn_R_PipelineLayoutInfo;
 
 typedef enum {
-    TANTO_R_PIPELINE_RASTER_TYPE,
-    TANTO_R_PIPELINE_RAYTRACE_TYPE
-} Tanto_R_PipelineType;
+    OBDN_R_PIPELINE_RASTER_TYPE,
+    OBDN_R_PIPELINE_RAYTRACE_TYPE
+} Obdn_R_PipelineType;
 
 typedef enum {
-    TANTO_R_BLEND_MODE_NONE,
-    TANTO_R_BLEND_MODE_OVER,
-    TANTO_R_BLEND_MODE_ERASE,
-} Tanto_R_BlendMode;
+    OBDN_R_BLEND_MODE_NONE,
+    OBDN_R_BLEND_MODE_OVER,
+    OBDN_R_BLEND_MODE_ERASE,
+} Obdn_R_BlendMode;
 
 typedef struct {
     VkRenderPass              renderPass;
     VkPipelineLayout          layout;
-    Tanto_R_VertexDescription vertexDescription;
+    Obdn_R_VertexDescription vertexDescription;
     VkPolygonMode             polygonMode;
     VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
     VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;
-    Tanto_R_BlendMode         blendMode;
+    Obdn_R_BlendMode          blendMode;
     VkExtent2D                viewportDim;
+    uint32_t                  attachmentCount;
     uint32_t                  tesselationPatchPoints;
     uint32_t                  subpass;
     char* vertShader;
     char* fragShader;
     char* tessCtrlShader;
     char* tessEvalShader;
-} Tanto_R_GraphicsPipelineInfo;
+} Obdn_R_GraphicsPipelineInfo;
 
 typedef struct {
     VkPipelineLayout layout;
@@ -75,22 +76,22 @@ typedef struct {
     char**           missShaders;
     uint8_t          chitCount;
     char**           chitShaders;
-} Tanto_R_RayTracePipelineInfo;
+} Obdn_R_RayTracePipelineInfo;
 
-void tanto_r_CreateDescriptorSetLayouts(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count],
+void obdn_r_CreateDescriptorSetLayouts(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
         VkDescriptorSetLayout layouts[count]);
-void tanto_r_CreateDescriptorSets(const uint8_t count, const Tanto_R_DescriptorSetInfo sets[count], 
+void obdn_r_CreateDescriptorSets(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count], 
         const VkDescriptorSetLayout layouts[count],
-        Tanto_R_Description* out);
-void tanto_r_CreatePipelineLayouts(const uint8_t count, const Tanto_R_PipelineLayoutInfo layoutInfos[static count], 
+        Obdn_R_Description* out);
+void obdn_r_CreatePipelineLayouts(const uint8_t count, const Obdn_R_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count]);
-void tanto_r_CreateGraphicsPipelines(const uint8_t count, const Tanto_R_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
-void tanto_r_CreateRayTracePipelines(const uint8_t count, 
-        const Tanto_R_RayTracePipelineInfo pipelineInfos[count], VkPipeline pipelines[count], Tanto_R_ShaderBindingTable[count]);
-void tanto_r_CleanUpPipelines(void);
+void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
+void obdn_r_CreateRayTracePipelines(const uint8_t count, 
+        const Obdn_R_RayTracePipelineInfo pipelineInfos[count], VkPipeline pipelines[count], Obdn_R_ShaderBindingTable[count]);
+void obdn_r_CleanUpPipelines(void);
 
 // has clockwise orientation
-char* tanto_r_FullscreenTriVertShader(void);
+char* obdn_r_FullscreenTriVertShader(void);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

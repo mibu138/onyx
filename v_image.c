@@ -12,18 +12,18 @@
 
 #define IMG_OUT_DIR "/out/images/"
 
-typedef Tanto_V_Command      Command;
-typedef Tanto_V_Barrier      Barrier;
-typedef Tanto_V_BufferRegion BufferRegion;
-typedef Tanto_V_Image        Image;
+typedef Obdn_V_Command      Command;
+typedef Obdn_V_Barrier      Barrier;
+typedef Obdn_V_BufferRegion BufferRegion;
+typedef Obdn_V_Image        Image;
 
 static void createMipMaps(const VkFilter filter, const VkImageLayout finalLayout, Image* image)
 {
     printf("Creating mips for image %p\n", image->handle);
 
-    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     VkImageMemoryBarrier barrier = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -99,16 +99,16 @@ static void createMipMaps(const VkFilter filter, const VkImageLayout finalLayout
     vkCmdPipelineBarrier(cmd.buffer, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 
             0, 0, NULL, 0, NULL, 1, &barrier);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_DestroyCommand(cmd);
+    obdn_v_DestroyCommand(cmd);
 
     image->layout = finalLayout;
 }
 
-Tanto_V_Image tanto_v_CreateImageAndSampler(
+Obdn_V_Image obdn_v_CreateImageAndSampler(
     const uint32_t width, 
     const uint32_t height,
     const VkFormat format,
@@ -119,7 +119,7 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     const VkFilter filter,
     const uint32_t queueFamilyIndex)
 {
-    Tanto_V_Image image = tanto_v_CreateImage(width, height, format, usageFlags, aspectMask, sampleCount, mipLevels, queueFamilyIndex);
+    Obdn_V_Image image = obdn_v_CreateImage(width, height, format, usageFlags, aspectMask, sampleCount, mipLevels, queueFamilyIndex);
 
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -144,7 +144,7 @@ Tanto_V_Image tanto_v_CreateImageAndSampler(
     return image;
 }
 
-void tanto_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrier barrier, 
+void obdn_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrier barrier, 
         const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t mipLevels, VkImage image)
 {
     VkImageSubresourceRange subResRange = {
@@ -170,8 +170,8 @@ void tanto_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrie
             barrier.dstStageFlags, 0, 0, NULL, 0, NULL, 1, &imgBarrier);
 }
 
-void tanto_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Tanto_V_BufferRegion* region,
-        Tanto_V_Image* image)
+void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_BufferRegion* region,
+        Obdn_V_Image* image)
 {
     const VkImageSubresourceLayers subRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -200,7 +200,7 @@ void tanto_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Tanto_V_Bu
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopy);
 }
 
-void tanto_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Tanto_V_Image* image, Tanto_V_BufferRegion* region)
+void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, Obdn_V_BufferRegion* region)
 {
     const VkImageSubresourceLayers subRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -228,11 +228,11 @@ void tanto_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Tanto_V_Im
     vkCmdCopyImageToBuffer(cmdbuf, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region->buffer, 1, &imgCopy);
 }
 
-void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Tanto_V_Image* image)
+void obdn_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image)
 {
-    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     Barrier barrier = {
         .srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -241,23 +241,23 @@ void tanto_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageL
         .dstAccessMask = 0, 
     };
 
-    tanto_v_CmdTransitionImageLayout(cmd.buffer, barrier, oldLayout, newLayout, image->mipLevels, image->handle);
+    obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, oldLayout, newLayout, image->mipLevels, image->handle);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_DestroyCommand(cmd);
+    obdn_v_DestroyCommand(cmd);
 
     image->layout = newLayout;
 }
 
-void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
-        Tanto_V_Image* image)
+void obdn_v_CopyBufferToImage(const Obdn_V_BufferRegion* region,
+        Obdn_V_Image* image)
 {
-    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     VkImageLayout origLayout = image->layout;
 
@@ -269,10 +269,10 @@ void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
     };
 
     if (origLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        tanto_v_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout, 
+        obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout, 
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image->mipLevels, image->handle);
 
-    tanto_v_CmdCopyBufferToImage(cmd.buffer, region, image);
+    obdn_v_CmdCopyBufferToImage(cmd.buffer, region, image);
 
     barrier.srcStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -280,17 +280,17 @@ void tanto_v_CopyBufferToImage(const Tanto_V_BufferRegion* region,
     barrier.dstAccessMask = 0;
 
     if (origLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        tanto_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, origLayout, 
+        obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, origLayout, 
                 image->mipLevels, image->handle);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
     printf("Copying complete.\n");
 }
 
-void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
+void obdn_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
     const VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
@@ -308,20 +308,20 @@ void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const V
     assert(image->size == 0);
     const uint32_t mipLevels = createMips ? floor(log2(fmax(w, h))) + 1 : 1;
 
-    *image = tanto_v_CreateImageAndSampler(w, h, format, usageFlags, aspectMask, sampleCount, mipLevels, filter, queueFamilyIndex);
+    *image = obdn_v_CreateImageAndSampler(w, h, format, usageFlags, aspectMask, sampleCount, mipLevels, filter, queueFamilyIndex);
 
-    BufferRegion stagingBuffer = tanto_v_RequestBufferRegion(image->size, 
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, TANTO_V_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
+    BufferRegion stagingBuffer = obdn_v_RequestBufferRegion(image->size, 
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
 
     printf("%s loading image: width %d height %d channels %d\n", __PRETTY_FUNCTION__, w, h, channelCount);
-    printf("Tanto_V_Image size: %ld\n", image->size);
+    printf("Obdn_V_Image size: %ld\n", image->size);
     memcpy(stagingBuffer.hostData, data, w*h*channelCount);
 
     stbi_image_free(data);
 
-    Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     Barrier barrier = {
         .srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -330,9 +330,9 @@ void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const V
         .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT
     };
 
-    tanto_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, image->handle);
+    obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, image->handle);
 
-    tanto_v_CmdCopyBufferToImage(cmd.buffer, &stagingBuffer, image);
+    obdn_v_CmdCopyBufferToImage(cmd.buffer, &stagingBuffer, image);
 
 
     if (!createMips)
@@ -341,27 +341,27 @@ void tanto_v_LoadImage(const char* filename, const uint8_t channelCount, const V
         barrier.dstAccessMask = 0;
         barrier.srcStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
         barrier.dstStageFlags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        tanto_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout, mipLevels, image->handle);
+        obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout, mipLevels, image->handle);
         image->layout = layout;
     }
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_FreeBufferRegion(&stagingBuffer);
+    obdn_v_FreeBufferRegion(&stagingBuffer);
 
     if (createMips)
         createMipMaps(VK_FILTER_LINEAR, layout, image);
 }
 
-void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, const char* filename)
+void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const char* filename)
 {
-    Tanto_V_BufferRegion region = tanto_v_RequestBufferRegion(
-            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, TANTO_V_MEMORY_HOST_TRANSFER_TYPE);
+    Obdn_V_BufferRegion region = obdn_v_RequestBufferRegion(
+            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, OBDN_V_MEMORY_HOST_TRANSFER_TYPE);
 
     VkImageLayout origLayout = image->layout;
-    tanto_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
+    obdn_v_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
 
     const VkImageSubresourceLayers subRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -376,10 +376,10 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, con
         .z = 0
     };
 
-    TANTO_DEBUG_PRINT("Extent: %d, %d", image->extent.width, image->extent.height); 
-    TANTO_DEBUG_PRINT("Image Layout: %d", image->layout);
-    TANTO_DEBUG_PRINT("Orig Layout: %d", origLayout);
-    TANTO_DEBUG_PRINT("Image size: %ld", image->size);
+    OBDN_DEBUG_PRINT("Extent: %d, %d", image->extent.width, image->extent.height); 
+    OBDN_DEBUG_PRINT("Image Layout: %d", image->layout);
+    OBDN_DEBUG_PRINT("Orig Layout: %d", origLayout);
+    OBDN_DEBUG_PRINT("Image size: %ld", image->size);
 
     const VkBufferImageCopy imgCopy = {
         .imageOffset = imgOffset,
@@ -390,20 +390,20 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, con
         .bufferRowLength = 0
     };
 
-    Tanto_V_Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Obdn_V_Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     printf("Copying image to host...\n");
     vkCmdCopyImageToBuffer(cmd.buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.buffer, 1, &imgCopy);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_DestroyCommand(cmd);
+    obdn_v_DestroyCommand(cmd);
 
-    tanto_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout, image);
+    obdn_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout, image);
 
     printf("Copying complete.\n");
     printf("Writing out to jpg...\n");
@@ -417,18 +417,18 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, con
     strcat(strbuf, dir);
     strcat(strbuf, filename);
 
-    TANTO_DEBUG_PRINT("Filepath: %s", strbuf);
+    OBDN_DEBUG_PRINT("Filepath: %s", strbuf);
 
     int r;
     switch (fileType)
     {
-        case TANTO_V_IMAGE_FILE_TYPE_PNG: 
+        case OBDN_V_IMAGE_FILE_TYPE_PNG: 
         {
             r = stbi_write_png(strbuf, image->extent.width, image->extent.height, 
             4, region.hostData, 0);
             break;
         }
-        case TANTO_V_IMAGE_FILE_TYPE_JPG:
+        case OBDN_V_IMAGE_FILE_TYPE_JPG:
         {
             r = stbi_write_jpg(strbuf, image->extent.width, image->extent.height, 
             4, region.hostData, 0);
@@ -438,16 +438,16 @@ void tanto_v_SaveImage(Tanto_V_Image* image, Tanto_V_ImageFileType fileType, con
 
     assert( 0 != r );
 
-    tanto_v_FreeBufferRegion(&region);
+    obdn_v_FreeBufferRegion(&region);
 
     printf("Image saved to %s!\n", strbuf);
 }
 
-void tanto_v_ClearColorImage(Tanto_V_Image* image)
+void obdn_v_ClearColorImage(Obdn_V_Image* image)
 {
-    Tanto_V_Command cmd = tanto_v_CreateCommand(TANTO_V_QUEUE_GRAPHICS_TYPE);
+    Obdn_V_Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    tanto_v_BeginCommandBuffer(cmd.buffer);
+    obdn_v_BeginCommandBuffer(cmd.buffer);
 
     VkClearColorValue clearColor = {
         .float32[0] = 0,
@@ -466,9 +466,9 @@ void tanto_v_ClearColorImage(Tanto_V_Image* image)
 
     vkCmdClearColorImage(cmd.buffer, image->handle, image->layout, &clearColor, 1, &range);
 
-    tanto_v_EndCommandBuffer(cmd.buffer);
+    obdn_v_EndCommandBuffer(cmd.buffer);
 
-    tanto_v_SubmitAndWait(&cmd, 0);
+    obdn_v_SubmitAndWait(&cmd, 0);
 
-    tanto_v_DestroyCommand(cmd);
+    obdn_v_DestroyCommand(cmd);
 }
