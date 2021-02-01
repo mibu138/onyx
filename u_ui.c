@@ -66,15 +66,15 @@ static void initRenderCommands(void)
 static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayout finalLayout)
 {
     const VkAttachmentDescription attachmentColor = {
-        .flags = 0,
-        .format = obdn_r_GetSwapFormat(),
-        .samples = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp = VK_ATTACHMENT_LOAD_OP_LOAD,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .flags          = 0,
+        .format         = obdn_r_GetSwapFormat(),
+        .samples        = VK_SAMPLE_COUNT_1_BIT,
+        .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD,
+        .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = initialLayout,
-        .finalLayout = finalLayout,
+        .initialLayout  = initialLayout,
+        .finalLayout    = finalLayout,
     };
 
     const VkAttachmentDescription attachments[] = {
@@ -83,7 +83,7 @@ static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayou
 
     VkAttachmentReference colorReference = {
         .attachment = 0,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+        .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
     };
 
     const VkSubpassDescription subpass = {
@@ -101,9 +101,9 @@ static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayou
 
     Obdn_R_RenderPassInfo rpi = {
         .attachmentCount = 1,
-        .pAttachments = attachments,
-        .subpassCount = 1,
-        .pSubpasses = &subpass,
+        .pAttachments    = attachments,
+        .subpassCount    = 1,
+        .pSubpasses      = &subpass,
     };
 
     obdn_r_CreateRenderPass(&rpi, &renderPass);
@@ -112,17 +112,17 @@ static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayou
 static void initPipelineLayouts(void)
 {
     VkPushConstantRange pcRanges[] = {{
-        .offset = 0,
-        .size = sizeof(PushConstantFrag),
+        .offset     = 0,
+        .size       = sizeof(PushConstantFrag),
         .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
     },{
-        .offset = sizeof(PushConstantFrag),
-        .size = sizeof(PushConstantVert),
+        .offset     = sizeof(PushConstantFrag),
+        .size       = sizeof(PushConstantVert),
         .stageFlags = VK_SHADER_STAGE_VERTEX_BIT
     }};
 
     const Obdn_R_PipelineLayoutInfo pipelayoutInfos[] = {{
-        .pushConstantCount = OBDN_ARRAY_SIZE(pcRanges),
+        .pushConstantCount   = OBDN_ARRAY_SIZE(pcRanges),
         .pushConstantsRanges = pcRanges
     }};
 
@@ -135,24 +135,24 @@ static void initPipelines(void)
     Obdn_R_AttributeSize attrSizes[2] = {12, 12};
     Obdn_R_GraphicsPipelineInfo pipeInfos[] = {{
         // simple box
-        .renderPass = renderPass, 
-        .layout     = pipelineLayouts[0],
-        .sampleCount = VK_SAMPLE_COUNT_1_BIT,
-        .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        .blendMode   = OBDN_R_BLEND_MODE_OVER,
+        .renderPass        = renderPass,
+        .layout            = pipelineLayouts[0],
+        .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
+        .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader = OBDN_SPVDIR"/ui-vert.spv",
-        .fragShader = OBDN_SPVDIR"/ui-box-frag.spv"
+        .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
+        .fragShader        = OBDN_SPVDIR"/ui-box-frag.spv"
     },{ 
         // slider
-        .renderPass = renderPass, 
-        .layout     = pipelineLayouts[0],
-        .sampleCount = VK_SAMPLE_COUNT_1_BIT,
-        .frontFace   = VK_FRONT_FACE_COUNTER_CLOCKWISE,
-        .blendMode   = OBDN_R_BLEND_MODE_OVER,
+        .renderPass        = renderPass,
+        .layout            = pipelineLayouts[0],
+        .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
+        .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader = OBDN_SPVDIR"/ui-vert.spv",
-        .fragShader = OBDN_SPVDIR"/ui-slider-frag.spv"
+        .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
+        .fragShader        = OBDN_SPVDIR"/ui-slider-frag.spv"
     }};
 
     obdn_r_CreateGraphicsPipelines(OBDN_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
@@ -348,7 +348,7 @@ static void initFrameBuffers(void)
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
-        Obdn_R_Frame* frame = obdn_r_GetFrame(i);
+        const Obdn_R_Frame* frame = obdn_r_GetFrame(i);
 
         const VkImageView attachments[] = {
             frame->view
@@ -479,12 +479,12 @@ VkSemaphore* obdn_u_Render(const VkSemaphore* pWaitSemephore)
     VkClearValue clear = {0};
     
     const VkRenderPassBeginInfo rpassInfoUi = {
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .clearValueCount = 1,
-        .pClearValues = &clear,
-        .renderArea = {{0, 0}, {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT}},
-        .renderPass =  renderPass,
-        .framebuffer = framebuffers[frameIndex],
+        .pClearValues    = &clear,
+        .renderArea      = {{0, 0}, {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT}},
+        .renderPass      = renderPass,
+        .framebuffer     = framebuffers[frameIndex],
     };
 
     vkCmdBeginRenderPass(cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);

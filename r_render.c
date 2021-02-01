@@ -207,30 +207,8 @@ static void recreateSwapchain(void)
     }
 }
 
-void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_, bool offscreenSwapchain)
+static uint32_t requestSwapchainFrame(void)
 {
-    curFrameIndex = 0;
-    frameCounter  = 0;
-    swapRecreateFnCount = 0;
-    imageAcquiredSemaphoreIndex = 0;
-    swapImageUsageFlags = swapImageUsageFlags_;
-    useOffscreenSwapchain = offscreenSwapchain;
-    if (offscreenSwapchain)
-    {
-        swapFormat = VK_FORMAT_R8G8B8A8_UNORM;
-        initSwapchainOffscreen();
-    }
-    else
-
-        initSwapchainWithSurface();
-    initSwapchainSemaphores();
-    fillOutFrameData();
-    printf("Obdn Renderer initialized.\n");
-}
-
-const uint32_t obdn_r_RequestFrame(void)
-{
-    //const uint32_t i = frameCounter % OBDN_FRAME_COUNT;
     imageAcquiredSemaphoreIndex = frameCounter % OBDN_FRAME_COUNT;
     VkResult r;
 retry:
@@ -247,6 +225,41 @@ retry:
     }
     frameCounter++;
     return curFrameIndex;
+}
+
+static uint32_t requestOffscreenFrame(void)
+{
+    uint32_t frame = frameCounter % OBDN_FRAME_COUNT;
+    frameCounter++;
+    return frame;
+}
+
+void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_, bool offscreenSwapchain)
+{
+    curFrameIndex = 0;
+    frameCounter  = 0;
+    swapRecreateFnCount = 0;
+    imageAcquiredSemaphoreIndex = 0;
+    swapImageUsageFlags = swapImageUsageFlags_;
+    useOffscreenSwapchain = offscreenSwapchain;
+    if (offscreenSwapchain)
+    {
+        swapFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        initSwapchainOffscreen();
+    }
+    else
+        initSwapchainWithSurface();
+    initSwapchainSemaphores();
+    fillOutFrameData();
+    printf("Obdn Renderer initialized.\n");
+}
+
+const uint32_t obdn_r_RequestFrame(void)
+{
+    if (!useOffscreenSwapchain)
+        return requestSwapchainFrame();
+    else
+        return requestOffscreenFrame();
 }
 
 bool obdn_r_PresentFrame(VkSemaphore waitSemaphore)
@@ -278,7 +291,7 @@ void obdn_r_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn)
     assert(swapRecreateFnCount < MAX_SWAP_RECREATE_FNS);
 }
 
-Obdn_R_Frame* obdn_r_GetFrame(const int8_t index)
+const Obdn_R_Frame* obdn_r_GetFrame(const int8_t index)
 {
     assert( index >= 0 );
     assert( index < OBDN_FRAME_COUNT );
