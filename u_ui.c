@@ -351,7 +351,7 @@ static void initFrameBuffers(void)
         Obdn_R_Frame* frame = obdn_r_GetFrame(i);
 
         const VkImageView attachments[] = {
-            frame->swapImage.view
+            frame->view
         };
 
         const VkFramebufferCreateInfo fbi = {

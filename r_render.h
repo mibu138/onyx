@@ -10,10 +10,7 @@
 #define OBDN_VERT_POS_FORMAT VK_FORMAT_R32G32B32_SFLOAT
 #define OBDN_VERT_INDEX_TYPE VK_INDEX_TYPE_UINT32
 
-typedef struct {
-    Obdn_V_Image       swapImage;
-    uint32_t            index;
-} Obdn_R_Frame;
+typedef Obdn_V_Image Obdn_R_Frame;
 
 typedef void (*Obdn_R_SwapchainRecreationFn)(void);
 
@@ -21,7 +18,7 @@ VkFormat obdn_r_GetOffscreenColorFormat(void);
 VkFormat obdn_r_GetDepthFormat(void);
 VkFormat obdn_r_GetSwapFormat(void);
 
-void           obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags);
+void           obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags, bool offscreenSwapchain);
 void           obdn_r_DrawScene(const VkCommandBuffer cmdBuf, const Obdn_S_Scene* scene);
 bool           obdn_r_PresentFrame(VkSemaphore waitSemaphore);
 void           obdn_r_CleanUp(void);
