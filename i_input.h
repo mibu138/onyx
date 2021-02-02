@@ -17,7 +17,7 @@ typedef struct {
 
 typedef union {
     uint32_t          keyCode;
-    Obdn_I_MouseData mouseData;
+    Obdn_I_MouseData  mouseData;
     Obdn_I_ResizeData resizeData;
 } Obdn_I_EventData;
 
