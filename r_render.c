@@ -180,7 +180,7 @@ static void fillOutFrameData(void)
     }
 }
 
-static void recreateSwapchain(void)
+void obdn_r_RecreateSwapchain(void)
 {
     vkDeviceWaitIdle(device);
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
@@ -220,7 +220,7 @@ retry:
             &curFrameIndex);
     if (VK_ERROR_OUT_OF_DATE_KHR == r) 
     {
-        recreateSwapchain();
+        obdn_r_RecreateSwapchain();
         goto retry;
     }
     frameCounter++;

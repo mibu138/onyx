@@ -22,6 +22,7 @@ void           obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags, bool off
 void           obdn_r_DrawScene(const VkCommandBuffer cmdBuf, const Obdn_S_Scene* scene);
 bool           obdn_r_PresentFrame(VkSemaphore waitSemaphore);
 void           obdn_r_CleanUp(void);
+void           obdn_r_RecreateSwapchain(void); // in case we are doing offscreen rendering. call on resizing.
 void           obdn_r_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn);
 void           obdn_r_RecreateSwapchain(void);
 const Obdn_R_Frame* obdn_r_GetFrame(const int8_t index);

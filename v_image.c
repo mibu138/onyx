@@ -224,7 +224,6 @@ void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Imag
         .bufferRowLength = 0
     };
 
-    printf("Copying image to buffer...\n");
     vkCmdCopyImageToBuffer(cmdbuf, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region->buffer, 1, &imgCopy);
 }
 
