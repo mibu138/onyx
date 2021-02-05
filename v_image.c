@@ -200,10 +200,10 @@ void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_Buff
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopy);
 }
 
-void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, Obdn_V_BufferRegion* region)
+void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, const VkImageAspectFlags aspectMask, Obdn_V_BufferRegion* region)
 {
     const VkImageSubresourceLayers subRes = {
-        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .aspectMask = aspectMask,
         .baseArrayLayer = 0,
         .layerCount = 1, 
         .mipLevel = 0,

@@ -19,11 +19,15 @@ void obdn_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp,
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
         VkRenderPass* pRenderPass);
-void obdn_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
-        const VkImageLayout initialLayout, const VkImageLayout finalLayout,
+void obdn_r_CreateRenderPass_ColorDepth(
+        const VkImageLayout colorInitialLayout, const VkImageLayout colorFinalLayout,
+        const VkImageLayout depthInitialLayout, const VkImageLayout depthFinalLayout,
+        const VkAttachmentLoadOp  colorLoadOp, const VkAttachmentStoreOp colorStoreOp,
+        const VkAttachmentLoadOp  depthLoadOp, const VkAttachmentStoreOp depthStoreOp,
         const VkFormat colorFormat,
         const VkFormat depthFormat,
         VkRenderPass* pRenderPass);
+
 void obdn_r_CreateRenderPass_ColorDepthMSAA(const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,

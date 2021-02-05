@@ -32,7 +32,7 @@ void obdn_v_CopyBufferToImage(const Obdn_V_BufferRegion* region,
 void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_BufferRegion* region,
         Obdn_V_Image* image);
 
-void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, Obdn_V_BufferRegion* region);
+void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, const VkImageAspectFlags aspectMask, Obdn_V_BufferRegion* region);
 void obdn_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Obdn_V_Barrier barrier, 
         const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t mipLevels, VkImage image);
 

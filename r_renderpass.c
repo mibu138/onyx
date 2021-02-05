@@ -99,30 +99,35 @@ void obdn_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp,
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void obdn_r_CreateRenderPass_ColorDepth(const VkAttachmentLoadOp loadOp, 
-        const VkImageLayout initialLayout, const VkImageLayout finalLayout,
+void obdn_r_CreateRenderPass_ColorDepth(
+        const VkImageLayout colorInitialLayout, const VkImageLayout colorFinalLayout,
+        const VkImageLayout depthInitialLayout, const VkImageLayout depthFinalLayout,
+        const VkAttachmentLoadOp  colorLoadOp, const VkAttachmentStoreOp colorStoreOp,
+        const VkAttachmentLoadOp  depthLoadOp, const VkAttachmentStoreOp depthStoreOp,
         const VkFormat colorFormat,
         const VkFormat depthFormat,
         VkRenderPass* pRenderPass)
 {
     const VkAttachmentDescription attachmentColor = {
-        .format = colorFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
-        .loadOp = loadOp,
-        .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
-        .initialLayout = initialLayout,
-        .finalLayout = finalLayout,
+        .format         = colorFormat,
+        .samples        = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
+        .loadOp         = colorLoadOp,
+        .storeOp        = colorStoreOp,
+        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
+        .initialLayout  = colorInitialLayout,
+        .finalLayout    = colorFinalLayout,
     };
 
     const VkAttachmentDescription attachmentDepth = {
-        .format = depthFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
-        .loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR,
-        .storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .format         = depthFormat,
+        .samples        = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
+        .loadOp         = depthLoadOp,
+        .storeOp        = depthStoreOp,
+        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
         .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-        .finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+        .initialLayout  = depthInitialLayout,
+        .finalLayout    = depthFinalLayout,
     };
 
     const VkAttachmentReference referenceColor = {
