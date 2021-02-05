@@ -124,33 +124,6 @@ static void initSwapchainWithSurface()
     for (int i = 0; i < imageCount; i++) 
     {
         frames[i].handle = swapchainImages[i];
-    }
-
-    V1_PRINT("Swapchain created successfully.\n");
-}
-
-static void initSwapchainOffscreen()
-{
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-    {
-        frames[i] = obdn_v_CreateImage(OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, swapFormat, swapImageUsageFlags, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE));
-    }
-}
-
-static void initSwapchainSemaphores(void)
-{
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-    {
-        VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
-        printf("Created swapchain semaphore: %p \n", imageAcquiredSemaphores[i]);
-    }
-}
-
-static void fillOutFrameData(void)
-{
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-    {
         VkImageSubresourceRange ssr = {
             .baseArrayLayer = 0,
             .layerCount = 1,
@@ -178,6 +151,26 @@ static void fillOutFrameData(void)
         frames[i].extent = extent;
         frames[i].size =   extent.height * extent.width * 4; // TODO make this robust
     }
+
+    V1_PRINT("Swapchain created successfully.\n");
+}
+
+static void initSwapchainOffscreen()
+{
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+    {
+        frames[i] = obdn_v_CreateImage(OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, swapFormat, swapImageUsageFlags, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, OBDN_V_MEMORY_DEVICE_TYPE);
+    }
+}
+
+static void initSwapchainSemaphores(void)
+{
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+    {
+        VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
+        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
+        printf("Created swapchain semaphore: %p \n", imageAcquiredSemaphores[i]);
+    }
 }
 
 void obdn_r_RecreateSwapchain(void)
@@ -200,7 +193,6 @@ void obdn_r_RecreateSwapchain(void)
         vkDestroySwapchainKHR(device, swapchain, NULL);
         initSwapchainWithSurface();
     }
-    fillOutFrameData();
     for (int i = 0; i < swapRecreateFnCount; i++) 
     {
         swapchainRecreationFns[i]();   
@@ -248,9 +240,10 @@ void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_, bool offscreenSwa
         initSwapchainOffscreen();
     }
     else
+    {
         initSwapchainWithSurface();
+    }
     initSwapchainSemaphores();
-    fillOutFrameData();
     printf("Obdn Renderer initialized.\n");
 }
 

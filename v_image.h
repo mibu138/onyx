@@ -22,7 +22,7 @@ Obdn_V_Image obdn_v_CreateImageAndSampler(
     const VkSampleCountFlags sampleCount,
     const uint32_t mipLevels,
     const VkFilter filter,
-    const uint32_t queueFamilyIndex);
+    const Obdn_V_MemoryType memType);
 
 void obdn_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image);
 

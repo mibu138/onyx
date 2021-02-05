@@ -63,7 +63,7 @@ Obdn_V_Image obdn_v_CreateImage(
         const VkImageAspectFlags aspectMask,
         const VkSampleCountFlags sampleCount,
         const uint32_t mipLevels,
-        const uint32_t queueFamilyIndex);
+        const Obdn_V_MemoryType);
 
 void obdn_v_CopyBufferRegion(const Obdn_V_BufferRegion* src, Obdn_V_BufferRegion* dst);
 

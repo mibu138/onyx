@@ -536,13 +536,15 @@ Obdn_V_Image obdn_v_CreateImage(
         const VkImageAspectFlags aspectMask,
         const VkSampleCountFlags sampleCount,
         const uint32_t mipLevels,
-        const uint32_t queueFamilyIndex)
+        const Obdn_V_MemoryType memType)
 {
     assert(mipLevels > 0);
+    assert(memType == OBDN_V_MEMORY_DEVICE_TYPE || memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
     assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
 
+    uint32_t queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE);
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
         .imageType = VK_IMAGE_TYPE_2D,
@@ -685,9 +687,10 @@ void obdn_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags,
     uint32_t typeIndex;
     switch (type) 
     {
-        case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
-        case OBDN_V_MEMORY_HOST_TRANSFER_TYPE: typeIndex = hostVisibleCoherentTypeIndex; break;
-        case OBDN_V_MEMORY_DEVICE_TYPE:        typeIndex = deviceLocalTypeIndex; break;
+        case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:       typeIndex = hostVisibleCoherentTypeIndex; break;
+        case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:       typeIndex = hostVisibleCoherentTypeIndex; break;
+        case OBDN_V_MEMORY_DEVICE_TYPE:              typeIndex = deviceLocalTypeIndex; break;
+        case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:     typeIndex = deviceLocalTypeIndex; break;
     }
 
     const VkMemoryAllocateInfo allocInfo = {
