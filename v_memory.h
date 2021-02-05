@@ -35,7 +35,15 @@ typedef struct {
     uint32_t          queueFamily;
 } Obdn_V_Image;
 
-void obdn_v_InitMemory(void);
+#define OBDN_1_MiB   (VkDeviceSize)0x100000
+#define OBDN_100_MiB (VkDeviceSize)0x6400000
+#define OBDN_256_MiB (VkDeviceSize)0x10000000
+#define OBDN_1_GiB   (VkDeviceSize)0x40000000
+
+void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
+        const VkDeviceSize deviceGraphicsBufferMemorySize,
+        const VkDeviceSize deviceGraphicsImageMemorySize,
+        const VkDeviceSize hostTransferBufferMemorySize);
 
 Obdn_V_BufferRegion obdn_v_RequestBufferRegion(size_t size, 
         const VkBufferUsageFlags, const Obdn_V_MemoryType);

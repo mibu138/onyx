@@ -224,7 +224,7 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
     return devices[selected];
 }
 
-static void initDevice(void)
+static void initDevice(const uint32_t userExtCount, const char* userExtensions[userExtCount])
 {
     physicalDevice = retrievePhysicalDevice();
     uint32_t qfcount;
@@ -442,6 +442,27 @@ static void initDevice(void)
 
     deviceFeatures.features = enabledFeatures; // only enable a subset of available features
 
+    int defExtCount = 0;
+    const char** defaultExtNames;
+    if (obdn_v_config.rayTraceEnabled)
+    {
+        defExtCount += OBDN_ARRAY_SIZE(extensionsRT);
+        defaultExtNames = extensionsRT;
+    }
+    else 
+    {
+        defExtCount += OBDN_ARRAY_SIZE(extensionsReg);
+        defaultExtNames = extensionsReg;
+    }
+
+    int  extCount = userExtCount + defExtCount;
+    char extNames[extCount][VK_MAX_EXTENSION_NAME_SIZE];
+
+    for (int i = 0; i < defExtCount; i++)
+        strcpy(extNames[i], defaultExtNames[i]);
+    for (int i = 0; i < userExtCount; i++)
+        strcpy(extNames[i + defExtCount], userExtensions[i]);
+
     VkDeviceCreateInfo dci = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .enabledLayerCount = 0,
@@ -485,16 +506,23 @@ static void initQueues(void)
     presentQueue = graphicsQueues[0]; // use the first queue to present
 }
 
-const VkInstance* obdn_v_Init(void)
+const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize, 
+        const VkDeviceSize deviceGraphicsBufferMemorySize,
+        const VkDeviceSize deviceGraphicsImageMemorySize,
+        const VkDeviceSize hostTransferBufferMemorySize,
+        const int extcount, const char* extensions[])
 {
     nativeSurface = VK_NULL_HANDLE;
     initVkInstance();
     if (obdn_v_config.validationEnabled)
         initDebugMessenger();
-    initDevice();
+    initDevice(extcount, extensions);
     obdn_v_LoadFunctions(&device);
     initQueues();
-    obdn_v_InitMemory();
+    obdn_v_InitMemory(hostGraphicsBufferMemorySize,
+            deviceGraphicsBufferMemorySize,
+            deviceGraphicsImageMemorySize,
+            hostTransferBufferMemorySize);
     printf("Obdn Video initialized.\n");
     return &instance;
 }

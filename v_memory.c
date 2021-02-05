@@ -12,10 +12,6 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MEMORY_SIZE_HOST_GRAPHICS_BUFFER 0x120000000 // 
-#define MEMORY_SIZE_HOST_TRANSFER_BUFFER 0x120000000 // 
-#define MEMORY_SIZE_DEV_BUFFER  0x1000000 // 
-#define MEMORY_SIZE_DEV_IMAGE   0x120000000 // 
 #define MAX_BLOCKS 100000
 
 typedef Obdn_V_BufferRegion BufferRegion;
@@ -46,9 +42,10 @@ typedef struct BlockChain {
 } BlockChain;
 
 static BlockChain blockChainHostGraphicsBuffer;
+static BlockChain blockChainDeviceGraphicsBuffer;
+static BlockChain blockChainDeviceGraphicsImage;
 static BlockChain blockChainHostTransferBuffer;
-static BlockChain blockChainDeviceBuffer;
-static BlockChain blockChainDeviceImage;
+static BlockChain blockChainDeviceExternal; // for sharing with external apis like opengl
 
 static uint32_t hostVisibleCoherentTypeIndex = 0;
 static uint32_t deviceLocalTypeIndex = 0;
@@ -269,9 +266,9 @@ static void mergeBlocks(struct BlockChain* chain)
     }
 }
 
-// TODO: implement a proper defragment function
 static void defragment(struct BlockChain* chain)
 {
+    // TODO: implement a proper defragment function
     V1_PRINT("Empty defragment function called\n");
 }
 
@@ -285,8 +282,6 @@ static bool chainIsOrdered(const struct BlockChain* chain)
     }
     return true;
 }
-
-
 
 static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignment, struct BlockChain* chain)
 {
@@ -348,7 +343,10 @@ static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
     V1_PRINT(">> Freeing block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", blockIndex, size, chain->name, chain->usedSize, chain->totalSize);
 }
 
-void obdn_v_InitMemory(void)
+void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
+        const VkDeviceSize deviceGraphicsBufferMemorySize,
+        const VkDeviceSize deviceGraphicsImageMemorySize,
+        const VkDeviceSize hostTransferBufferMemorySize)
 {
     hostVisibleCoherentTypeIndex = 0;
     deviceLocalTypeIndex = 0;
@@ -429,18 +427,22 @@ void obdn_v_InitMemory(void)
          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
-    initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, MEMORY_SIZE_HOST_GRAPHICS_BUFFER, 
+    initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
+            hostGraphicsBufferMemorySize, 
             hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
             true, "hostGraphBuffer", &blockChainHostGraphicsBuffer);
-    initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, MEMORY_SIZE_HOST_TRANSFER_BUFFER, 
+    initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, 
+            hostTransferBufferMemorySize, 
             hostVisibleCoherentTypeIndex, hostTransferFlags, 
             true, "hostTransBuffer", &blockChainHostTransferBuffer);
-    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_BUFFER, 
+    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
+            deviceGraphicsBufferMemorySize, 
             deviceLocalTypeIndex, devBufFlags, 
-            false, "devBuffer", &blockChainDeviceBuffer);
-    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, MEMORY_SIZE_DEV_IMAGE, 
+            false, "devBuffer", &blockChainDeviceGraphicsBuffer);
+    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
+            deviceGraphicsImageMemorySize, 
             deviceLocalTypeIndex, 0, 
-            false, "devImage", &blockChainDeviceImage);
+            false, "devImage", &blockChainDeviceGraphicsImage);
 }
 
 Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
@@ -457,7 +459,7 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
     {
         case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:   chain = &blockChainHostGraphicsBuffer; break;
         case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:   chain = &blockChainHostTransferBuffer; break;
-        case OBDN_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceBuffer; break;
+        case OBDN_V_MEMORY_DEVICE_TYPE: chain = &blockChainDeviceGraphicsBuffer; break;
         default: block = NULL; assert(0);
     }
 
@@ -514,7 +516,6 @@ Obdn_V_Image obdn_v_CreateImage(
         const uint32_t mipLevels,
         const uint32_t queueFamilyIndex)
 {
-    assert( width * height < MEMORY_SIZE_DEV_IMAGE );
     assert(mipLevels > 0);
 
     assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
@@ -554,10 +555,10 @@ Obdn_V_Image obdn_v_CreateImage(
     image.extent.height = height;
     image.mipLevels = mipLevels;
 
-    const Obdn_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceImage);
+    const Obdn_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceGraphicsImage);
     image.memBlockId = block->id;
 
-    vkBindImageMemory(device, image.handle, blockChainDeviceImage.memory, block->offset);
+    vkBindImageMemory(device, image.handle, blockChainDeviceGraphicsImage.memory, block->offset);
 
     VkImageViewCreateInfo viewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -590,7 +591,7 @@ void obdn_v_FreeImage(Obdn_V_Image* image)
     }
     vkDestroyImageView(device, image->view, NULL);
     vkDestroyImage(device, image->handle, NULL);
-    freeBlock(&blockChainDeviceImage, image->memBlockId);
+    freeBlock(&blockChainDeviceGraphicsImage, image->memBlockId);
     memset(image, 0, sizeof(Obdn_V_Image));
 }
 
@@ -644,8 +645,8 @@ void obdn_v_CleanUpMemory(void)
 {
     freeBlockChain(&blockChainHostGraphicsBuffer);
     freeBlockChain(&blockChainHostTransferBuffer);
-    freeBlockChain(&blockChainDeviceImage);
-    freeBlockChain(&blockChainDeviceBuffer);
+    freeBlockChain(&blockChainDeviceGraphicsImage);
+    freeBlockChain(&blockChainDeviceGraphicsBuffer);
 }
 
 VkDeviceAddress obdn_v_GetBufferRegionAddress(const BufferRegion* region)
