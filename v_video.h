@@ -22,6 +22,7 @@ const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize,
         const VkDeviceSize deviceGraphicsBufferMemorySize,
         const VkDeviceSize deviceGraphicsImageMemorySize,
         const VkDeviceSize hostTransferBufferMemorySize,
+        const VkDeviceSize externalDeviceGraphicsImageMemorySize,
         const int extcount, const char* extensions[]);
 void              obdn_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window);
 void              obdn_v_SubmitToQueue(const VkCommandBuffer* buffer, const Obdn_V_QueueType, const uint32_t queueIndex);

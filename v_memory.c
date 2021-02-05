@@ -45,7 +45,7 @@ static BlockChain blockChainHostGraphicsBuffer;
 static BlockChain blockChainDeviceGraphicsBuffer;
 static BlockChain blockChainDeviceGraphicsImage;
 static BlockChain blockChainHostTransferBuffer;
-static BlockChain blockChainDeviceExternal; // for sharing with external apis like opengl
+static BlockChain blockChainExternalDeviceGraphicsImage; // for sharing with external apis like opengl
 
 static uint32_t hostVisibleCoherentTypeIndex = 0;
 static uint32_t deviceLocalTypeIndex = 0;
@@ -91,6 +91,7 @@ static void initBlockChain(
         const char* name,
         struct BlockChain* chain)
 {
+    assert( memorySize != 0);
     memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_V_MemBlock));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
     chain->count = 1;
@@ -107,9 +108,19 @@ static void initBlockChain(
     assert( strlen(name) < 16 );
     strcpy(chain->name, name);
 
+    VkExportMemoryAllocateInfo exportMemoryAllocInfo;
+    const void* pNext = NULL;
+    if (memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE)
+    {
+        exportMemoryAllocInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
+        exportMemoryAllocInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+        pNext = &exportMemoryAllocInfo;
+    }
+
     const VkMemoryAllocateFlagsInfo allocFlagsInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-        .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT
+        .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+        .pNext = pNext
     };
 
     const VkMemoryAllocateInfo allocInfo = {
@@ -127,9 +138,10 @@ static void initBlockChain(
         uint32_t queueFamilyIndex; 
         switch (memType) 
         {
-            case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE: queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
-            case OBDN_V_MEMORY_HOST_TRANSFER_TYPE: queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_TRANSFER_TYPE); break;
-            case OBDN_V_MEMORY_DEVICE_TYPE:        queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
+            case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:          queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
+            case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:          queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_TRANSFER_TYPE); break;
+            case OBDN_V_MEMORY_DEVICE_TYPE:                 queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
+            case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:        queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE); break;
             default: assert(0); break;
         }
 
@@ -346,7 +358,8 @@ static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
 void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
         const VkDeviceSize deviceGraphicsBufferMemorySize,
         const VkDeviceSize deviceGraphicsImageMemorySize,
-        const VkDeviceSize hostTransferBufferMemorySize)
+        const VkDeviceSize hostTransferBufferMemorySize,
+        const VkDeviceSize deviceExternalGraphicsImageMemorySize)
 {
     hostVisibleCoherentTypeIndex = 0;
     deviceLocalTypeIndex = 0;
@@ -427,22 +440,31 @@ void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize,
          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
-    initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
-            hostGraphicsBufferMemorySize, 
-            hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
-            true, "hostGraphBuffer", &blockChainHostGraphicsBuffer);
-    initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, 
-            hostTransferBufferMemorySize, 
-            hostVisibleCoherentTypeIndex, hostTransferFlags, 
-            true, "hostTransBuffer", &blockChainHostTransferBuffer);
-    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
-            deviceGraphicsBufferMemorySize, 
-            deviceLocalTypeIndex, devBufFlags, 
-            false, "devBuffer", &blockChainDeviceGraphicsBuffer);
-    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
-            deviceGraphicsImageMemorySize, 
-            deviceLocalTypeIndex, 0, 
-            false, "devImage", &blockChainDeviceGraphicsImage);
+    if (hostGraphicsBufferMemorySize)
+        initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
+                hostGraphicsBufferMemorySize, 
+                hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
+                true, "hostGraphBuffer", &blockChainHostGraphicsBuffer);
+    if (hostTransferBufferMemorySize)
+        initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, 
+                hostTransferBufferMemorySize, 
+                hostVisibleCoherentTypeIndex, hostTransferFlags, 
+                true, "hostTransBuffer", &blockChainHostTransferBuffer);
+    if (deviceGraphicsBufferMemorySize)
+        initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
+                deviceGraphicsBufferMemorySize, 
+                deviceLocalTypeIndex, devBufFlags, 
+                false, "devBuffer", &blockChainDeviceGraphicsBuffer);
+    if (deviceGraphicsImageMemorySize)
+        initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
+                deviceGraphicsImageMemorySize, 
+                deviceLocalTypeIndex, 0, 
+                false, "devImage", &blockChainDeviceGraphicsImage);
+    if (deviceExternalGraphicsImageMemorySize)
+        initBlockChain(OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE, 
+                deviceExternalGraphicsImageMemorySize, 
+                deviceLocalTypeIndex, 0, 
+                false, "devExtImage", &blockChainExternalDeviceGraphicsImage);
 }
 
 Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
@@ -647,6 +669,7 @@ void obdn_v_CleanUpMemory(void)
     freeBlockChain(&blockChainHostTransferBuffer);
     freeBlockChain(&blockChainDeviceGraphicsImage);
     freeBlockChain(&blockChainDeviceGraphicsBuffer);
+    freeBlockChain(&blockChainExternalDeviceGraphicsImage);
 }
 
 VkDeviceAddress obdn_v_GetBufferRegionAddress(const BufferRegion* region)

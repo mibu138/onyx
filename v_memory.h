@@ -10,6 +10,7 @@ typedef enum {
     OBDN_V_MEMORY_HOST_GRAPHICS_TYPE,
     OBDN_V_MEMORY_HOST_TRANSFER_TYPE,
     OBDN_V_MEMORY_DEVICE_TYPE,
+    OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE
 } Obdn_V_MemoryType;
 
 struct BlockChain;
@@ -43,7 +44,8 @@ typedef struct {
 void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
         const VkDeviceSize deviceGraphicsBufferMemorySize,
         const VkDeviceSize deviceGraphicsImageMemorySize,
-        const VkDeviceSize hostTransferBufferMemorySize);
+        const VkDeviceSize hostTransferBufferMemorySize,
+        const VkDeviceSize deviceExternalGraphicsImageMemorySize);
 
 Obdn_V_BufferRegion obdn_v_RequestBufferRegion(size_t size, 
         const VkBufferUsageFlags, const Obdn_V_MemoryType);

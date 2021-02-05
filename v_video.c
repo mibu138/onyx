@@ -510,6 +510,7 @@ const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize,
         const VkDeviceSize deviceGraphicsBufferMemorySize,
         const VkDeviceSize deviceGraphicsImageMemorySize,
         const VkDeviceSize hostTransferBufferMemorySize,
+        const VkDeviceSize externalDeviceGraphicsImageMemorySize,
         const int extcount, const char* extensions[])
 {
     nativeSurface = VK_NULL_HANDLE;
@@ -522,7 +523,8 @@ const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize,
     obdn_v_InitMemory(hostGraphicsBufferMemorySize,
             deviceGraphicsBufferMemorySize,
             deviceGraphicsImageMemorySize,
-            hostTransferBufferMemorySize);
+            hostTransferBufferMemorySize,
+            externalDeviceGraphicsImageMemorySize);
     printf("Obdn Video initialized.\n");
     return &instance;
 }
