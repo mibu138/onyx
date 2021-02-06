@@ -738,6 +738,15 @@ const VkDeviceMemory obdn_v_GetDeviceMemory(const Obdn_V_MemoryType memType)
     switch (memType)
     {
         case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE: return blockChainExternalDeviceGraphicsImage.memory;
-        default: assert(0);
+        default: assert(0); //TODO
+    }
+}
+
+const VkDeviceSize obdn_v_GetMemorySize(const Obdn_V_MemoryType memType)
+{
+    switch (memType)
+    {
+        case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE: return blockChainExternalDeviceGraphicsImage.totalSize;
+        default: assert(0); //TODO
     }
 }

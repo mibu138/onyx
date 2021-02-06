@@ -456,16 +456,32 @@ static void initDevice(const uint32_t userExtCount, const char* userExtensions[u
     }
 
     int  extCount = userExtCount + defExtCount;
-    char extNames[extCount][VK_MAX_EXTENSION_NAME_SIZE];
+    char extNamesData[extCount][VK_MAX_EXTENSION_NAME_SIZE];
 
     for (int i = 0; i < defExtCount; i++)
-        strcpy(extNames[i], defaultExtNames[i]);
+        strcpy(extNamesData[i], defaultExtNames[i]);
     for (int i = 0; i < userExtCount; i++)
-        strcpy(extNames[i + defExtCount], userExtensions[i]);
+        strcpy(extNamesData[i + defExtCount], userExtensions[i]);
 
+    const char* extNames[extCount]; 
+    for (int i = 0; i < extCount; i++)
+    {
+        extNames[i] = extNamesData[i];
+    }
+
+#if VERBOSE
+    printf("Requesting extensions...\n");
+    for (int i = 0; i < extCount; i++)
+    {
+        printf("%s\n", extNames[i]);
+    }
+
+#endif
     VkDeviceCreateInfo dci = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .enabledLayerCount = 0,
+        .enabledExtensionCount = extCount,
+        .ppEnabledExtensionNames = extNames,
         .pNext = &deviceFeatures,
         .ppEnabledLayerNames = NULL,
         .pEnabledFeatures = NULL, // not used in newer vulkan versions
@@ -473,17 +489,17 @@ static void initDevice(const uint32_t userExtCount, const char* userExtensions[u
         .queueCreateInfoCount = OBDN_ARRAY_SIZE(qci),
     };
 
-    if (obdn_v_config.rayTraceEnabled)
-    {
-        V1_PRINT("Ray tracing enabled...\n");
-        dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsRT);
-        dci.ppEnabledExtensionNames = extensionsRT;
-    }
-    else
-    {
-        dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsReg);
-        dci.ppEnabledExtensionNames = extensionsReg;
-    }
+    //if (obdn_v_config.rayTraceEnabled)
+    //{
+    //    V1_PRINT("Ray tracing enabled...\n");
+    //    dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsRT);
+    //    dci.ppEnabledExtensionNames = extensionsRT;
+    //}
+    //else
+    //{
+    //    dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsReg);
+    //    dci.ppEnabledExtensionNames = extensionsReg;
+    //}
 
     V_ASSERT( vkCreateDevice(physicalDevice, &dci, NULL, &device) );
     V1_PRINT("Device created successfully.\n");

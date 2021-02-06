@@ -1,4 +1,5 @@
 #include "v_loader.h"
+#include "obsidian/t_def.h"
 #include "v_def.h"
 #include <assert.h>
 #include <vulkan/vulkan_core.h>
@@ -134,4 +135,5 @@ void obdn_v_LoadFunctions(const VkDevice* device)
         vkGetDeviceProcAddr(*device, "vkGetMemoryFdKHR");
     pfn_vkCmdTraceRaysKHR = (PFN_vkCmdTraceRaysKHR)
         vkGetDeviceProcAddr(*device, "vkCmdTraceRaysKHR");
+    V1_PRINT("======= Vulkan Functions loaded ===== \n");
 }
