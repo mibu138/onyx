@@ -11,6 +11,7 @@ static PFN_vkGetAccelerationStructureDeviceAddressKHR      pfn_vkGetAcceleration
 static PFN_vkCreateRayTracingPipelinesKHR                  pfn_vkCreateRayTracingPipelinesKHR;
 static PFN_vkGetRayTracingShaderGroupHandlesKHR            pfn_vkGetRayTracingShaderGroupHandlesKHR;
 static PFN_vkCmdTraceRaysKHR                               pfn_vkCmdTraceRaysKHR;
+static PFN_vkGetMemoryFdKHR                                pfn_vkGetMemoryFdKHR;
 
 Obdn_V_Config obdn_v_config;
 
@@ -87,6 +88,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetRayTracingShaderGroupHandlesKHR(
     return pfn_vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, firstGroup, groupCount, dataSize, pData);
 }
 
+VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryFdKHR(
+    VkDevice                                    device,
+    const VkMemoryGetFdInfoKHR*                 pGetFdInfo,
+    int*                                        pFd)
+{
+    assert(pfn_vkGetMemoryFdKHR);
+    return pfn_vkGetMemoryFdKHR(device, pGetFdInfo, pFd);
+}
+
 VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         VkCommandBuffer commandBuffer, 
         const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable, 
@@ -106,8 +116,6 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
 
 void obdn_v_LoadFunctions(const VkDevice* device)
 {
-    if (!obdn_v_config.rayTraceEnabled)
-        return;
     pfn_vkGetAccelerationStructureBuildSizesKHR = (PFN_vkGetAccelerationStructureBuildSizesKHR)
         vkGetDeviceProcAddr(*device, "vkGetAccelerationStructureBuildSizesKHR");
     pfn_vkCreateAccelerationStructureKHR = (PFN_vkCreateAccelerationStructureKHR)
@@ -122,6 +130,8 @@ void obdn_v_LoadFunctions(const VkDevice* device)
         vkGetDeviceProcAddr(*device, "vkCreateRayTracingPipelinesKHR");
     pfn_vkGetRayTracingShaderGroupHandlesKHR = (PFN_vkGetRayTracingShaderGroupHandlesKHR)
         vkGetDeviceProcAddr(*device, "vkGetRayTracingShaderGroupHandlesKHR");
+    pfn_vkGetMemoryFdKHR = (PFN_vkGetMemoryFdKHR)
+        vkGetDeviceProcAddr(*device, "vkGetMemoryFdKHR");
     pfn_vkCmdTraceRaysKHR = (PFN_vkCmdTraceRaysKHR)
         vkGetDeviceProcAddr(*device, "vkCmdTraceRaysKHR");
 }

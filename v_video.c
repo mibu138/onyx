@@ -518,7 +518,8 @@ const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize,
     if (obdn_v_config.validationEnabled)
         initDebugMessenger();
     initDevice(extcount, extensions);
-    obdn_v_LoadFunctions(&device);
+    if (obdn_v_config.rayTraceEnabled) //TODO not all functions have to do with raytracing
+        obdn_v_LoadFunctions(&device);
     initQueues();
     obdn_v_InitMemory(hostGraphicsBufferMemorySize,
             deviceGraphicsBufferMemorySize,

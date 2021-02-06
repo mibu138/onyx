@@ -114,6 +114,7 @@ static void initBlockChain(
     {
         exportMemoryAllocInfo.sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
         exportMemoryAllocInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+        exportMemoryAllocInfo.pNext = NULL;
         pNext = &exportMemoryAllocInfo;
     }
 
@@ -544,9 +545,20 @@ Obdn_V_Image obdn_v_CreateImage(
     assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
     assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
 
+    void* pNext = NULL;
+    VkExternalMemoryImageCreateInfo externalImageInfo;
+    if (memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE)
+    {
+        externalImageInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+        externalImageInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+        externalImageInfo.pNext = NULL;
+        pNext = &externalImageInfo;
+    }
+
     uint32_t queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE);
     VkImageCreateInfo imageInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+        .pNext = pNext,
         .imageType = VK_IMAGE_TYPE_2D,
         .format = format,
         .extent = {width, height, 1},
@@ -579,10 +591,18 @@ Obdn_V_Image obdn_v_CreateImage(
     image.extent.height = height;
     image.mipLevels = mipLevels;
 
-    const Obdn_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, &blockChainDeviceGraphicsImage);
-    image.memBlockId = block->id;
+    switch (memType)
+    {
+        case OBDN_V_MEMORY_DEVICE_TYPE:          image.pChain = &blockChainDeviceGraphicsImage; break;
+        case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE: image.pChain = &blockChainExternalDeviceGraphicsImage; break;
+        default: assert(0);
+    }
 
-    vkBindImageMemory(device, image.handle, blockChainDeviceGraphicsImage.memory, block->offset);
+    const Obdn_V_MemBlock* block = requestBlock(memReqs.size, memReqs.alignment, image.pChain);
+    image.memBlockId = block->id;
+    image.offset = block->offset;
+
+    vkBindImageMemory(device, image.handle, image.pChain->memory, block->offset);
 
     VkImageViewCreateInfo viewInfo = {
         .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
@@ -615,7 +635,7 @@ void obdn_v_FreeImage(Obdn_V_Image* image)
     }
     vkDestroyImageView(device, image->view, NULL);
     vkDestroyImage(device, image->handle, NULL);
-    freeBlock(&blockChainDeviceGraphicsImage, image->memBlockId);
+    freeBlock(image->pChain, image->memBlockId);
     memset(image, 0, sizeof(Obdn_V_Image));
 }
 
@@ -711,4 +731,13 @@ void obdn_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags,
     V_ASSERT( vkCreateBuffer(device, &ci, NULL, pBuffer) );
 
     V_ASSERT( vkBindBufferMemory(device, *pBuffer, *pMemory, 0) );
+}
+
+const VkDeviceMemory obdn_v_GetDeviceMemory(const Obdn_V_MemoryType memType)
+{
+    switch (memType)
+    {
+        case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE: return blockChainExternalDeviceGraphicsImage.memory;
+        default: assert(0);
+    }
 }

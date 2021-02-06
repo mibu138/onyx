@@ -157,10 +157,11 @@ static void initSwapchainWithSurface()
 
 static void initSwapchainOffscreen()
 {
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-    {
-        frames[i] = obdn_v_CreateImage(OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, swapFormat, swapImageUsageFlags, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, OBDN_V_MEMORY_DEVICE_TYPE);
-    }
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++)
+        frames[i] = obdn_v_CreateImage(
+                OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, swapFormat,
+                swapImageUsageFlags, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT,
+                1, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
 }
 
 static void initSwapchainSemaphores(void)
@@ -170,32 +171,6 @@ static void initSwapchainSemaphores(void)
         VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
         printf("Created swapchain semaphore: %p \n", imageAcquiredSemaphores[i]);
-    }
-}
-
-void obdn_r_RecreateSwapchain(void)
-{
-    vkDeviceWaitIdle(device);
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-    {
-        vkDestroyImageView(device, frames[i].view, NULL);   
-    }
-    if (useOffscreenSwapchain)
-    {
-        for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-        {
-            obdn_v_FreeImage(&frames[i]);
-        }
-        initSwapchainOffscreen();
-    }
-    else
-    {
-        vkDestroySwapchainKHR(device, swapchain, NULL);
-        initSwapchainWithSurface();
-    }
-    for (int i = 0; i < swapRecreateFnCount; i++) 
-    {
-        swapchainRecreationFns[i]();   
     }
 }
 
@@ -226,6 +201,14 @@ static uint32_t requestOffscreenFrame(void)
     return curFrameIndex;
 }
 
+const uint32_t obdn_r_RequestFrame(void)
+{
+    if (!useOffscreenSwapchain)
+        return requestSwapchainFrame();
+    else
+        return requestOffscreenFrame();
+}
+
 void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_, bool offscreenSwapchain)
 {
     curFrameIndex = 0;
@@ -247,12 +230,30 @@ void obdn_r_Init(const VkImageUsageFlags swapImageUsageFlags_, bool offscreenSwa
     printf("Obdn Renderer initialized.\n");
 }
 
-const uint32_t obdn_r_RequestFrame(void)
+void obdn_r_RecreateSwapchain(void)
 {
-    if (!useOffscreenSwapchain)
-        return requestSwapchainFrame();
+    vkDeviceWaitIdle(device);
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+    {
+        vkDestroyImageView(device, frames[i].view, NULL);   
+    }
+    if (useOffscreenSwapchain)
+    {
+        for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+        {
+            obdn_v_FreeImage(&frames[i]);
+        }
+        initSwapchainOffscreen();
+    }
     else
-        return requestOffscreenFrame();
+    {
+        vkDestroySwapchainKHR(device, swapchain, NULL);
+        initSwapchainWithSurface();
+    }
+    for (int i = 0; i < swapRecreateFnCount; i++) 
+    {
+        swapchainRecreationFns[i]();   
+    }
 }
 
 bool obdn_r_PresentFrame(VkSemaphore waitSemaphore)

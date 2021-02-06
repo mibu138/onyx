@@ -56,6 +56,11 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         const VkStridedDeviceAddressRegionKHR* pCallableShaderBindingTable, 
         uint32_t width, uint32_t height, uint32_t depth);
 
+VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryFdKHR(
+    VkDevice                                    device,
+    const VkMemoryGetFdInfoKHR*                 pGetFdInfo,
+    int*                                        pFd);
+
 void obdn_v_LoadFunctions(const VkDevice* device);
 
 #endif /* end of include guard: OBDN_V_LOADER_H */

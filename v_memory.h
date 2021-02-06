@@ -20,20 +20,22 @@ typedef struct {
     VkDeviceSize           offset;
     VkBuffer               buffer;
     uint8_t*               hostData; // if hostData not null, its mapped
-    Obdn_V_BlockId        memBlockId;
+    Obdn_V_BlockId         memBlockId;
     struct BlockChain*     pChain;
 } Obdn_V_BufferRegion;
 
 typedef struct {
-    VkImage           handle;
-    VkImageView       view;
-    VkSampler         sampler;
-    VkDeviceSize      size; // size in bytes. taken from GetMemReqs
-    VkExtent3D        extent;
-    Obdn_V_BlockId   memBlockId;
-    VkImageLayout     layout;
-    uint32_t          mipLevels;
-    uint32_t          queueFamily;
+    VkImage             handle;
+    VkImageView         view;
+    VkSampler           sampler;
+    VkDeviceSize        size; // size in bytes. taken from GetMemReqs
+    VkDeviceSize        offset;
+    VkExtent3D          extent;
+    VkImageLayout       layout;
+    uint32_t            mipLevels;
+    uint32_t            queueFamily;
+    Obdn_V_BlockId      memBlockId;
+    struct BlockChain*  pChain;
 } Obdn_V_Image;
 
 #define OBDN_1_MiB   (VkDeviceSize)0x100000
@@ -83,5 +85,7 @@ void obdn_v_CleanUpMemory(void);
 void obdn_v_CreateUnmanagedBuffer(const VkBufferUsageFlags bufferUsageFlags, 
         const uint32_t memorySize, const Obdn_V_MemoryType type, 
         VkDeviceMemory* pMemory, VkBuffer* pBuffer);
+
+const VkDeviceMemory obdn_v_GetDeviceMemory(const Obdn_V_MemoryType memType);
 
 #endif /* end of include guard: V_MEMORY_H */
