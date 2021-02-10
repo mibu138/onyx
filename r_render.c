@@ -285,6 +285,25 @@ void obdn_r_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn)
     assert(swapRecreateFnCount < MAX_SWAP_RECREATE_FNS);
 }
 
+void obdn_r_UnregisterSwapchainRecreateFn(Obdn_R_SwapchainRecreationFn fn)
+{
+    assert(swapRecreateFnCount > 0);
+    printf("R) Unregistering SCR fn...\n");
+    int fnIndex = -1;
+    for (int i = 0; i < swapRecreateFnCount ; i++)
+    {
+        if (swapchainRecreationFns[i] == fn)
+        {
+            fnIndex = i;
+            break;
+        }
+    }
+    if (fnIndex != -1)
+        memmove(swapchainRecreationFns + fnIndex, 
+                swapchainRecreationFns + fnIndex + 1, 
+                (--swapRecreateFnCount - fnIndex) * sizeof(*swapchainRecreationFns)); // should only decrement the count if fnIndex is 0
+}
+
 const Obdn_R_Frame* obdn_r_GetFrame(const int8_t index)
 {
     assert( index >= 0 );

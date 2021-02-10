@@ -8,19 +8,14 @@
 #include "v_command.h"
 #include "v_video.h"
 #include <stdio.h>
-#include <vulkan/vulkan_core.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
 
 #define SPVDIR "./shaders/spv"
 
 typedef Obdn_U_Widget Widget;
-
-typedef struct {
-    int16_t prevX;
-    int16_t prevY;
-    bool    active;
-} DragData;
 
 typedef struct {
     int   i0;
@@ -34,11 +29,7 @@ typedef struct {
     float f1;
 } PushConstantFrag;
 
-static uint32_t widgetCount;
-static Widget   widgets[MAX_WIDGETS];
 static Widget*  rootWidget;
-
-static DragData dragData[MAX_WIDGETS];
 
 static VkRenderPass     renderPass;
 
@@ -53,6 +44,18 @@ enum {
     PIPELINE_BOX,
     PIPELINE_SLIDER,
 };
+
+static Widget* allocWidget(void)
+{
+    return malloc(sizeof(Widget));
+}
+
+static void freeWidget(Widget* w)
+{
+    memset(w, 0, sizeof(Widget));
+    free(w);
+    w = NULL;
+}
 
 static void initRenderCommands(void)
 {
@@ -164,8 +167,8 @@ static Widget* addWidget(const int16_t x, const int16_t y,
         const Obdn_U_DrawFn      dfn,
         Widget* parent)
 {
-    widgets[widgetCount] = (Widget){
-        .id = widgetCount,
+    Widget* widget = allocWidget();
+    *widget = (Widget){
         .x = x, .y = y,
         .width = width,
         .height = height,
@@ -177,9 +180,13 @@ static Widget* addWidget(const int16_t x, const int16_t y,
         parent = rootWidget;
 
     if (parent)
-        parent->widgets[parent->widgetCount++] = &widgets[widgetCount];
+    {
+        parent->widgets[parent->widgetCount++] = widget;
+        widget->parent = parent;
+        assert(parent->widgetCount < MAX_WIDGETS_PER_WIDGET);
+    }
 
-    return &widgets[widgetCount++];
+    return widget;
 }
 
 static bool clickTest(int16_t x, int16_t y, Widget* widget)
@@ -249,7 +256,6 @@ static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
 static bool rfnSimpleBox(const Obdn_I_Event* event, Widget* widget)
 {
     if (propogateEventToChildren(event, widget)) return true;
-    const uint8_t id = widget->id;
 
     switch (event->type)
     {
@@ -259,21 +265,21 @@ static bool rfnSimpleBox(const Obdn_I_Event* event, Widget* widget)
             const int16_t my = event->data.mouseData.y;
             const bool r = clickTest(mx, my, widget);
             if (!r) return false;
-            dragData[id].active = r;
-            dragData[id].prevX = mx;
-            dragData[id].prevY = my;
+            widget->dragData.active = r;
+            widget->dragData.prevX = mx;
+            widget->dragData.prevY = my;
             return true;
         }
-        case OBDN_I_MOUSEUP: dragData[id].active = false; break;
+        case OBDN_I_MOUSEUP: widget->dragData.active = false; break;
         case OBDN_I_MOTION: 
         {
-            if (!dragData[id].active) return false;
+            if (!widget->dragData.active) return false;
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
-            const int16_t dx = mx - dragData[id].prevX;
-            const int16_t dy = my - dragData[id].prevY;
-            dragData[id].prevX = mx;
-            dragData[id].prevY = my;
+            const int16_t dx = mx - widget->dragData.prevX;
+            const int16_t dy = my - widget->dragData.prevY;
+            widget->dragData.prevX = mx;
+            widget->dragData.prevY = my;
             updateWidgetPos(dx, dy, widget);
             return true;
         }
@@ -306,8 +312,6 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
 
 static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
 {
-    const uint8_t id = widget->id;
-
     switch (event->type)
     {
         case OBDN_I_MOUSEDOWN: 
@@ -316,14 +320,14 @@ static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
             const int16_t my = event->data.mouseData.y;
             const bool r = clickTest(mx, my, widget);
             if (!r) return false;
-            dragData[id].active = r;
+            widget->dragData.active = r;
             widget->data.slider.sliderPos = (float)(mx - widget->x) / widget->width;
             return true;
         }
-        case OBDN_I_MOUSEUP: dragData[id].active = false; break;
+        case OBDN_I_MOUSEUP: widget->dragData.active = false; break;
         case OBDN_I_MOTION: 
         {
-            if (!dragData[id].active) return false;
+            if (!widget->dragData.active) return false;
             const int16_t mx = event->data.mouseData.x;
             widget->data.slider.sliderPos = (float)(mx - widget->x) / widget->width;
             return true;
@@ -341,7 +345,7 @@ static bool rfnPassThrough(const Obdn_I_Event* event, Widget* widget)
 
 static bool responder(const Obdn_I_Event* event)
 {
-    return widgets[0].inputHandlerFn(event, &widgets[0]);
+    return rootWidget->inputHandlerFn(event, rootWidget);
 }
 
 static void initFrameBuffers(void)
@@ -398,6 +402,20 @@ static void onSwapchainRecreate(void)
     initFrameBuffers();
 }
 
+static void destroyWidget(Widget* widget)
+{
+    const uint8_t widgetCount = widget->widgetCount;
+    for (int i = 0; i < widgetCount; i++)
+    {
+        destroyWidget(widget->widgets[i]); // destroy children
+    }
+    for (int i = 0; i < widget->primCount; i++)
+    {
+        obdn_r_FreePrim(&widget->primitives[i]);
+    }
+    freeWidget(widget);
+}
+
 void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
 {
     initRenderCommands();
@@ -438,24 +456,32 @@ Obdn_U_Widget* obdn_u_CreateSlider(const int16_t x, const int16_t y,
     return widget;
 }
 
-void obdn_u_DebugReport(void)
+static void widgetReport(Widget* widget)
 {
-    printf("========== Obdn_U_Report ==========\n");
-    printf("Number of widgets: %d\n", widgetCount);
-    for (int i = 0; i < widgetCount; i++) 
+    printf("Widget %p:\n", widget);
+    printf("\tPos: %d, %d\n", widget->x, widget->y);
+    printf("\tDim: %d, %d\n", widget->width, widget->height);
+    printf("\tChildCount: %d\n", widget->widgetCount);
+    for (int i = 0; i < widget->widgetCount; i++)
     {
-        Widget* widget = &widgets[i];
-        printf("Widget %d:\n", i);
-        printf("\tID: %d\n", widget->id);
-        printf("\tPos: %d, %d\n", widget->x, widget->y);
-        printf("\tDim: %d, %d\n", widget->width, widget->height);
+        widgetReport(widget->widgets[i]);
     }
 }
 
-uint8_t obdn_u_GetWidgets(const Obdn_U_Widget** pToFirst)
+void obdn_u_DebugReport(void)
 {
-    *pToFirst = widgets;
-    return widgetCount;
+    printf("========== Obdn_U_Report ==========\n");
+    widgetReport(rootWidget);
+}
+
+static void drawWidget(const VkCommandBuffer cmdBuf, Widget* widget)
+{
+    for (int i = 0; i < widget->widgetCount; i++)
+    {
+        drawWidget(cmdBuf, widget->widgets[i]);
+    }
+    if (widget->drawFn)
+        widget->drawFn(cmdBuf, widget);
 }
 
 VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
@@ -470,9 +496,6 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
     VkCommandBufferBeginInfo cbbi = {.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
 
     V_ASSERT( vkBeginCommandBuffer(renderCommands[frameIndex].buffer, &cbbi) );
-
-    const Obdn_U_Widget* iter = NULL;
-    const uint8_t widgetCount = obdn_u_GetWidgets(&iter);
 
     VkCommandBuffer cmdBuf = renderCommands[frameIndex].buffer;
 
@@ -498,12 +521,8 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
             VK_SHADER_STAGE_VERTEX_BIT, 
             sizeof(PushConstantFrag), sizeof(PushConstantVert), &pc);
 
-    for (int w = 0; w < widgetCount; w++) 
-    {
-        const Obdn_U_Widget* widget = &(iter[w]);
-        if (widget->drawFn)
-            widget->drawFn(cmdBuf, widget);
-    }
+    drawWidget(cmdBuf, rootWidget);
+
     vkCmdEndRenderPass(cmdBuf);
 
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
@@ -517,9 +536,16 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
 
 void obdn_u_DestroyWidget(Widget* widget)
 {
-    for (int i = 0; i < widget->widgetCount; i++)
+    int wi = -1;
+    for (int i = 0; i < rootWidget->widgetCount; i++)
     {
-        obdn_u_DestroyWidget(widget->widgets[i]); // destroy children
+        if (rootWidget->widgets[i] == widget) 
+            wi = i;
+    }
+    if (wi != -1)
+    {
+        destroyWidget(widget);
+        rootWidget->widgets[wi] = rootWidget->widgets[--rootWidget->widgetCount];
     }
 }
 
@@ -540,8 +566,7 @@ void obdn_u_CleanUp(void)
     {
         obdn_v_DestroyCommand(renderCommands[i]);
     }
-    rootWidget = NULL;
-    widgetCount = 0;
+    destroyWidget(rootWidget);
 }
 
 const VkSemaphore obdn_u_GetSemaphore(uint32_t frameIndex)
