@@ -6,6 +6,8 @@
 
 typedef uint32_t Obdn_V_BlockId;
 
+//TODO this is brittle. we should probably change V_MemoryType to a mask with flags for the different
+// requirements. One bit for host or device, one bit for transfer capabale, one bit for external, one bit for image or buffer
 typedef enum {
     OBDN_V_MEMORY_HOST_GRAPHICS_TYPE,
     OBDN_V_MEMORY_HOST_TRANSFER_TYPE,

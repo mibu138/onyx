@@ -39,6 +39,8 @@ static VkDebugUtilsMessengerEXT debugMessenger;
     
 static VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties;
 
+Obdn_V_Config obdn_v_config;
+
 VkPhysicalDeviceProperties deviceProperties;
 
 VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -535,14 +537,14 @@ const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize,
         initDebugMessenger();
     initDevice(extcount, extensions);
     if (obdn_v_config.rayTraceEnabled) //TODO not all functions have to do with raytracing
-        obdn_v_LoadFunctions(&device);
+        obdn_v_LoadFunctions(device);
     initQueues();
     obdn_v_InitMemory(hostGraphicsBufferMemorySize,
             deviceGraphicsBufferMemorySize,
             deviceGraphicsImageMemorySize,
             hostTransferBufferMemorySize,
             externalDeviceGraphicsImageMemorySize);
-    printf("Obdn Video initialized.\n");
+    printf("Obsidian Video initialized.\n");
     return &instance;
 }
 

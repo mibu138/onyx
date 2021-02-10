@@ -7,7 +7,7 @@
 
 typedef struct {
     VkAccelerationStructureKHR handle;
-    Obdn_V_BufferRegion       bufferRegion;
+    Obdn_V_BufferRegion        bufferRegion;
 } Obdn_R_AccelerationStructure;
 
 typedef struct {
@@ -17,7 +17,11 @@ typedef struct {
 
 void obdn_r_BuildBlas(const Obdn_R_Primitive* prim, Obdn_R_AccelerationStructure* blas);
 void obdn_r_BuildTlas(const Obdn_R_AccelerationStructure* blas, Obdn_R_AccelerationStructure* tlas);
+void obdn_r_BuildTlasNew(const uint32_t count, const Obdn_R_AccelerationStructure blasses[count],
+        const Mat4 xforms[count],
+        Obdn_R_AccelerationStructure* tlas);
 void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, Obdn_R_ShaderBindingTable* sbt);
 void obdn_r_DestroyAccelerationStruct(Obdn_R_AccelerationStructure* as);
+void obdn_r_DestroyShaderBindingTable(Obdn_R_ShaderBindingTable* sb);
 
 #endif /* end of include guard: R_RAYTRACE_H */

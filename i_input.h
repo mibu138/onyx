@@ -40,7 +40,8 @@ typedef bool (*Obdn_I_SubscriberFn)(const Obdn_I_Event*);
 
 void obdn_i_Init(void);
 void obdn_i_PublishEvent(Obdn_I_Event event);
-void obdn_i_Subscribe(Obdn_I_SubscriberFn);
+void obdn_i_Subscribe(const Obdn_I_SubscriberFn);
+void obdn_i_Unsubscribe(const Obdn_I_SubscriberFn fn);
 void obdn_i_ProcessEvents(void);
 void obdn_i_CleanUp(void);
 

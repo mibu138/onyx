@@ -515,6 +515,14 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
     return renderCommands[frameIndex].semaphore;
 }
 
+void obdn_u_DestroyWidget(Widget* widget)
+{
+    for (int i = 0; i < widget->widgetCount; i++)
+    {
+        obdn_u_DestroyWidget(widget->widgets[i]); // destroy children
+    }
+}
+
 void obdn_u_CleanUp(void)
 {
     destroyFramebuffers();
@@ -534,4 +542,14 @@ void obdn_u_CleanUp(void)
     }
     rootWidget = NULL;
     widgetCount = 0;
+}
+
+const VkSemaphore obdn_u_GetSemaphore(uint32_t frameIndex)
+{
+    return renderCommands[frameIndex].semaphore;
+}
+
+const VkFence obdn_u_GetFence(uint32_t frameIndex)
+{
+    return renderCommands[frameIndex].fence;
 }

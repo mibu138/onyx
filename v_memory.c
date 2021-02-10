@@ -310,9 +310,12 @@ static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignme
         }
     }
     Obdn_V_MemBlock* curBlock = &chain->blocks[curIndex];
-    if (curBlock->size == size && curBlock->offset % alignment == 0) // just reuse this block;
+    if (curBlock->size == size && (curBlock->offset % alignment == 0)) // just reuse this block;
     {
+        printf("%s here %d\n", __PRETTY_FUNCTION__, curIndex);
         curBlock->inUse = true;
+        chain->usedSize += curBlock->size;
+        V1_PRINT(">> Re-using block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
         return curBlock;
     }
     // split the block
@@ -353,7 +356,7 @@ static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
     block->inUse = false;
     mergeBlocks(chain);
     chain->usedSize -= size;
-    V1_PRINT(">> Freeing block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", blockIndex, size, chain->name, chain->usedSize, chain->totalSize);
+    V1_PRINT(">> Freeing block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", id, size, chain->name, chain->usedSize, chain->totalSize);
 }
 
 void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
@@ -445,12 +448,12 @@ void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize,
         initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
                 hostGraphicsBufferMemorySize, 
                 hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
-                true, "hostGraphBuffer", &blockChainHostGraphicsBuffer);
+                true, "hstGraphBuffer", &blockChainHostGraphicsBuffer);
     if (hostTransferBufferMemorySize)
         initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, 
                 hostTransferBufferMemorySize, 
                 hostVisibleCoherentTypeIndex, hostTransferFlags, 
-                true, "hostTransBuffer", &blockChainHostTransferBuffer);
+                true, "hstTransBuffer", &blockChainHostTransferBuffer);
     if (deviceGraphicsBufferMemorySize)
         initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
                 deviceGraphicsBufferMemorySize, 
@@ -475,6 +478,7 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
     if( size % 4 != 0 ) // only allow for word-sized blocks
     {
         OBDN_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);
+        assert(0);
     }
     Obdn_V_MemBlock*  block = NULL;
     struct BlockChain* chain = NULL;
@@ -489,16 +493,20 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
     if (0 == alignment)
         alignment = chain->defaultAlignment;
     block = requestBlock(size, alignment, chain); 
-    Obdn_V_BufferRegion region;
+
+    Obdn_V_BufferRegion region = {};
     region.offset = block->offset;
     region.memBlockId = block->id;
     region.size = block->size;
     region.buffer = chain->buffer;
-    if (memType != OBDN_V_MEMORY_DEVICE_TYPE)
+    region.pChain = chain;
+    
+    // TODO this check is very brittle. we should probably change V_MemoryType to a mask with flags for the different
+    // requirements. One bit for host or device, one bit for transfer capabale, one bit for external, one bit for image or buffer
+    if (memType == OBDN_V_MEMORY_HOST_TRANSFER_TYPE|| memType == OBDN_V_MEMORY_HOST_GRAPHICS_TYPE) 
         region.hostData = chain->hostData + block->offset;
     else
         region.hostData = NULL;
-    region.pChain = chain;
 
     return region;
 }
@@ -629,6 +637,7 @@ Obdn_V_Image obdn_v_CreateImage(
 
 void obdn_v_FreeImage(Obdn_V_Image* image)
 {
+    assert(image->size != 0);
     if (image->sampler != VK_NULL_HANDLE)
     {
         vkDestroySampler(device, image->sampler, NULL);
@@ -641,6 +650,7 @@ void obdn_v_FreeImage(Obdn_V_Image* image)
 
 void obdn_v_FreeBufferRegion(Obdn_V_BufferRegion* pRegion)
 {
+    assert(pRegion->size != 0);
     freeBlock(pRegion->pChain, pRegion->memBlockId);
     if (pRegion->hostData)
         memset(pRegion->hostData, 0, pRegion->size);

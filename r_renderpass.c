@@ -46,57 +46,67 @@ void obdn_r_CreateRenderPass(const Obdn_R_RenderPassInfo *info, VkRenderPass *pR
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void obdn_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp, 
-        const VkImageLayout initialLayout, const VkImageLayout finalLayout,
+void obdn_r_CreateRenderPass_Color(const VkImageLayout initialLayout, 
+        const VkImageLayout finalLayout,
+        const VkAttachmentLoadOp loadOp, 
         const VkFormat colorFormat,
         VkRenderPass* pRenderPass)
 {
-    const VkAttachmentDescription attachmentColor = {
+    VkAttachmentDescription attachment = {
+        .flags = 0,
         .format = colorFormat,
-        .samples = VK_SAMPLE_COUNT_1_BIT, // TODO look into what this means
+        .samples = VK_SAMPLE_COUNT_1_BIT,
         .loadOp = loadOp,
         .storeOp = VK_ATTACHMENT_STORE_OP_STORE,
+        .stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
         .initialLayout = initialLayout,
-        .finalLayout = finalLayout,
-    };
+        .finalLayout = finalLayout};
 
     const VkAttachmentReference referenceColor = {
         .attachment = 0,
-        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL
-    };
+        .layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL };
+
     VkSubpassDescription subpass = {
         .pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS,
         .colorAttachmentCount = 1,
         .pColorAttachments    = &referenceColor,
         .pDepthStencilAttachment = NULL,
         .inputAttachmentCount = 0,
-        .preserveAttachmentCount = 0,
-    };
+        .preserveAttachmentCount = 0 };
 
-    const VkSubpassDependency dependency = {
+    VkSubpassDependency dep1 = {
         .srcSubpass = VK_SUBPASS_EXTERNAL,
         .dstSubpass = 0,
-        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        .srcAccessMask = 0,
+        .srcStageMask = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
         .dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .srcAccessMask = 0,
         .dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-    };
+        .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT };
 
-    VkAttachmentDescription attachments[] = {
-        attachmentColor,
-    };
+    VkSubpassDependency dep2 = {
+        .srcSubpass = 0,
+        .dstSubpass = VK_SUBPASS_EXTERNAL,
+        .srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        .dstStageMask = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        .srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+        .dstAccessMask = 0,
+        .dependencyFlags = VK_DEPENDENCY_BY_REGION_BIT };
 
-    VkRenderPassCreateInfo ci = {
+    VkSubpassDependency deps[] = {dep1, dep2};
+
+    VkRenderPassCreateInfo rpiInfo = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        .pNext = NULL,
+        .flags = 0,
+        .attachmentCount = 1,
+        .pAttachments = &attachment,
         .subpassCount = 1,
         .pSubpasses = &subpass,
-        .attachmentCount = OBDN_ARRAY_SIZE(attachments),
-        .pAttachments = attachments,
-        .dependencyCount = 1,
-        .pDependencies = &dependency,
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
-    };
+        .dependencyCount = OBDN_ARRAY_SIZE(deps),
+        .pDependencies = deps };
 
-    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
+    V_ASSERT( vkCreateRenderPass(device, &rpiInfo, NULL, pRenderPass) );
 }
 
 void obdn_r_CreateRenderPass_ColorDepth(

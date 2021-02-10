@@ -61,7 +61,12 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryFdKHR(
     const VkMemoryGetFdInfoKHR*                 pGetFdInfo,
     int*                                        pFd);
 
-void obdn_v_LoadFunctions(const VkDevice* device);
+VKAPI_ATTR VkResult VKAPI_CALL vkGetSemaphoreFdKHR(
+    VkDevice                                    device,
+    const VkSemaphoreGetFdInfoKHR*              pGetFdInfo,
+    int*                                        pFd);
+
+void obdn_v_LoadFunctions(const VkDevice device);
 
 #endif /* end of include guard: OBDN_V_LOADER_H */
 

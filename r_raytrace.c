@@ -1,4 +1,5 @@
 #include "r_raytrace.h"
+#include "coal/m_math.h"
 #include "v_video.h"
 #include "r_render.h"
 #include "v_memory.h"
@@ -218,6 +219,126 @@ void obdn_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure* 
     obdn_v_FreeBufferRegion(&instBuffer);
 }
 
+void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blasses[count],
+        const Mat4 xforms[count],
+        AccelerationStructure* tlas)
+{
+    // Mat4 transform = m_Ident_Mat4();
+    // instance transform member is a 4x3 row-major matrix
+    // transform = m_Transpose_Mat4(&transform); // we don't need to because its identity, but leaving here to impress the point
+
+    VkAccelerationStructureInstanceKHR instances[count];
+    memset(instances, 0, sizeof(instances));
+    for (int i = 0; i < count; i++)
+    {
+        Mat4 xformT = m_Transpose_Mat4(&xforms[i]);
+        VkTransformMatrixKHR transform;
+        assert(sizeof(transform) == 12 * sizeof(float));
+        for (int i = 0; i < 12; i++)
+        {
+            transform.matrix[0][i] = xformT.x[0][i]; // overrunning on purpose
+        }
+        instances[i].accelerationStructureReference = obdn_v_GetBufferRegionAddress(&blasses[i].bufferRegion);
+        instances[i].instanceCustomIndex = 0; // 0'th instance it
+        instances[i].instanceShaderBindingTableRecordOffset = 0;
+        instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
+        instances[i].mask = 0xFF;
+        instances[i].transform = transform;
+    }
+
+
+    BufferRegion instBuffer = obdn_v_RequestBufferRegion(sizeof(instances),
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    assert(instBuffer.hostData);
+    memcpy(instBuffer.hostData, instances, sizeof(instances));
+
+    const VkAccelerationStructureGeometryInstancesDataKHR instanceData = {
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
+        .data.deviceAddress = obdn_v_GetBufferRegionAddress(&instBuffer),
+        .arrayOfPointers = VK_FALSE
+    };
+
+    const VkAccelerationStructureGeometryKHR topAsGeometry = {
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR,
+        .geometry.instances = instanceData,
+        .geometryType = VK_GEOMETRY_TYPE_INSTANCES_KHR,
+        .flags = VK_GEOMETRY_OPAQUE_BIT_KHR // may not need
+    };
+
+    VkAccelerationStructureBuildGeometryInfoKHR topAsInfo = {
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR,
+        .flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR,
+        .type  = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+        .geometryCount = 1,
+        .pGeometries = &topAsGeometry,
+    };
+
+    const uint32_t maxPrimCount = count; // if topAsInfo.geometryCount was > 1, this would be an array of counts
+
+    VkAccelerationStructureBuildSizesInfoKHR buildSizes = {
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR,
+    };
+
+    vkGetAccelerationStructureBuildSizesKHR(device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &topAsInfo, &maxPrimCount, &buildSizes); 
+
+    tlas->bufferRegion = obdn_v_RequestBufferRegion(buildSizes.accelerationStructureSize, 
+            VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            OBDN_V_MEMORY_DEVICE_TYPE);
+
+    const VkAccelerationStructureCreateInfoKHR asCreateInfo = {
+        .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
+        .type  = VK_ACCELERATION_STRUCTURE_TYPE_TOP_LEVEL_KHR,
+        .buffer = tlas->bufferRegion.buffer,
+        .offset = tlas->bufferRegion.offset,
+        .size   = tlas->bufferRegion.size,
+    };
+
+    V_ASSERT( vkCreateAccelerationStructureKHR(device, &asCreateInfo, NULL, &tlas->handle) );
+
+    // allocate and bind memory
+
+    BufferRegion scratchBuffer = obdn_v_RequestBufferRegion(buildSizes.buildScratchSize,
+            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+            OBDN_V_MEMORY_DEVICE_TYPE);
+
+    topAsInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    topAsInfo.dstAccelerationStructure = tlas->handle;
+    topAsInfo.scratchData.deviceAddress = obdn_v_GetBufferRegionAddress(&scratchBuffer);
+
+    // so this is weird but ill break it down 
+    // for each acceleration structure we want to build, we provide 
+    // N buildRanges. This N is the same number as the geometryCount member of the
+    // corresponding VkAccelerationStructureBuildGeometryInfoKHR. This means 
+    // that each buildRange corresponds to a member of pGeometries in that struct.
+    // the interpretation of the members of each buildRange depends on the 
+    // VkAccelerationStructureGeometryKHR type that it ends up being paired with
+    // For instance, firstVertex really only applies if that geometry type is triangles.
+    // For instances, primitiveCount is the number or instances 
+    const VkAccelerationStructureBuildRangeInfoKHR buildRange = {
+        .firstVertex = 0,
+        .primitiveCount = count, 
+        .primitiveOffset = 0,
+        .transformOffset = 0 };
+
+    const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
+
+    Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
+
+    obdn_v_BeginCommandBuffer(cmd.buffer);
+
+    vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &topAsInfo, ranges);
+
+    obdn_v_EndCommandBuffer(cmd.buffer);
+
+    obdn_v_SubmitAndWait(&cmd, OBDN_V_QUEUE_GRAPHICS_TYPE);
+
+    obdn_v_DestroyCommand(cmd);
+    obdn_v_FreeBufferRegion(&scratchBuffer);
+    obdn_v_FreeBufferRegion(&instBuffer);
+}
+
 void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
 {
     const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = obdn_v_GetPhysicalDeviceRayTracingProperties();
@@ -253,5 +374,12 @@ void obdn_r_DestroyAccelerationStruct(AccelerationStructure* as)
 {
     vkDestroyAccelerationStructureKHR(device, as->handle, NULL);
     obdn_v_FreeBufferRegion(&as->bufferRegion);
+    memset(as, 0, sizeof(*as));
+}
+
+void obdn_r_DestroyShaderBindingTable(Obdn_R_ShaderBindingTable* sb)
+{
+    obdn_v_FreeBufferRegion(&sb->bufferRegion);
+    memset(sb, 0, sizeof(*sb));
 }
 

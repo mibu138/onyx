@@ -15,8 +15,9 @@ typedef struct {
 } Obdn_R_RenderPassInfo;
 
 void obdn_r_CreateRenderPass(const Obdn_R_RenderPassInfo* info, VkRenderPass* pRenderPass);
-void obdn_r_CreateRenderPass_Color(const VkAttachmentLoadOp loadOp, 
-        const VkImageLayout initialLayout, const VkImageLayout finalLayout,
+void obdn_r_CreateRenderPass_Color(const VkImageLayout initialLayout, 
+        const VkImageLayout finalLayout,
+        const VkAttachmentLoadOp loadOp, 
         const VkFormat colorFormat,
         VkRenderPass* pRenderPass);
 void obdn_r_CreateRenderPass_ColorDepth(

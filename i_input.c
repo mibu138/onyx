@@ -3,6 +3,7 @@
 #include "t_def.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #define MAX_EVENTS 32
 #define MAX_SUBSCRIBERS 5
@@ -28,10 +29,29 @@ void obdn_i_PublishEvent(Obdn_I_Event event)
     eventHead = (eventHead + 1) % MAX_EVENTS;
 }
 
-void obdn_i_Subscribe(Obdn_I_SubscriberFn fn)
+void obdn_i_Subscribe(const Obdn_I_SubscriberFn fn)
 {
     assert(subscriberCount < MAX_SUBSCRIBERS);
     subscribers[subscriberCount++] = fn;
+}
+
+void obdn_i_Unsubscribe(const Obdn_I_SubscriberFn fn)
+{
+    assert(subscriberCount > 0);
+    printf("I) Unsubscribing fn...\n");
+    int fnIndex = -1;
+    for (int i = 0; i < subscriberCount; i++)
+    {
+        if (subscribers[i] == fn)
+        {
+            fnIndex = i;
+            break;
+        }
+    }
+    if (fnIndex != -1)
+        memmove(subscribers + fnIndex, 
+                subscribers + fnIndex + 1, 
+                (--subscriberCount - fnIndex) * sizeof(*subscribers)); // should only decrement the count if fnIndex is 0
 }
 
 void obdn_i_ProcessEvents(void)

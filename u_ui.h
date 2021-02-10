@@ -46,4 +46,7 @@ uint8_t            obdn_u_GetWidgets(const Obdn_U_Widget** pToFirst);
 VkSemaphore        obdn_u_Render(const VkSemaphore waitSemephore);
 void               obdn_u_CleanUp(void);
 
+const VkSemaphore obdn_u_GetSemaphore(uint32_t frameIndex);
+const VkFence     obdn_u_GetFence(uint32_t frameIndex);
+
 #endif /* end of include guard: OBDN_U_UI_H */
