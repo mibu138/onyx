@@ -215,7 +215,7 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
         cur = (cur + 1) % count;
         if (cur == init) 
         {
-            V1_PRINT("%s: no suitable block found.\n", __PRETTY_FUNCTION__);
+            V1_PRINT("%s: no suitable block found in chain %s\n", __PRETTY_FUNCTION__, chain->name);
             return -1;
         }
     }
