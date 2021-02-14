@@ -341,6 +341,8 @@ void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blass
 
 void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
 {
+    memset(sbt, 0, sizeof(*sbt));
+
     const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = obdn_v_GetPhysicalDeviceRayTracingProperties();
     const uint32_t groupHandleSize = rtprops.shaderGroupHandleSize;
     const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
@@ -366,6 +368,11 @@ void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline
         memcpy(pTarget, pSrc + i * groupHandleSize, groupHandleSize);
         pTarget += baseAlignment;
     }
+
+    VkDeviceAddress bufferRegionAddress = obdn_v_GetBufferRegionAddress(&sbt->bufferRegion);
+    sbt->raygenTable.deviceAddress = bufferRegionAddress;
+    sbt->raygenTable.size          = rtprops.shaderGroupBaseAlignment;
+    sbt->raygenTable.stride        = sbt->raygenTable.size; // must be this according to spec. stride not used for rgen.
 
     printf("Created shader binding table\n");
 }

@@ -760,3 +760,4 @@ const VkDeviceSize obdn_v_GetMemorySize(const Obdn_V_MemoryType memType)
         default: assert(0); //TODO
     }
 }
+

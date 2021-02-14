@@ -11,8 +11,12 @@ typedef struct {
 } Obdn_R_AccelerationStructure;
 
 typedef struct {
-    Obdn_V_BufferRegion bufferRegion;
-    uint32_t             groupCount;
+    Obdn_V_BufferRegion             bufferRegion;
+    uint32_t                        groupCount;
+    VkStridedDeviceAddressRegionKHR raygenTable;
+    VkStridedDeviceAddressRegionKHR missTable;
+    VkStridedDeviceAddressRegionKHR hitTable;
+    VkStridedDeviceAddressRegionKHR callableTable;
 } Obdn_R_ShaderBindingTable;
 
 void obdn_r_BuildBlas(const Obdn_R_Primitive* prim, Obdn_R_AccelerationStructure* blas);

@@ -87,3 +87,23 @@ void obdn_v_ResetCommand(Obdn_V_Command* cmd)
 {
     vkResetCommandPool(device, cmd->pool, 0);
 }
+
+void obdn_v_MemoryBarrier(
+    VkCommandBuffer      commandBuffer,
+    VkPipelineStageFlags srcStageMask,
+    VkPipelineStageFlags dstStageMask,
+    VkDependencyFlags    dependencyFlags,
+    VkAccessFlags        srcAccessMask,
+    VkAccessFlags        dstAccessMask)
+{
+    const VkMemoryBarrier barrier = {
+        .sType         = VK_STRUCTURE_TYPE_MEMORY_BARRIER,
+        .pNext         = NULL,
+        .srcAccessMask = srcAccessMask,
+        .dstAccessMask = dstAccessMask 
+    };
+
+    vkCmdPipelineBarrier(commandBuffer, srcStageMask, 
+            dstStageMask, dependencyFlags, 
+            1, &barrier, 0, NULL, 0, NULL);
+}

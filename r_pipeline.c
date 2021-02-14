@@ -325,8 +325,8 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePi
         const uint8_t chitCount   = rayTraceInfo->chitCount;
 
         assert( raygenCount == 1 ); // for now
-        assert( missCount > 0 && missCount < 10 );
-        assert( chitCount > 0 && chitCount < 10 ); // make sure its in a reasonable range
+        assert( missCount < 10 );
+        assert( chitCount < 10 ); // make sure its in a reasonable range
 
         VkShaderModule raygenSM[raygenCount];
         VkShaderModule missSM[missCount];
@@ -398,7 +398,6 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePi
         };
 
         assert(rayTraceInfo->layout != VK_NULL_HANDLE);
-        assert(shaderCount == 3); // debugging an issue
 
         createInfos[p] = (VkRayTracingPipelineCreateInfoKHR){
             .sType = VK_STRUCTURE_TYPE_RAY_TRACING_PIPELINE_CREATE_INFO_KHR,
