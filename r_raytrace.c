@@ -371,8 +371,17 @@ void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline
 
     VkDeviceAddress bufferRegionAddress = obdn_v_GetBufferRegionAddress(&sbt->bufferRegion);
     sbt->raygenTable.deviceAddress = bufferRegionAddress;
-    sbt->raygenTable.size          = rtprops.shaderGroupBaseAlignment;
+    sbt->raygenTable.size          = baseAlignment;
     sbt->raygenTable.stride        = sbt->raygenTable.size; // must be this according to spec. stride not used for rgen.
+
+    assert(groupHandleSize < baseAlignment); // for now.... 
+    sbt->missTable.deviceAddress = bufferRegionAddress + baseAlignment;
+    sbt->missTable.size          = baseAlignment;
+    sbt->missTable.stride        = baseAlignment;
+
+    sbt->hitTable.deviceAddress = bufferRegionAddress + baseAlignment * 2;
+    sbt->hitTable.size          = baseAlignment;
+    sbt->hitTable.stride        = baseAlignment;
 
     printf("Created shader binding table\n");
 }

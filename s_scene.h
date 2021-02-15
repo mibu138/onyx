@@ -72,6 +72,7 @@ typedef struct {
     Obdn_S_TextureId textureAlbedo;
     Obdn_S_TextureId textureRoughness;
     Obdn_S_TextureId textureNormal;
+    Obdn_S_TextureId padding;
 } Obdn_S_Material;
 
 typedef struct {

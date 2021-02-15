@@ -67,7 +67,7 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
 }
 
 #define MAX_GP_SHADER_STAGES 4
-#define MAX_ATTACHMENT_STATES 4
+#define MAX_ATTACHMENT_STATES 8
 
 void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPipelineInfo pipelineInfos[count], 
         VkPipeline pipelines[count])

@@ -207,6 +207,7 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
     size_t cur  = 0;
     size_t init = cur;
     const size_t count = chain->count;
+    printf(">>> requesting block of size %d from chain %s with totalSize %ld\n", size, chain->name, chain->totalSize);
     assert( size < chain->totalSize );
     assert( count > 0 );
     assert( cur < count );
