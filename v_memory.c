@@ -72,6 +72,17 @@ void printBlockChainInfo(const BlockChain* chain)
     printf("\n");
 }
 
+static Obdn_V_MemorySizes getDefaultMemSizes(void)
+{
+    return (Obdn_V_MemorySizes){
+        .hostGraphicsBufferMemorySize = OBDN_256_MiB,
+        .deviceGraphicsBufferMemorySize = OBDN_256_MiB,
+        .deviceGraphicsImageMemorySize = OBDN_512_MiB,
+        .hostTransferBufferMemorySize = 0,
+        .deviceExternalGraphicsImageMemorySize = 0,
+    };
+}
+
 static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 {
     const uint32_t memoryCount = memoryProperties.memoryTypeCount;
@@ -360,11 +371,7 @@ static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
     V1_PRINT(">> Freeing block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", id, size, chain->name, chain->usedSize, chain->totalSize);
 }
 
-void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
-        const VkDeviceSize deviceGraphicsBufferMemorySize,
-        const VkDeviceSize deviceGraphicsImageMemorySize,
-        const VkDeviceSize hostTransferBufferMemorySize,
-        const VkDeviceSize deviceExternalGraphicsImageMemorySize)
+void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
 {
     hostVisibleCoherentTypeIndex = 0;
     deviceLocalTypeIndex = 0;
@@ -445,31 +452,33 @@ void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize,
          VK_BUFFER_USAGE_TRANSFER_DST_BIT |
          VK_BUFFER_USAGE_TRANSFER_SRC_BIT; 
 
-    if (hostGraphicsBufferMemorySize)
-        initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
-                hostGraphicsBufferMemorySize, 
-                hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
-                true, "hstGraphBuffer", &blockChainHostGraphicsBuffer);
-    if (hostTransferBufferMemorySize)
-        initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, 
-                hostTransferBufferMemorySize, 
-                hostVisibleCoherentTypeIndex, hostTransferFlags, 
-                true, "hstTransBuffer", &blockChainHostTransferBuffer);
-    if (deviceGraphicsBufferMemorySize)
-        initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
-                deviceGraphicsBufferMemorySize, 
-                deviceLocalTypeIndex, devBufFlags, 
-                false, "devBuffer", &blockChainDeviceGraphicsBuffer);
-    if (deviceGraphicsImageMemorySize)
-        initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
-                deviceGraphicsImageMemorySize, 
-                deviceLocalTypeIndex, 0, 
-                false, "devImage", &blockChainDeviceGraphicsImage);
-    if (deviceExternalGraphicsImageMemorySize)
-        initBlockChain(OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE, 
-                deviceExternalGraphicsImageMemorySize, 
-                deviceLocalTypeIndex, 0, 
-                false, "devExtImage", &blockChainExternalDeviceGraphicsImage);
+    Obdn_V_MemorySizes ms;
+    if (!memSizes)
+    {
+        ms = getDefaultMemSizes();
+        memSizes = &ms;
+    }
+
+    initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
+            memSizes->hostGraphicsBufferMemorySize, 
+            hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
+            true, "hstGraphBuffer", &blockChainHostGraphicsBuffer);
+    initBlockChain(OBDN_V_MEMORY_HOST_TRANSFER_TYPE, 
+            memSizes->hostTransferBufferMemorySize, 
+            hostVisibleCoherentTypeIndex, hostTransferFlags, 
+            true, "hstTransBuffer", &blockChainHostTransferBuffer);
+    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
+            memSizes->deviceGraphicsBufferMemorySize, 
+            deviceLocalTypeIndex, devBufFlags, 
+            false, "devBuffer", &blockChainDeviceGraphicsBuffer);
+    initBlockChain(OBDN_V_MEMORY_DEVICE_TYPE, 
+            memSizes->deviceGraphicsImageMemorySize, 
+            deviceLocalTypeIndex, 0, 
+            false, "devImage", &blockChainDeviceGraphicsImage);
+    initBlockChain(OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE, 
+            memSizes->deviceExternalGraphicsImageMemorySize, 
+            deviceLocalTypeIndex, 0, 
+            false, "devExtImage", &blockChainExternalDeviceGraphicsImage);
 }
 
 Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(

@@ -40,6 +40,7 @@ typedef struct {
     VkVertexInputAttributeDescription attributeDescriptions[OBDN_R_MAX_VERT_ATTRIBUTES];
 } Obdn_R_VertexDescription;
 
+
 // pos and color. clockwise for now.
 Obdn_R_Primitive  obdn_r_CreateTriangle(void);
 Obdn_R_Primitive  obdn_r_CreateCubePrim(const bool isClockWise);

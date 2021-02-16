@@ -524,11 +524,8 @@ static void initQueues(void)
     presentQueue = graphicsQueues[0]; // use the first queue to present
 }
 
-const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize, 
-        const VkDeviceSize deviceGraphicsBufferMemorySize,
-        const VkDeviceSize deviceGraphicsImageMemorySize,
-        const VkDeviceSize hostTransferBufferMemorySize,
-        const VkDeviceSize externalDeviceGraphicsImageMemorySize,
+const VkInstance* obdn_v_Init(
+        const Obdn_V_MemorySizes* memSizes,
         const int extcount, const char* extensions[])
 {
     nativeSurface = VK_NULL_HANDLE;
@@ -539,11 +536,7 @@ const VkInstance* obdn_v_Init(const VkDeviceSize hostGraphicsBufferMemorySize,
     if (obdn_v_config.rayTraceEnabled) //TODO not all functions have to do with raytracing
         obdn_v_LoadFunctions(device);
     initQueues();
-    obdn_v_InitMemory(hostGraphicsBufferMemorySize,
-            deviceGraphicsBufferMemorySize,
-            deviceGraphicsImageMemorySize,
-            hostTransferBufferMemorySize,
-            externalDeviceGraphicsImageMemorySize);
+    obdn_v_InitMemory(memSizes);
     printf("Obsidian Video initialized.\n");
     return &instance;
 }

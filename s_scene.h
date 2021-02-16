@@ -89,6 +89,12 @@ typedef struct {
     Obdn_S_DirtyMask  dirt;
 } Obdn_S_Scene;
 
+// container to associate prim ids with pipelines
+typedef struct {
+    Obdn_S_PrimId primCount;
+    Obdn_S_PrimId primIds[OBDN_S_MAX_PRIMS];
+} Obdn_S_PrimitiveList;
+
 // counter-clockwise orientation
 void obdn_s_CreateSimpleScene(Obdn_S_Scene* scene);
 void obdn_s_UpdateCamera_ArcBall(Obdn_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
@@ -97,6 +103,9 @@ void obdn_s_CreateEmptyScene(Obdn_S_Scene* scene);
 void obdn_s_UpdateLight(Obdn_S_Scene* scene, uint32_t id, float intensity);
 void obdn_s_BindPrimToMaterial(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId);
 void obdn_s_UpdatePrimXform(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta);
+
+void obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
+void obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
 
 Obdn_S_PrimId    obdn_s_LoadPrim(Obdn_S_Scene* scene, const char* filePath, const Mat4* xform);
 Obdn_S_PrimId    obdn_s_AddRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive prim, const Mat4* xform);

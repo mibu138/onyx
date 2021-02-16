@@ -43,13 +43,10 @@ typedef struct {
 #define OBDN_1_MiB   (VkDeviceSize)0x100000
 #define OBDN_100_MiB (VkDeviceSize)0x6400000
 #define OBDN_256_MiB (VkDeviceSize)0x10000000
+#define OBDN_512_MiB (VkDeviceSize)0x20000000
 #define OBDN_1_GiB   (VkDeviceSize)0x40000000
 
-void obdn_v_InitMemory(const VkDeviceSize hostGraphicsBufferMemorySize, 
-        const VkDeviceSize deviceGraphicsBufferMemorySize,
-        const VkDeviceSize deviceGraphicsImageMemorySize,
-        const VkDeviceSize hostTransferBufferMemorySize,
-        const VkDeviceSize deviceExternalGraphicsImageMemorySize);
+void obdn_v_InitMemory(const Obdn_V_MemorySizes*);
 
 Obdn_V_BufferRegion obdn_v_RequestBufferRegion(size_t size, 
         const VkBufferUsageFlags, const Obdn_V_MemoryType);

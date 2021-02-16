@@ -8,13 +8,15 @@
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
 
-typedef Obdn_R_Primitive Primitive;
-typedef Obdn_S_Xform     Xform;
-typedef Obdn_S_Scene     Scene;
-typedef Obdn_S_Light     Light;
-typedef Obdn_S_Material  Material;
-typedef Obdn_S_Camera    Camera;
-typedef Obdn_S_Texture   Texture;
+typedef Obdn_R_Primitive     Primitive;
+typedef Obdn_S_Xform         Xform;
+typedef Obdn_S_Scene         Scene;
+typedef Obdn_S_Light         Light;
+typedef Obdn_S_Material      Material;
+typedef Obdn_S_Camera        Camera;
+typedef Obdn_S_Texture       Texture;
+
+typedef Obdn_S_PrimitiveList PrimitiveList;
 
 // TODO: this function needs to updated
 void obdn_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
@@ -300,4 +302,17 @@ void obdn_s_UpdatePrimXform(Scene* scene, const Obdn_S_PrimId primId, const Mat4
     assert(primId < scene->primCount);
     scene->xforms[primId] = m_Mult_Mat4(&scene->xforms[primId], delta);
     scene->dirt |= OBDN_S_XFORMS_BIT;
+}
+
+void obdn_s_AddPrimToList(const Obdn_S_PrimId primId, Obdn_S_PrimitiveList* list)
+{
+    list->primIds[list->primCount] = primId;
+    list->primCount++;
+    assert(list->primCount < OBDN_S_MAX_PRIMS);
+}
+
+void obdn_s_ClearPrimList(Obdn_S_PrimitiveList* list)
+{
+    list->primCount = 0;
+    assert(list->primCount < OBDN_S_MAX_PRIMS);
 }
