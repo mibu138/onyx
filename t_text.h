@@ -3,7 +3,7 @@
 
 #include "v_image.h"
 
-Obdn_V_Image obdn_CreateTextImage(const size_t width, const size_t height, 
+Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text);
  

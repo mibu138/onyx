@@ -69,7 +69,7 @@ static void drawString(const char* string, const size_t width, const size_t heig
     }
 }
 
-Obdn_V_Image obdn_CreateTextImage(const size_t width, const size_t height, 
+Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text)
 {
@@ -91,7 +91,7 @@ Obdn_V_Image obdn_CreateTextImage(const size_t width, const size_t height,
             VK_SAMPLE_COUNT_1_BIT,
             1,
             VK_FILTER_NEAREST,
-            obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE)); 
+            OBDN_V_MEMORY_DEVICE_TYPE);
 
     obdn_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 

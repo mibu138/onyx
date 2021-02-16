@@ -102,7 +102,7 @@ static void initBlockChain(
         const char* name,
         struct BlockChain* chain)
 {
-    assert( memorySize != 0);
+    *chain = (BlockChain){};
     memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_V_MemBlock));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
     chain->count = 1;
@@ -118,6 +118,8 @@ static void initBlockChain(
     chain->blocks[0].id = 0;
     assert( strlen(name) < 16 );
     strcpy(chain->name, name);
+
+    if (chain->totalSize == 0) return; // nothing else to do
 
     VkExportMemoryAllocateInfo exportMemoryAllocInfo;
     const void* pNext = NULL;

@@ -286,6 +286,8 @@ void obdn_v_CopyBufferToImage(const Obdn_V_BufferRegion* region,
 
     obdn_v_SubmitAndWait(&cmd, 0);
 
+    obdn_v_DestroyCommand(cmd);
+
     printf("Copying complete.\n");
 }
 

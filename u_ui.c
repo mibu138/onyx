@@ -1,4 +1,6 @@
 #include "u_ui.h"
+#include "obsidian/t_text.h"
+#include "obsidian/v_memory.h"
 #include "r_geo.h"
 #include "r_render.h"
 #include "r_renderpass.h"
@@ -10,12 +12,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
 
 #define SPVDIR "./shaders/spv"
+#define MAX_IMAGE_COUNT 8
 
 typedef Obdn_U_Widget Widget;
+typedef Obdn_V_Image  Image;
 
 typedef struct {
     int   i0;
@@ -29,21 +34,32 @@ typedef struct {
     float f1;
 } PushConstantFrag;
 
+enum {
+    PIPELINE_BOX,
+    PIPELINE_SLIDER,
+    PIPELINE_TEXTURE,
+    PIPELINE_COUNT
+};
+_Static_assert(PIPELINE_COUNT < OBDN_MAX_PIPELINES, "");
+
 static Widget*  rootWidget;
 
 static VkRenderPass     renderPass;
 
-static VkPipelineLayout pipelineLayouts[OBDN_MAX_PIPELINES];
-static VkPipeline       pipelines[OBDN_MAX_PIPELINES];
+static VkPipelineLayout pipelineLayout;
+static VkPipeline       pipelines[PIPELINE_COUNT];
+
+static VkDescriptorSetLayout descriptorSetLayout;
+static Obdn_R_Description    descriptions[OBDN_FRAME_COUNT];
 
 static VkFramebuffer    framebuffers[OBDN_FRAME_COUNT];
 
-static Obdn_V_Command  renderCommands[OBDN_FRAME_COUNT];
+_Static_assert(MAX_IMAGE_COUNT <= 256, "Max image count cannot be greater than 256 to fit in imageCount");
 
-enum {
-    PIPELINE_BOX,
-    PIPELINE_SLIDER,
-};
+static uint8_t imageCount;
+static Image   images[MAX_IMAGE_COUNT];
+
+static Obdn_V_Command  renderCommands[OBDN_FRAME_COUNT];
 
 static Widget* allocWidget(void)
 {
@@ -68,52 +84,27 @@ static void initRenderCommands(void)
 
 static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayout finalLayout)
 {
-    const VkAttachmentDescription attachmentColor = {
-        .flags          = 0,
-        .format         = obdn_r_GetSwapFormat(),
-        .samples        = VK_SAMPLE_COUNT_1_BIT,
-        .loadOp         = VK_ATTACHMENT_LOAD_OP_LOAD,
-        .storeOp        = VK_ATTACHMENT_STORE_OP_STORE,
-        .stencilLoadOp  = VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-        .stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        .initialLayout  = initialLayout,
-        .finalLayout    = finalLayout,
-    };
-
-    const VkAttachmentDescription attachments[] = {
-        attachmentColor
-    };
-
-    VkAttachmentReference colorReference = {
-        .attachment = 0,
-        .layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-    };
-
-    const VkSubpassDescription subpass = {
-        .flags                   = 0,
-        .pipelineBindPoint       = VK_PIPELINE_BIND_POINT_GRAPHICS,
-        .inputAttachmentCount    = 0,
-        .pInputAttachments       = NULL,
-        .colorAttachmentCount    = 1,
-        .pColorAttachments       = &colorReference,
-        .pResolveAttachments     = NULL,
-        .pDepthStencilAttachment = NULL,
-        .preserveAttachmentCount = 0,
-        .pPreserveAttachments    = NULL,
-    };
-
-    Obdn_R_RenderPassInfo rpi = {
-        .attachmentCount = 1,
-        .pAttachments    = attachments,
-        .subpassCount    = 1,
-        .pSubpasses      = &subpass,
-    };
-
-    obdn_r_CreateRenderPass(&rpi, &renderPass);
+    obdn_r_CreateRenderPass_Color(initialLayout, finalLayout, VK_ATTACHMENT_LOAD_OP_LOAD, obdn_r_GetSwapFormat(), &renderPass);
 }
 
-static void initPipelineLayouts(void)
+static void initDescriptionsAndPipelineLayouts(void)
 {
+    const Obdn_R_DescriptorSetInfo dsInfo = {
+        .bindingCount = 1,
+        .bindings = {{
+            .descriptorCount = 1,
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+        }}
+    };
+
+    obdn_r_CreateDescriptorSetLayouts(1, &dsInfo, &descriptorSetLayout);
+
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++)
+    {
+        obdn_r_CreateDescriptorSets(1, &dsInfo, &descriptorSetLayout, &descriptions[i]);
+    }
+
     VkPushConstantRange pcRanges[] = {{
         .offset     = 0,
         .size       = sizeof(PushConstantFrag),
@@ -125,12 +116,39 @@ static void initPipelineLayouts(void)
     }};
 
     const Obdn_R_PipelineLayoutInfo pipelayoutInfos[] = {{
+        .descriptorSetCount = 1,
+        .descriptorSetLayouts = &descriptorSetLayout,
         .pushConstantCount   = OBDN_ARRAY_SIZE(pcRanges),
         .pushConstantsRanges = pcRanges
     }};
 
     obdn_r_CreatePipelineLayouts(OBDN_ARRAY_SIZE(pipelayoutInfos), 
-            pipelayoutInfos, pipelineLayouts);
+            pipelayoutInfos, &pipelineLayout);
+}
+
+static void updateTexture(uint8_t imageIndex)
+{
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++)
+    {
+        VkDescriptorImageInfo textureInfo = {
+            .imageLayout = images[imageIndex].layout,
+            .imageView   = images[imageIndex].view,
+            .sampler     = images[imageIndex].sampler
+        };
+
+        VkWriteDescriptorSet write = {
+            .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+            .pNext = NULL,
+            .dstSet = descriptions[i].descriptorSets[0],
+            .dstBinding = 0,
+            .dstArrayElement = imageIndex,
+            .descriptorCount = 1,
+            .descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
+            .pImageInfo = &textureInfo
+        };
+
+        vkUpdateDescriptorSets(device, 1, &write, 0, NULL);
+    }
 }
 
 static void initPipelines(void)
@@ -139,7 +157,7 @@ static void initPipelines(void)
     Obdn_R_GraphicsPipelineInfo pipeInfos[] = {{
         // simple box
         .renderPass        = renderPass,
-        .layout            = pipelineLayouts[0],
+        .layout            = pipelineLayout,
         .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
@@ -149,13 +167,23 @@ static void initPipelines(void)
     },{ 
         // slider
         .renderPass        = renderPass,
-        .layout            = pipelineLayouts[0],
+        .layout            = pipelineLayout,
         .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-slider-frag.spv"
+    },{ 
+        // texture
+        .renderPass        = renderPass,
+        .layout            = pipelineLayout,
+        .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
+        .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+        .blendMode         = OBDN_R_BLEND_MODE_OVER,
+        .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+        .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
+        .fragShader        = OBDN_SPVDIR"/ui-texture-frag.spv"
     }};
 
     obdn_r_CreateGraphicsPipelines(OBDN_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
@@ -163,8 +191,9 @@ static void initPipelines(void)
 
 static Widget* addWidget(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, 
-        const Obdn_U_ResponderFn rfn, 
-        const Obdn_U_DrawFn      dfn,
+        const Obdn_U_ResponderFn inputHanderFn, 
+        const Obdn_U_DrawFn      drawFn,
+        const Obdn_U_DestructFn  destructFn,
         Widget* parent)
 {
     Widget* widget = allocWidget();
@@ -172,9 +201,9 @@ static Widget* addWidget(const int16_t x, const int16_t y,
         .x = x, .y = y,
         .width = width,
         .height = height,
-        .inputHandlerFn = rfn,
-        .drawFn = dfn
-    };
+        .inputHandlerFn = inputHanderFn,
+        .drawFn = drawFn,
+        .destructFn = destructFn };
 
     if (!parent && rootWidget) // if no parent given and we have root widget, make widget its child
         parent = rootWidget;
@@ -226,8 +255,11 @@ static bool propogateEventToChildren(const Obdn_I_Event* event, Widget* widget)
     const uint8_t widgetCount = widget->widgetCount;
     for (int i = widgetCount - 1; i >= 0 ; i--) 
     {
-        const bool r = widget->widgets[i]->inputHandlerFn(event, widget->widgets[i]);
-        if (r) return true;
+        if (widget->widgets[i]->inputHandlerFn)
+        {
+            const bool r = widget->widgets[i]->inputHandlerFn(event, widget->widgets[i]);
+            if (r) return true;
+        }
     }
     return false;
 }
@@ -240,17 +272,15 @@ static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
 
     const Obdn_R_Primitive* prim = &widget->primitives[0];
 
-    obdn_r_BindPrim(cmdBuf, prim);
-
     PushConstantFrag pc = {
         .i0 = widget->width,
         .i1 = widget->height
     };
 
-    vkCmdPushConstants(cmdBuf, pipelineLayouts[0], VK_SHADER_STAGE_FRAGMENT_BIT, 
+    vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 
             0, sizeof(pc), &pc);
 
-    vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
+    obdn_r_DrawPrim(cmdBuf, prim);
 }
 
 static bool rfnSimpleBox(const Obdn_I_Event* event, Widget* widget)
@@ -296,18 +326,16 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
 
     const Obdn_R_Primitive* prim = &widget->primitives[0];
 
-    obdn_r_BindPrim(cmdBuf, prim);
-
     PushConstantFrag pc = {
         .i0 = widget->width,
         .i1 = widget->height,
         .f0 = widget->data.slider.sliderPos
     };
 
-    vkCmdPushConstants(cmdBuf, pipelineLayouts[0], VK_SHADER_STAGE_FRAGMENT_BIT, 
+    vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 
             0, sizeof(pc), &pc);
 
-    vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
+    obdn_r_DrawPrim(cmdBuf, prim);
 }
 
 static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
@@ -335,7 +363,24 @@ static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
         default: break;
     }
     return false;
-    return false;
+}
+
+static void dfnText(const VkCommandBuffer cmdBuf, const Widget* widget)
+{
+    assert(widget->primCount == 1);
+
+    vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelines[PIPELINE_TEXTURE]);
+
+    const Obdn_R_Primitive* prim = &widget->primitives[0];
+
+    PushConstantFrag pc = {
+        .i0 = widget->data.text.imageIndex
+    };
+
+    vkCmdPushConstants(cmdBuf, pipelineLayout, VK_SHADER_STAGE_FRAGMENT_BIT, 
+            0, sizeof(pc), &pc);
+
+    obdn_r_DrawPrim(cmdBuf, prim);
 }
 
 static bool rfnPassThrough(const Obdn_I_Event* event, Widget* widget)
@@ -376,13 +421,9 @@ static void initFrameBuffers(void)
 
 static void destroyPipelines(void)
 {
-    for (int i = 0; i < OBDN_MAX_PIPELINES; i++) 
+    for (int i = 0; i < PIPELINE_COUNT; i++) 
     {
-        if (pipelines[i])
-        {
-            vkDestroyPipeline(device, pipelines[i], NULL);
-            pipelines[i] = 0;
-        }
+        vkDestroyPipeline(device, pipelines[i], NULL);
     }
 }
 
@@ -402,17 +443,20 @@ static void onSwapchainRecreate(void)
     initFrameBuffers();
 }
 
+// does not modify parent
 static void destroyWidget(Widget* widget)
 {
     const uint8_t widgetCount = widget->widgetCount;
     for (int i = 0; i < widgetCount; i++)
     {
-        destroyWidget(widget->widgets[i]); // destroy children
+        destroyWidget(widget->widgets[i]); // destroy children. careful, this can modify widgetCount
     }
     for (int i = 0; i < widget->primCount; i++)
     {
         obdn_r_FreePrim(&widget->primitives[i]);
     }
+    if (widget->destructFn)
+        widget->destructFn(widget);
     freeWidget(widget);
 }
 
@@ -420,11 +464,11 @@ void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayou
 {
     initRenderCommands();
     initRenderPass(inputLayout, finalLayout);
-    initPipelineLayouts();
+    initDescriptionsAndPipelineLayouts();
     initPipelines();
     initFrameBuffers();
 
-    rootWidget = addWidget(0, 0, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL);
+    rootWidget = addWidget(0, 0, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL, NULL);
 
     obdn_i_Subscribe(responder);
     obdn_r_RegisterSwapchainRecreationFn(onSwapchainRecreate);
@@ -434,7 +478,7 @@ void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayou
 Obdn_U_Widget* obdn_u_CreateSimpleBox(const int16_t x, const int16_t y, 
         const int16_t width, const int16_t height, Widget* parent)
 {
-    Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, dfnSimpleBox, parent);
+    Widget* widget = addWidget(x, y, width, height, rfnSimpleBox, dfnSimpleBox, NULL, parent);
 
     widget->primCount = 1;
     widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
@@ -445,13 +489,31 @@ Obdn_U_Widget* obdn_u_CreateSimpleBox(const int16_t x, const int16_t y,
 Obdn_U_Widget* obdn_u_CreateSlider(const int16_t x, const int16_t y, 
         Widget* parent)
 {
-    Widget* widget = addWidget(x, y, 300, 40, rfnSlider, dfnSlider, parent);
+    Widget* widget = addWidget(x, y, 300, 40, rfnSlider, dfnSlider, NULL, parent);
     printf("Slider X %d Y %d\n", x, y);
 
     widget->primCount = 1;
     widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
 
     widget->data.slider.sliderPos = 0.5;
+
+    return widget;
+}
+
+Obdn_U_Widget* obdn_u_CreateText(const int16_t x, const int16_t y, const char* text,
+        Widget* parent)
+{
+    Widget* widget = addWidget(x, y, 1000, 1000, NULL, dfnText, NULL, parent);
+    printf("UI: Text widget X %d Y %d\n", x, y);
+
+    widget->primCount = 1;
+    widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
+    strncpy(widget->data.text.text, text, OBDN_U_MAX_TEXT_SIZE);
+
+    images[imageCount] = obdn_t_CreateTextImage(1000, 1000, widget->x,
+                               widget->y, 20, widget->data.text.text);
+    updateTexture(imageCount);
+    widget->data.text.imageIndex = imageCount++;
 
     return widget;
 }
@@ -517,9 +579,14 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
         .i1 = OBDN_WINDOW_HEIGHT
     };
 
-    vkCmdPushConstants(cmdBuf, pipelineLayouts[0], 
+    vkCmdPushConstants(cmdBuf, pipelineLayout, 
             VK_SHADER_STAGE_VERTEX_BIT, 
             sizeof(PushConstantFrag), sizeof(PushConstantVert), &pc);
+
+    vkCmdBindDescriptorSets(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
+                            pipelineLayout, 0,
+                            descriptions[frameIndex].descriptorSetCount,
+                            descriptions[frameIndex].descriptorSets, 0, NULL);
 
     drawWidget(cmdBuf, rootWidget);
 
@@ -534,37 +601,41 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
     return renderCommands[frameIndex].semaphore;
 }
 
+// does modify parent
 void obdn_u_DestroyWidget(Widget* widget)
 {
     int wi = -1;
-    for (int i = 0; i < rootWidget->widgetCount; i++)
+    Widget* parent = widget->parent;
+    if (!parent)
+        parent = rootWidget;
+    for (int i = 0; i < parent->widgetCount; i++)
     {
-        if (rootWidget->widgets[i] == widget) 
+        if (parent->widgets[i] == widget) 
             wi = i;
     }
     if (wi != -1)
     {
         destroyWidget(widget);
-        rootWidget->widgets[wi] = rootWidget->widgets[--rootWidget->widgetCount];
+        parent->widgets[wi] = parent->widgets[--parent->widgetCount];
+    }
+    else {
+        assert(0 && "Widget is not a child of its own parent...");
     }
 }
 
 void obdn_u_CleanUp(void)
 {
     destroyFramebuffers();
-    for (int i = 0; i < OBDN_MAX_PIPELINES; i++) 
-    {
-        if (pipelineLayouts[i])
-        {
-            vkDestroyPipelineLayout(device, pipelineLayouts[i], NULL);
-            pipelineLayouts[i] = 0;
-        }
-    }
+    vkDestroyPipelineLayout(device, pipelineLayout, NULL);
     destroyPipelines();
     vkDestroyRenderPass(device, renderPass, NULL);
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         obdn_v_DestroyCommand(renderCommands[i]);
+    }
+    for (int i = 0; i < imageCount; i++)
+    {
+        obdn_v_FreeImage(&images[i]);
     }
     destroyWidget(rootWidget);
 }

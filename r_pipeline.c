@@ -588,3 +588,9 @@ char* obdn_r_FullscreenTriVertShader(void)
 {
     return OBDN_SPVDIR"/post-vert.spv";
 }
+
+void obdn_r_DestroyDescription(Obdn_R_Description* d)
+{
+    vkDestroyDescriptorPool(device, d->descriptorPool, NULL);
+    memset(d, 0, sizeof(*d));
+}

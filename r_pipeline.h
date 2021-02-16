@@ -26,7 +26,6 @@ typedef struct {
 
 typedef struct {
     VkDescriptorPool      descriptorPool;
-    //VkDescriptorSetLayout descriptorSetLayouts[OBDN_MAX_DESCRIPTOR_SETS]; 
     VkDescriptorSet       descriptorSets[OBDN_MAX_DESCRIPTOR_SETS];
     uint32_t              descriptorSetCount;
 } Obdn_R_Description;
@@ -77,6 +76,8 @@ typedef struct {
     uint8_t          chitCount;
     char**           chitShaders;
 } Obdn_R_RayTracePipelineInfo;
+
+void obdn_r_DestroyDescription(Obdn_R_Description*);
 
 void obdn_r_CreateDescriptorSetLayouts(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
         VkDescriptorSetLayout layouts[count]);
