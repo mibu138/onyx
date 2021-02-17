@@ -61,6 +61,7 @@ Obdn_U_Widget* obdn_u_CreateSlider(const int16_t x, const int16_t y,
                         Obdn_U_Widget* parent);
 Obdn_U_Widget* obdn_u_CreateText(const int16_t x, const int16_t y, const char* text,
                         Obdn_U_Widget* parent);
+void           obdn_u_UpdateText(const char* text, Obdn_U_Widget* widget);
 VkSemaphore    obdn_u_Render(const VkSemaphore waitSemephore);
 void           obdn_u_CleanUp(void);
 void           obdn_u_DestroyWidget(Obdn_U_Widget* widget);

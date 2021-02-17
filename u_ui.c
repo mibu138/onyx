@@ -1,5 +1,6 @@
 #include "u_ui.h"
 #include "obsidian/t_text.h"
+#include "obsidian/v_image.h"
 #include "obsidian/v_memory.h"
 #include "r_geo.h"
 #include "r_render.h"
@@ -503,19 +504,28 @@ Obdn_U_Widget* obdn_u_CreateSlider(const int16_t x, const int16_t y,
 Obdn_U_Widget* obdn_u_CreateText(const int16_t x, const int16_t y, const char* text,
         Widget* parent)
 {
-    Widget* widget = addWidget(x, y, 1000, 1000, NULL, dfnText, NULL, parent);
+    const int charCount = strlen(text);
+    const int width = charCount * 25;
+    Widget* widget = addWidget(x, y, width, 100, NULL, dfnText, NULL, parent);
     printf("UI: Text widget X %d Y %d\n", x, y);
 
     widget->primCount = 1;
     widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
     strncpy(widget->data.text.text, text, OBDN_U_MAX_TEXT_SIZE);
 
-    images[imageCount] = obdn_t_CreateTextImage(1000, 1000, widget->x,
-                               widget->y, 20, widget->data.text.text);
+    images[imageCount] = obdn_t_CreateTextImage(width, 100, 0,
+                               50, 36, widget->data.text.text);
     updateTexture(imageCount);
     widget->data.text.imageIndex = imageCount++;
 
     return widget;
+}
+
+void obdn_u_UpdateText(const char* text, Widget* widget)
+{
+    vkDeviceWaitIdle(device);
+    obdn_t_UpdateTextImage(0, 50, text, &images[widget->data.text.imageIndex]);
+    updateTexture(widget->data.text.imageIndex);
 }
 
 static void widgetReport(Widget* widget)
@@ -632,11 +642,13 @@ void obdn_u_CleanUp(void)
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         obdn_v_DestroyCommand(renderCommands[i]);
+        obdn_r_DestroyDescription(&descriptions[i]);
     }
     for (int i = 0; i < imageCount; i++)
     {
         obdn_v_FreeImage(&images[i]);
     }
+    vkDestroyDescriptorSetLayout(device, descriptorSetLayout, NULL);
     destroyWidget(rootWidget);
 }
 

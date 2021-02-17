@@ -107,3 +107,19 @@ Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height,
 
     return image;
 }
+
+void obdn_t_UpdateTextImage(const size_t x, const size_t y, const char* text, Obdn_V_Image* image)
+{
+    const size_t width  = image->extent.width;
+    const size_t height = image->extent.height;
+
+    Obdn_V_BufferRegion region = obdn_v_RequestBufferRegion(width * height, 
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
+            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+
+    drawString(text, width, height, x, y, region.hostData);
+
+    obdn_v_CopyBufferToImage(&region, image);
+
+    obdn_v_FreeBufferRegion(&region);
+}
