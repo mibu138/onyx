@@ -64,10 +64,10 @@ typedef struct {
     uint32_t                  subpass;
     VkSpecializationInfo*     pVertSpecializationInfo;
     VkSpecializationInfo*     pFragSpecializationInfo;
-    char* vertShader;
-    char* fragShader;
-    char* tessCtrlShader;
-    char* tessEvalShader;
+    char*                     vertShader;
+    char*                     fragShader;
+    char*                     tessCtrlShader;
+    char*                     tessEvalShader;
 } Obdn_R_GraphicsPipelineInfo;
 
 typedef struct {
