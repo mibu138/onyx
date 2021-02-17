@@ -62,6 +62,8 @@ typedef struct {
     uint32_t                  attachmentCount;
     uint32_t                  tesselationPatchPoints;
     uint32_t                  subpass;
+    VkSpecializationInfo*     pVertSpecializationInfo;
+    VkSpecializationInfo*     pFragSpecializationInfo;
     char* vertShader;
     char* fragShader;
     char* tessCtrlShader;

@@ -123,12 +123,12 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         shaderStages[i][0].stage = VK_SHADER_STAGE_VERTEX_BIT;
         shaderStages[i][0].module = vertModule;
         shaderStages[i][0].pName = "main";
-        shaderStages[i][0].pSpecializationInfo = NULL;
+        shaderStages[i][0].pSpecializationInfo = rasterInfo->pVertSpecializationInfo;
         shaderStages[i][1].sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStages[i][1].stage = VK_SHADER_STAGE_FRAGMENT_BIT;
         shaderStages[i][1].module = fragModule;
         shaderStages[i][1].pName = "main";
-        shaderStages[i][1].pSpecializationInfo = NULL;
+        shaderStages[i][1].pSpecializationInfo = rasterInfo->pFragSpecializationInfo;
         if (rasterInfo->tessCtrlShader)
         {
             assert(rasterInfo->tessEvalShader);
