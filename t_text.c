@@ -4,13 +4,16 @@
 #include <ft2build.h>
 
 #include FT_FREETYPE_H
+#include FT_MODULE_H
+#include FT_SYSTEM_H
 
-FT_Library    library;
-FT_Face       face;
-FT_Matrix     matrix;                 /* transformation matrix */
-FT_Vector     pen;                    /* untransformed origin  */
-FT_Error      error;
+static FT_Library    library;
+static FT_Face       face;
+static FT_Matrix     matrix;                 /* transformation matrix */
+static FT_Vector     pen;                    /* untransformed origin  */
+static FT_Error      error;
 
+static bool initialized = false;
 /* origin is the upper left corner */
 
 static void draw_bitmap( FT_Bitmap*  bitmap,
@@ -69,24 +72,28 @@ static void drawString(const char* string, const size_t width, const size_t heig
     }
 }
 
+static void initFT(const size_t fontSize)
+{
+    error = FT_Init_FreeType(&library);
+    if (error)
+    {
+        printf("FT_Init_FreeType error: %d\n", error);
+    }
+    assert(!error);
+    error = FT_New_Face(library, "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 0, &face);
+    assert(!error);
+    error = FT_Set_Pixel_Sizes(face, 0, fontSize);
+    assert(!error);
+    initialized = true;
+}
+
 Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text)
 {
-    static bool initialized = false;
     if (!initialized)
     {
-        error = FT_Init_FreeType(&library);
-        if (error)
-        {
-            printf("FT_Init_FreeType error: %d\n", error);
-        }
-        assert(!error);
-        error = FT_New_Face(library, "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 0, &face);
-        assert(!error);
-        error = FT_Set_Pixel_Sizes(face, 0, fontSize);
-        assert(!error);
-        initialized = true;
+        initFT(fontSize);
     }
 
     Obdn_V_Image image = obdn_v_CreateImageAndSampler(width, height, VK_FORMAT_R8_UINT, 

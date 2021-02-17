@@ -45,6 +45,7 @@ typedef enum {
 typedef enum {
     OBDN_R_BLEND_MODE_NONE,
     OBDN_R_BLEND_MODE_OVER,
+    OBDN_R_BLEND_MODE_OVER_STRAIGHT, //no premultiply
     OBDN_R_BLEND_MODE_ERASE,
 } Obdn_R_BlendMode;
 

@@ -13,9 +13,19 @@
 
 enum shaderStageType { VERT, FRAG };
 
-static void setBlendModeOver(VkPipelineColorBlendAttachmentState* state)
+static void setBlendModeOverPremult(VkPipelineColorBlendAttachmentState* state)
 {
     state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state->colorBlendOp = VK_BLEND_OP_ADD;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state->alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
+static void setBlendModeOverStraight(VkPipelineColorBlendAttachmentState* state)
+{
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
     state->colorBlendOp = VK_BLEND_OP_ADD;
     state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
@@ -225,8 +235,9 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
 
         switch (rasterInfo->blendMode)
         {
-            case OBDN_R_BLEND_MODE_OVER:  setBlendModeOver(&attachmentStates[i][0]); break;
-            case OBDN_R_BLEND_MODE_ERASE: setBlendModeErase(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_OVER:          setBlendModeOverPremult(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_OVER_STRAIGHT: setBlendModeOverStraight(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_ERASE:         setBlendModeErase(&attachmentStates[i][0]); break;
             default: break;
         }
 
