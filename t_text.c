@@ -77,6 +77,10 @@ Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height,
     if (!initialized)
     {
         error = FT_Init_FreeType(&library);
+        if (error)
+        {
+            printf("FT_Init_FreeType error: %d\n", error);
+        }
         assert(!error);
         error = FT_New_Face(library, "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 0, &face);
         assert(!error);

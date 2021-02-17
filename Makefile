@@ -2,7 +2,7 @@ CC = gcc
 GLC = glslc
 
 CFLAGS = -Wall -Wno-missing-braces -Wno-attributes -fPIC
-LDFLAGS = -L/opt/hfs18.0/dsolib
+LDFLAGS = -L/opt/hfs18.6/dsolib
 INFLAGS = -I$(HOME)/dev -I/usr/include/freetype2
 LIBS = -lm -lcarbon -lvulkan -lxcb -lxcb-keysyms -lfreetype
 LIB  = $(HOME)/lib
