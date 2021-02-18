@@ -57,7 +57,6 @@ static VkFramebuffer    framebuffers[OBDN_FRAME_COUNT];
 
 _Static_assert(MAX_IMAGE_COUNT <= 256, "Max image count cannot be greater than 256 to fit in imageCount");
 
-static uint8_t imageCount;
 static Image   images[MAX_IMAGE_COUNT];
 
 static Obdn_V_Command  renderCommands[OBDN_FRAME_COUNT];
@@ -384,6 +383,11 @@ static void dfnText(const VkCommandBuffer cmdBuf, const Widget* widget)
     obdn_r_DrawPrim(cmdBuf, prim);
 }
 
+static void destructText(Widget* text)
+{
+    obdn_v_FreeImage(&images[text->data.text.imageIndex]);
+}
+
 static bool rfnPassThrough(const Obdn_I_Event* event, Widget* widget)
 {
     return propogateEventToChildren(event, widget);
@@ -461,6 +465,16 @@ static void destroyWidget(Widget* widget)
     freeWidget(widget);
 }
 
+static int requestImageIndex(void)
+{
+    for (int i = 0; i < MAX_IMAGE_COUNT; i++)
+    {
+        if (images[i].size == 0) // available
+            return i;
+    }
+    return -1;
+}
+
 void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
 {
     initRenderCommands();
@@ -506,17 +520,17 @@ Obdn_U_Widget* obdn_u_CreateText(const int16_t x, const int16_t y, const char* t
 {
     const int charCount = strlen(text);
     const int width = charCount * 25;
-    Widget* widget = addWidget(x, y, width, 100, NULL, dfnText, NULL, parent);
+    Widget* widget = addWidget(x, y, width, 100, NULL, dfnText, destructText, parent);
     printf("UI: Text widget X %d Y %d\n", x, y);
 
     widget->primCount = 1;
     widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
     strncpy(widget->data.text.text, text, OBDN_U_MAX_TEXT_SIZE);
 
-    images[imageCount] = obdn_t_CreateTextImage(width, 100, 0,
+    const int imgId = requestImageIndex();
+    images[imgId] = obdn_t_CreateTextImage(width, 100, 0,
                                50, 36, widget->data.text.text);
-    updateTexture(imageCount);
-    widget->data.text.imageIndex = imageCount++;
+    updateTexture(imgId);
 
     return widget;
 }
@@ -644,9 +658,10 @@ void obdn_u_CleanUp(void)
         obdn_v_DestroyCommand(renderCommands[i]);
         obdn_r_DestroyDescription(&descriptions[i]);
     }
-    for (int i = 0; i < imageCount; i++)
+    for (int i = 0; i < MAX_IMAGE_COUNT; i++)
     {
-        obdn_v_FreeImage(&images[i]);
+        if (images[i].size != 0)
+            obdn_v_FreeImage(&images[i]);
     }
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, NULL);
     destroyWidget(rootWidget);
