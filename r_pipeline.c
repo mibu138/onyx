@@ -35,12 +35,12 @@ static void setBlendModeOverStraight(VkPipelineColorBlendAttachmentState* state)
 
 static void setBlendModeErase(VkPipelineColorBlendAttachmentState* state)
 {
-    state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
-    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    state->colorBlendOp = VK_BLEND_OP_REVERSE_SUBTRACT;
-    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    state->alphaBlendOp = VK_BLEND_OP_REVERSE_SUBTRACT;
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state->colorBlendOp = VK_BLEND_OP_ADD;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+    state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
 static void initShaderModule(const char* filepath, VkShaderModule* module)
