@@ -61,6 +61,7 @@ VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
 static void initSwapchainWithSurface()
 {
     VkBool32 supported;
+    const VkPhysicalDevice physicalDevice = obdn_v_GetPhysicalDevice();
     const VkSurfaceKHR surface = obdn_v_GetSurface();
     vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, surface, &supported);
 

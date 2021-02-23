@@ -13,7 +13,7 @@
 #include "t_def.h"
 #include <stdlib.h>
 
-Obdn_D_XcbWindow d_XcbWindow;
+static Obdn_D_XcbWindow xcbWindow;
 
 static xcb_key_symbols_t* pXcbKeySymbols;
 
@@ -94,7 +94,7 @@ static Obdn_I_EventData getConfigureData(const xcb_generic_event_t* event)
     return data;
 }
 
-void obdn_d_Init(const uint16_t width, const uint16_t height, const char* name)
+Obdn_D_XcbWindow obdn_d_Init(const uint16_t width, const uint16_t height, const char* name)
 {
     if (name)
     {
@@ -104,10 +104,10 @@ void obdn_d_Init(const uint16_t width, const uint16_t height, const char* name)
     OBDN_WINDOW_WIDTH  = width;
     OBDN_WINDOW_HEIGHT = height;
     int screenNum = 0;
-    d_XcbWindow.connection =     xcb_connect(NULL, &screenNum);
-    d_XcbWindow.window     =     xcb_generate_id(d_XcbWindow.connection);
+    xcbWindow.connection =     xcb_connect(NULL, &screenNum);
+    xcbWindow.window     =     xcb_generate_id(xcbWindow.connection);
 
-    const xcb_setup_t* setup   = xcb_get_setup(d_XcbWindow.connection);
+    const xcb_setup_t* setup   = xcb_get_setup(xcbWindow.connection);
     xcb_screen_iterator_t iter = xcb_setup_roots_iterator(setup);
 
     for (int i = 0; i < screenNum; i++)
@@ -133,9 +133,9 @@ void obdn_d_Init(const uint16_t width, const uint16_t height, const char* name)
 		XCB_EVENT_MASK_BUTTON_PRESS |
 		XCB_EVENT_MASK_BUTTON_RELEASE;
 
-    xcb_create_window(d_XcbWindow.connection, 
+    xcb_create_window(xcbWindow.connection, 
             XCB_COPY_FROM_PARENT,              // depth 
-            d_XcbWindow.window,                  // window id
+            xcbWindow.window,                  // window id
             screen->root,                      // parent
             0, 0,                              // x and y coordinate of new window
             OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, 
@@ -144,30 +144,32 @@ void obdn_d_Init(const uint16_t width, const uint16_t height, const char* name)
             XCB_COPY_FROM_PARENT,              // visual 
             mask, values);                          // masks (TODO: set to get inputs)
 
-    xcb_change_property(d_XcbWindow.connection, 
+    xcb_change_property(xcbWindow.connection, 
             XCB_PROP_MODE_REPLACE, 
-            d_XcbWindow.window, 
+            xcbWindow.window, 
             XCB_ATOM_WM_NAME, 
             XCB_ATOM_STRING, 8, strlen(windowName), windowName);
 
-    xcb_map_window(d_XcbWindow.connection, d_XcbWindow.window);
-    xcb_flush(d_XcbWindow.connection);
-    pXcbKeySymbols = xcb_key_symbols_alloc(d_XcbWindow.connection);
+    xcb_map_window(xcbWindow.connection, xcbWindow.window);
+    xcb_flush(xcbWindow.connection);
+    pXcbKeySymbols = xcb_key_symbols_alloc(xcbWindow.connection);
     printf("Obsidian Display initialized.\n");
+
+    return xcbWindow;
 }
 
 void obdn_d_CleanUp(void)
 {
     xcb_key_symbols_free(pXcbKeySymbols);
-    xcb_flush(d_XcbWindow.connection);
-    xcb_destroy_window(d_XcbWindow.connection, d_XcbWindow.window);
-    xcb_disconnect(d_XcbWindow.connection);
+    xcb_flush(xcbWindow.connection);
+    xcb_destroy_window(xcbWindow.connection, xcbWindow.window);
+    xcb_disconnect(xcbWindow.connection);
 }
 
 void obdn_d_DrainEventQueue(void)
 {
     xcb_generic_event_t* xEvent = NULL;
-    while ((xEvent = xcb_poll_for_event(d_XcbWindow.connection)))
+    while ((xEvent = xcb_poll_for_event(xcbWindow.connection)))
     {
         Obdn_I_Event event;
         switch (XCB_EVENT_RESPONSE_TYPE(xEvent))
@@ -190,7 +192,7 @@ void obdn_d_DrainEventQueue(void)
                 if (data.keyCode == 0) goto end;
                 event.data = data;
                 // need to see if this is actually an auto repeat
-                xcb_generic_event_t* next = xcb_poll_for_event(d_XcbWindow.connection);
+                xcb_generic_event_t* next = xcb_poll_for_event(xcbWindow.connection);
                 if (next) 
                 {
                     Obdn_I_Event event2;

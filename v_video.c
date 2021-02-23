@@ -18,7 +18,7 @@
 
 static VkInstance instance;
 
-VkPhysicalDevice  physicalDevice;
+static VkPhysicalDevice  physicalDevice;
 VkDevice          device;
 
 static uint32_t graphicsQueueCount;
@@ -41,7 +41,7 @@ static VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties;
 
 Obdn_V_Config obdn_v_config;
 
-VkPhysicalDeviceProperties deviceProperties;
+static VkPhysicalDeviceProperties deviceProperties;
 
 VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -662,3 +662,12 @@ void obdn_v_SubmitTransferCommand(const uint32_t queueIndex,
     V_ASSERT( vkQueueSubmit(transferQueues[queueIndex], 1, &si, fence) );
 }
 
+VkPhysicalDevice obdn_v_GetPhysicalDevice(void)
+{
+    return physicalDevice;
+}
+
+const VkPhysicalDeviceProperties* obdn_v_GetPhysicalDeviceProperties(void)
+{
+    return &deviceProperties;
+}

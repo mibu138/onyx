@@ -641,7 +641,7 @@ Obdn_R_Primitive obdn_r_CreatePrimitive(const uint32_t vertCount, const uint32_t
         prim.attrSizes[i] = attrSizes[i];
     }
 
-    initPrimBuffersAligned(&prim, deviceProperties.limits.minStorageBufferOffsetAlignment); // for use in compute / rt shaders
+    initPrimBuffersAligned(&prim, obdn_v_GetPhysicalDeviceProperties()->limits.minStorageBufferOffsetAlignment); // for use in compute / rt shaders
 
     return prim;
 }

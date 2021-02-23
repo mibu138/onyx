@@ -47,18 +47,24 @@ static BlockChain blockChainDeviceGraphicsImage;
 static BlockChain blockChainHostTransferBuffer;
 static BlockChain blockChainExternalDeviceGraphicsImage; // for sharing with external apis like opengl
 
+static const VkPhysicalDeviceProperties* deviceProperties;
+
 static uint32_t hostVisibleCoherentTypeIndex = 0;
 static uint32_t deviceLocalTypeIndex = 0;
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
-void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
+static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement) __attribute__ ((unused));
+static void printBufferMemoryReqs(const VkMemoryRequirements* reqs) __attribute__ ((unused));
+static void printBlockChainInfo(const BlockChain* chain) __attribute__ ((unused));
+
+static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
     printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
 }
 
-void printBlockChainInfo(const BlockChain* chain)
+static void printBlockChainInfo(const BlockChain* chain)
 {
     printf("BlockChain %s:\n", chain->name);
     printf("totalSize: %ld\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
@@ -378,7 +384,9 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
     hostVisibleCoherentTypeIndex = 0;
     deviceLocalTypeIndex = 0;
 
-    vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+    deviceProperties = obdn_v_GetPhysicalDeviceProperties();
+
+    vkGetPhysicalDeviceMemoryProperties(obdn_v_GetPhysicalDevice(), &memoryProperties);
 
     V1_PRINT("Memory Heap Info:\n");
     for (int i = 0; i < memoryProperties.memoryHeapCount; i++) 
@@ -528,9 +536,9 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegion(const size_t size,
 {
     uint32_t alignment = 16;
     if ( VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
-        alignment = MAX(deviceProperties.limits.minStorageBufferOffsetAlignment, alignment);
+        alignment = MAX(deviceProperties->limits.minStorageBufferOffsetAlignment, alignment);
     if ( VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags)
-        alignment = MAX(deviceProperties.limits.minUniformBufferOffsetAlignment, alignment);
+        alignment = MAX(deviceProperties->limits.minUniformBufferOffsetAlignment, alignment);
     if ( VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR & flags)
         alignment = MAX(256, alignment); // 256 comes from spec for VkAccelerationStructureCreateInfoKHR - see offset
     return obdn_v_RequestBufferRegionAligned(size, alignment, memType); //TODO: fix this. find the maximum alignment and choose that
@@ -562,8 +570,8 @@ Obdn_V_Image obdn_v_CreateImage(
     assert(mipLevels > 0);
     assert(memType == OBDN_V_MEMORY_DEVICE_TYPE || memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
 
-    assert(deviceProperties.limits.framebufferColorSampleCounts >= sampleCount);
-    assert(deviceProperties.limits.framebufferDepthSampleCounts >= sampleCount);
+    assert(deviceProperties->limits.framebufferColorSampleCounts >= sampleCount);
+    assert(deviceProperties->limits.framebufferDepthSampleCounts >= sampleCount);
 
     void* pNext = NULL;
     VkExternalMemoryImageCreateInfo externalImageInfo;

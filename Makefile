@@ -70,7 +70,7 @@ debug: all
 nbp: CFLAGS += -DNO_BEST_PRACTICE
 nbp: debug
 
-release: CFLAGS += -DNDEBUG -O3 
+release: CFLAGS += -DNDEBUG -O2 
 release: all
 
 all: lib tags shaders

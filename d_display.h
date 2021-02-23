@@ -11,10 +11,8 @@ typedef struct {
     xcb_window_t      window;
 } Obdn_D_XcbWindow;
 
-extern Obdn_D_XcbWindow d_XcbWindow;
-
 // if null name will default to "floating"
-void obdn_d_Init(const uint16_t width, const uint16_t height, const char* name);
+Obdn_D_XcbWindow obdn_d_Init(const uint16_t width, const uint16_t height, const char* name);
 void obdn_d_DrainEventQueue(void);
 void obdn_d_CleanUp(void);
 
