@@ -39,11 +39,12 @@ static VkDebugUtilsMessengerEXT debugMessenger;
     
 static VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties;
 
-Obdn_V_Config obdn_v_config;
-
 static VkPhysicalDeviceProperties deviceProperties;
 
-VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
+static void inspectAvailableLayers(void) __attribute__ ((unused));
+static void inspectAvailableExtensions(void) __attribute__ ((unused));
+
+static VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
@@ -52,7 +53,7 @@ VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     return VK_FALSE; // application must return false;
 }
 
-void inspectAvailableLayers(void)
+static void inspectAvailableLayers(void)
 {
     uint32_t availableCount;
     vkEnumerateInstanceLayerProperties(&availableCount, NULL);
@@ -77,7 +78,7 @@ void inspectAvailableLayers(void)
     putchar('\n');
 }
 
-void inspectAvailableExtensions(void)
+static void inspectAvailableExtensions(void)
 {
     uint32_t availableCount;
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount, NULL);
@@ -101,7 +102,7 @@ static uint32_t getVkVersionAvailable(void)
     return v;
 }
 
-static void initVkInstance(void)
+static void initVkInstance(const Obdn_V_Config* config)
 {
     uint32_t vulkver = getVkVersionAvailable();
     //uint32_t vulkver = VK_MAKE_VERSION(1, 2, 0);
@@ -164,7 +165,7 @@ static void initVkInstance(void)
         .pNext = &extraValidation,
     };
 
-    if (!obdn_v_config.validationEnabled)
+    if (!config->validationEnabled)
     {
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
@@ -226,7 +227,7 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
     return devices[selected];
 }
 
-static void initDevice(const uint32_t userExtCount, const char* userExtensions[userExtCount])
+static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount, const char* userExtensions[userExtCount])
 {
     physicalDevice = retrievePhysicalDevice();
     uint32_t qfcount;
@@ -329,14 +330,14 @@ static void initDevice(const uint32_t userExtCount, const char* userExtensions[u
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
     };
 
-    if (obdn_v_config.rayTraceEnabled)
+    if (config->rayTraceEnabled)
         phsicalDeviceProperties2.pNext = &rayTracingProps;
     else
         phsicalDeviceProperties2.pNext = NULL;
 
     vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
 
-    if (obdn_v_config.rayTraceEnabled)
+    if (config->rayTraceEnabled)
         rtProperties = rayTracingProps;
 
     const char* extensionsRT[] = {
@@ -397,7 +398,7 @@ static void initDevice(const uint32_t userExtCount, const char* userExtensions[u
         .pNext = &descIndexingFeatures
     };
 
-    if (obdn_v_config.rayTraceEnabled)
+    if (config->rayTraceEnabled)
         devAddressFeatures.pNext = &rtFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
@@ -446,7 +447,7 @@ static void initDevice(const uint32_t userExtCount, const char* userExtensions[u
 
     int defExtCount = 0;
     const char** defaultExtNames;
-    if (obdn_v_config.rayTraceEnabled)
+    if (config->rayTraceEnabled)
     {
         defExtCount += OBDN_ARRAY_SIZE(extensionsRT);
         defaultExtNames = extensionsRT;
@@ -491,18 +492,6 @@ static void initDevice(const uint32_t userExtCount, const char* userExtensions[u
         .queueCreateInfoCount = OBDN_ARRAY_SIZE(qci),
     };
 
-    //if (obdn_v_config.rayTraceEnabled)
-    //{
-    //    V1_PRINT("Ray tracing enabled...\n");
-    //    dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsRT);
-    //    dci.ppEnabledExtensionNames = extensionsRT;
-    //}
-    //else
-    //{
-    //    dci.enabledExtensionCount = OBDN_ARRAY_SIZE(extensionsReg);
-    //    dci.ppEnabledExtensionNames = extensionsReg;
-    //}
-
     V_ASSERT( vkCreateDevice(physicalDevice, &dci, NULL, &device) );
     V1_PRINT("Device created successfully.\n");
 }
@@ -525,18 +514,18 @@ static void initQueues(void)
 }
 
 const VkInstance* obdn_v_Init(
-        const Obdn_V_MemorySizes* memSizes,
+        const Obdn_V_Config* config,
         const int extcount, const char* extensions[])
 {
     nativeSurface = VK_NULL_HANDLE;
-    initVkInstance();
-    if (obdn_v_config.validationEnabled)
+    initVkInstance(config);
+    if (config->validationEnabled)
         initDebugMessenger();
-    initDevice(extcount, extensions);
-    if (obdn_v_config.rayTraceEnabled) //TODO not all functions have to do with raytracing
+    initDevice(config, extcount, extensions);
+    if (config->rayTraceEnabled) //TODO not all functions have to do with raytracing
         obdn_v_LoadFunctions(device);
     initQueues();
-    obdn_v_InitMemory(memSizes);
+    obdn_v_InitMemory(&config->memorySizes);
     printf("Obsidian Video initialized.\n");
     return &instance;
 }

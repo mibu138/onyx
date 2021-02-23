@@ -8,11 +8,6 @@
 #define OBDN_FRAME_COUNT 2
 
 typedef struct {
-    bool rayTraceEnabled;
-    bool validationEnabled;
-} Obdn_V_Config;
-
-typedef struct {
     VkDeviceSize hostGraphicsBufferMemorySize; 
     VkDeviceSize deviceGraphicsBufferMemorySize;
     VkDeviceSize deviceGraphicsImageMemorySize;
@@ -20,7 +15,11 @@ typedef struct {
     VkDeviceSize deviceExternalGraphicsImageMemorySize;
 } Obdn_V_MemorySizes;
 
-extern Obdn_V_Config obdn_v_config;
+typedef struct {
+    bool               rayTraceEnabled;
+    bool               validationEnabled;
+    Obdn_V_MemorySizes memorySizes;
+} Obdn_V_Config;
 
 #endif /* end of include guard: V_DEF_H */
 
