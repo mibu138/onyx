@@ -39,4 +39,6 @@ VkSurfaceKHR      obdn_v_GetSurface(void);
 const VkPhysicalDeviceProperties*               obdn_v_GetPhysicalDeviceProperties(void);
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR obdn_v_GetPhysicalDeviceRayTracingProperties(void);
 
+Obdn_V_Config     obdn_v_CreateBasicConfig(void);
+
 #endif /* end of include guard: V_VIDEO_H */

@@ -16,10 +16,9 @@
 
 
 // TODO: we should implement a way to specify the offscreen format
-const VkFormat presentColorFormat   = VK_FORMAT_R8G8B8A8_SRGB;
-const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
-const VkFormat depthFormat          = VK_FORMAT_D32_SFLOAT;
-VkFormat swapFormat                 = VK_FORMAT_B8G8R8A8_SRGB;
+static const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;
+static const VkFormat depthFormat          = VK_FORMAT_D32_SFLOAT;
+static VkFormat swapFormat                 = VK_FORMAT_B8G8R8A8_SRGB;
 
 static Obdn_R_Frame        frames[OBDN_FRAME_COUNT];
 static uint32_t            curFrameIndex;
@@ -31,6 +30,7 @@ static uint8_t      imageAcquiredSemaphoreIndex = 0;
 static uint64_t            frameCounter;
 
 #define MAX_SWAP_RECREATE_FNS 8
+
 static uint8_t swapRecreateFnCount = 0;
 static Obdn_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
 

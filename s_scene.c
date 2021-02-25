@@ -110,7 +110,6 @@ void obdn_s_CreateEmptyScene(Scene* scene)
     memset(scene, 0, sizeof(Scene));
     Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
     scene->camera.xform = m;
-    obdn_s_LoadTexture(scene, "data/chungus.jpg", 4); // for debugging, a texId of zero gives you this. if he shows up something went wrong
     obdn_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
     for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
@@ -316,3 +315,4 @@ void obdn_s_ClearPrimList(Obdn_S_PrimitiveList* list)
     list->primCount = 0;
     assert(list->primCount < OBDN_S_MAX_PRIMS);
 }
+

@@ -660,3 +660,18 @@ const VkPhysicalDeviceProperties* obdn_v_GetPhysicalDeviceProperties(void)
 {
     return &deviceProperties;
 }
+
+Obdn_V_Config obdn_v_CreateBasicConfig(void)
+{
+    Obdn_V_Config config = {
+        .rayTraceEnabled   = true,
+        .validationEnabled = true,
+        .memorySizes.hostGraphicsBufferMemorySize = OBDN_512_MiB,
+        .memorySizes.deviceGraphicsBufferMemorySize = OBDN_100_MiB,
+        .memorySizes.deviceGraphicsImageMemorySize = OBDN_1_GiB,
+    };
+#ifdef NDEBUG
+    config.validationEnabled = false;
+#endif
+    return config;
+}
