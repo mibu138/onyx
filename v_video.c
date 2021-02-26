@@ -9,6 +9,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include "v_command.h"
+#include "private.h"
 
 #include <unistd.h>
 #include <vulkan/vulkan_core.h>
@@ -67,8 +68,8 @@ static void inspectAvailableLayers(void)
     putchar('\n');
     for (int i = 0; i < availableCount; i++) {
         const char* name = propertiesAvailable[i].layerName;
-        const char* desc = propertiesAvailable[i].description;
-        const int pad = padding - strlen(name);
+        const char* desc UNUSED_ = propertiesAvailable[i].description;
+        const int pad UNUSED_ = padding - strlen(name);
         V1_PRINT("%s%*s\n", name, pad, desc );
         for (int i = 0; i < padding; i++) {
             putchar('-');   
@@ -95,9 +96,9 @@ static uint32_t getVkVersionAvailable(void)
 {
     uint32_t v;
     vkEnumerateInstanceVersion(&v);
-    uint32_t major = VK_VERSION_MAJOR(v);
-    uint32_t minor = VK_VERSION_MINOR(v);
-    uint32_t patch = VK_VERSION_PATCH(v);
+    uint32_t major UNUSED_ = VK_VERSION_MAJOR(v);
+    uint32_t minor UNUSED_ = VK_VERSION_MINOR(v);
+    uint32_t patch UNUSED_ = VK_VERSION_PATCH(v);
     V1_PRINT("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
     return v;
 }
@@ -574,8 +575,10 @@ void obdn_v_CleanUp(void)
     if (nativeSurface != VK_NULL_HANDLE)
         vkDestroySurfaceKHR(instance, nativeSurface, NULL);
     vkDestroyDevice(device, NULL);
-    vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
+    if (debugMessenger != VK_NULL_HANDLE)
+        vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
     vkDestroyInstance(instance, NULL);
+    printf("Obsidian video cleaned up.\n");
 }
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR obdn_v_GetPhysicalDeviceRayTracingProperties(void)

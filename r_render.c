@@ -330,6 +330,7 @@ void obdn_r_CleanUp(void)
     if (!useOffscreenSwapchain)
         vkDestroySwapchainKHR(device, swapchain, NULL);
     swapRecreateFnCount = 0;
+    printf("Obsidian render cleaned up.\n");
 }
 
 VkFormat obdn_r_GetOffscreenColorFormat(void) { return offscreenColorFormat; }

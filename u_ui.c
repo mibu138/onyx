@@ -665,6 +665,7 @@ void obdn_u_CleanUp(void)
     }
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, NULL);
     destroyWidget(rootWidget);
+    printf("Obsidian ui cleaned up.\n");
 }
 
 const VkSemaphore obdn_u_GetSemaphore(uint32_t frameIndex)

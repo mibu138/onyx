@@ -234,9 +234,12 @@ void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blass
         Mat4 xformT = m_Transpose_Mat4(&xforms[i]);
         VkTransformMatrixKHR transform;
         assert(sizeof(transform) == 12 * sizeof(float));
-        for (int i = 0; i < 12; i++)
+        for (int i = 0; i < 3; i++)
         {
-            transform.matrix[0][i] = xformT.x[0][i]; // overrunning on purpose
+            for (int j = 0; j < 4; j++)
+            {
+                transform.matrix[i][j] = xformT.x[i][j]; 
+            }
         }
         instances[i].accelerationStructureReference = obdn_v_GetBufferRegionAddress(&blasses[i].bufferRegion);
         instances[i].instanceCustomIndex = 0; // 0'th instance it

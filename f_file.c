@@ -1,3 +1,4 @@
+#include "private.h"
 #include "f_file.h"
 #include "r_geo.h"
 #include "v_memory.h"
@@ -9,6 +10,8 @@
 _Static_assert(sizeof(uint8_t) == sizeof(Obdn_R_AttributeSize), "sizeof(Obdn_R_AttributeSize) must be 1");
 
 typedef Obdn_F_Primitive FPrim;
+
+#define FCHECK
 
 static void printPrim(const FPrim* prim)
 {
@@ -177,7 +180,7 @@ int obdn_f_ReadPrimitive(const char* filename, Obdn_F_Primitive* fprim)
 {
     FILE* file = fopen(filename, "rb");
     assert(file);
-    size_t r;
+    size_t r UNUSED_;
     const size_t headerSize   = offsetof(Obdn_F_Primitive, attrSizes);
     assert(headerSize == 16);
     r = fread(fprim, headerSize, 1, file);

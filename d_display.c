@@ -164,6 +164,7 @@ void obdn_d_CleanUp(void)
     xcb_flush(xcbWindow.connection);
     xcb_destroy_window(xcbWindow.connection, xcbWindow.window);
     xcb_disconnect(xcbWindow.connection);
+    printf("Obsidian display cleaned up.\n");
 }
 
 void obdn_d_DrainEventQueue(void)
