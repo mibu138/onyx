@@ -11,12 +11,12 @@ layout(push_constant) uniform PC {
     int texId;
 } pc;
 
-layout(set = 0, binding = 0) uniform usampler2D textures[1];
+layout(set = 0, binding = 0) uniform usampler2D textures[];
 
 void main()
 {
     vec2 st = inUv.st;
-    uint v = texture(textures[0], st).r;
+    uint v = texture(textures[pc.texId], st).r;
     float H = float(v) / 255.0;
     outColor = vec4(1, 1, 1, H);
 }

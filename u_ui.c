@@ -92,9 +92,10 @@ static void initDescriptionsAndPipelineLayouts(void)
     const Obdn_R_DescriptorSetInfo dsInfo = {
         .bindingCount = 1,
         .bindings = {{
-            .descriptorCount = 1,
+            .descriptorCount = MAX_IMAGE_COUNT,
             .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
-            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT
+            .stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT,
+            .bindingFlags = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
         }}
     };
 
@@ -528,8 +529,10 @@ Obdn_U_Widget* obdn_u_CreateText(const int16_t x, const int16_t y, const char* t
     strncpy(widget->data.text.text, text, OBDN_U_MAX_TEXT_SIZE);
 
     const int imgId = requestImageIndex();
+    assert(imgId != -1 && "No image available");
     images[imgId] = obdn_t_CreateTextImage(width, 100, 0,
                                50, 36, widget->data.text.text);
+    widget->data.text.imageIndex = imgId;
     updateTexture(imgId);
 
     return widget;
