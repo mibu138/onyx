@@ -3,17 +3,7 @@
 
 #include <stdint.h>
 #include "r_geo.h"
-
-typedef struct {
-    uint32_t  attrCount;
-    uint32_t  vertexCount;
-    uint32_t  indexCount;
-    uint32_t  padding;
-    uint8_t*  attrSizes;
-    char**    attrNames;
-    void**    attributes;
-    Obdn_R_Index*      indices;
-} Obdn_F_Primitive;
+#include "f_prim.h"
 
 // Must be freed
 #ifdef __cplusplus

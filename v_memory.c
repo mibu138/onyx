@@ -4,6 +4,7 @@
 #include "t_def.h"
 #include "v_command.h"
 #include "t_utils.h"
+#include "private.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
@@ -51,9 +52,6 @@ static const VkPhysicalDeviceProperties* deviceProperties;
 
 static uint32_t hostVisibleCoherentTypeIndex = 0;
 static uint32_t deviceLocalTypeIndex = 0;
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement) __attribute__ ((unused));
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs) __attribute__ ((unused));

@@ -76,6 +76,11 @@ void obdn_v_WaitForFence(VkFence* fence)
     vkResetFences(device, 1, fence);
 }
 
+void obdn_v_WaitForFenceNoReset(VkFence* fence)
+{
+    vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
+}
+
 void obdn_v_DestroyCommand(Obdn_V_Command cmd)
 {
     vkDestroyCommandPool(device, cmd.pool, NULL);

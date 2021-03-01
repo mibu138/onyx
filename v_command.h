@@ -30,6 +30,7 @@ void obdn_v_DestroyCommand(Obdn_V_Command);
 
 void obdn_v_WaitForFence(VkFence* fence);
 void obdn_v_ResetCommand(Obdn_V_Command* cmd);
+void obdn_v_WaitForFenceNoReset(VkFence* fence);
 void obdn_v_MemoryBarrier(
     VkCommandBuffer      commandBuffer,
     VkPipelineStageFlags srcStageMask,

@@ -8,6 +8,7 @@
 #include "r_raytrace.h"
 #include "t_utils.h"
 #include "s_scene.h"
+#include "private.h"
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
@@ -37,9 +38,6 @@ static Obdn_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS
 static VkImageUsageFlags swapImageUsageFlags;
 
 static bool useOffscreenSwapchain = false;
-
-#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
-#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
     if (capabilities.currentExtent.width != UINT32_MAX) {
