@@ -94,6 +94,10 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count,
         const Obdn_R_RayTracePipelineInfo pipelineInfos[count], VkPipeline pipelines[count], Obdn_R_ShaderBindingTable[count]);
 void obdn_r_CleanUpPipelines(void);
 
+void obdn_r_CreateDescriptionsAndLayouts(const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
+        VkDescriptorSetLayout layouts[descSetCount], 
+        const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount]);
+
 // has clockwise orientation
 char* obdn_r_FullscreenTriVertShader(void);
 

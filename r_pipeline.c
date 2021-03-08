@@ -605,3 +605,14 @@ void obdn_r_DestroyDescription(Obdn_R_Description* d)
     vkDestroyDescriptorPool(device, d->descriptorPool, NULL);
     memset(d, 0, sizeof(*d));
 }
+
+void obdn_r_CreateDescriptionsAndLayouts(const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
+        VkDescriptorSetLayout layouts[descSetCount], 
+        const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount])
+{
+    obdn_r_CreateDescriptorSetLayouts(descSetCount, sets, layouts);
+    for (int i = 0; i < descriptionCount; i++)
+    {
+        obdn_r_CreateDescriptorSets(descSetCount, sets, layouts, &descriptions[i]);
+    }
+}
