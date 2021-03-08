@@ -4,13 +4,14 @@
 #include "s_scene.h"
 
 typedef struct {
-    VkSemaphore       (*renderUi)(VkSemaphore waitSemephore);
-    bool              (*presentFrame)(VkSemaphore waitSemephore);
+    VkSemaphore (*renderUi)(VkSemaphore waitSemephore);
+    bool        (*presentFrame)(VkSemaphore waitSemephore);
 } Obdn_R_Import;
 
 typedef struct {
-    void (*init)(const Obdn_S_Scene* scene);
-    void (*render)(VkSemaphore waitSemephore);
+    void        (*init)(const Obdn_S_Scene* scene);
+    VkSemaphore (*render)(uint32_t frameIndex, VkSemaphore waitSemephore);
+    void        (*cleanUp)(void);
 } Obdn_R_Export;
 
 typedef Obdn_R_Export (*Obdn_R_Handshake)(Obdn_R_Import import);
