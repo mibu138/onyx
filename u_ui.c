@@ -9,6 +9,7 @@
 #include "t_def.h"
 #include "i_input.h"
 #include "v_command.h"
+#include "v_swapchain.h"
 #include "v_video.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,7 +85,7 @@ static void initRenderCommands(void)
 
 static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayout finalLayout)
 {
-    obdn_r_CreateRenderPass_Color(initialLayout, finalLayout, VK_ATTACHMENT_LOAD_OP_LOAD, obdn_r_GetSwapFormat(), &renderPass);
+    obdn_r_CreateRenderPass_Color(initialLayout, finalLayout, VK_ATTACHMENT_LOAD_OP_LOAD, obdn_v_GetSwapFormat(), &renderPass);
 }
 
 static void initDescriptionsAndPipelineLayouts(void)
@@ -403,7 +404,7 @@ static void initFrameBuffers(void)
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
-        const Obdn_R_Frame* frame = obdn_r_GetFrame(i);
+        const Obdn_R_Frame* frame = obdn_v_GetFrame(i);
 
         const VkImageView attachments[] = {
             frame->view
@@ -487,7 +488,7 @@ void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayou
     rootWidget = addWidget(0, 0, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL, NULL);
 
     obdn_i_Subscribe(responder);
-    obdn_r_RegisterSwapchainRecreationFn(onSwapchainRecreate);
+    obdn_v_RegisterSwapchainRecreationFn(onSwapchainRecreate);
     printf("Obdn UI initialized.\n");
 }
 
@@ -575,7 +576,7 @@ static void drawWidget(const VkCommandBuffer cmdBuf, Widget* widget)
 
 VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
 {
-    uint32_t frameIndex = obdn_r_GetCurrentFrameIndex();
+    uint32_t frameIndex = obdn_v_GetCurrentFrameIndex();
 
     vkWaitForFences(device, 1, &renderCommands[frameIndex].fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &renderCommands[frameIndex].fence);

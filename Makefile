@@ -24,6 +24,7 @@ DEPS =  \
     v_def.h        \
 	v_loader.h     \
     v_memory.h     \
+    v_swapchain.h  \
 	v_image.h      \
 	v_command.h    \
     r_render.h     \
@@ -51,6 +52,7 @@ OBJS =  \
 	$(O)/v_image.o      \
 	$(O)/v_command.o    \
 	$(O)/v_loader.o     \
+    $(O)/v_swapchain.o  \
     $(O)/r_render.o     \
     $(O)/r_pipeline.o   \
 	$(O)/r_renderpass.o \

@@ -24,7 +24,7 @@ static VkImageUsageFlags swapImageUsageFlags;
 
 static bool useOffscreenSwapchain = false;
 
-VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D chooseSwapExtent(const VkSurfaceCapabilitiesKHR capabilities) {
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     } else {
@@ -185,7 +185,7 @@ static uint32_t requestOffscreenFrame(void)
     return curFrameIndex;
 }
 
-const uint32_t obdn_r_RequestFrame(void)
+const uint32_t obdn_v_RequestFrame(void)
 {
     if (!useOffscreenSwapchain)
         return requestSwapchainFrame();
@@ -316,4 +316,4 @@ void obdn_v_CleanUpSwapchain(void)
     printf("Obsidian render cleaned up.\n");
 }
 
-VkFormat obdn_r_GetSwapFormat(void) { return swapFormat; }
+VkFormat obdn_v_GetSwapFormat(void) { return swapFormat; }

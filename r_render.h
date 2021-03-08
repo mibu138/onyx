@@ -14,6 +14,8 @@ typedef Obdn_V_Image Obdn_R_Frame;
 VkFormat obdn_r_GetOffscreenColorFormat(void);
 VkFormat obdn_r_GetDepthFormat(void);
 
+
+
 void obdn_v_DrawScene(const VkCommandBuffer cmdBuf, const Obdn_S_Scene* scene);
 
 #endif /* end of include guard: R_INIT_H */
