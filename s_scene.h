@@ -24,7 +24,8 @@ typedef enum {
     OBDN_S_XFORMS_BIT      = 0x00000004,
     OBDN_S_MATERIALS_BIT   = 0x00000008,
     OBDN_S_TEXTURES_BIT    = 0x00000010,
-    OBDN_S_PRIMS_BIT       = 0x00000020
+    OBDN_S_PRIMS_BIT       = 0x00000020,
+    OBDN_S_WINDOW_BIT      = 0x00000040
 } Obdn_S_DirtyBits;
 
 typedef struct {

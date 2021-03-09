@@ -2,6 +2,7 @@
 #define V_SWAPCHAIN_H
 
 #include "v_def.h"
+#include "t_def.h"
 #include "v_memory.h"
 
 typedef Obdn_V_Image Obdn_R_Frame;
@@ -17,6 +18,6 @@ void                obdn_v_UnregisterSwapchainRecreateFn(Obdn_R_SwapchainRecreat
 VkFormat            obdn_v_GetSwapFormat(void);
 const Obdn_R_Frame* obdn_v_GetFrame(const int8_t index);
 const uint32_t      obdn_v_GetCurrentFrameIndex(void);
-const uint32_t      obdn_v_RequestFrame(void); // returns available frame index.
+const uint32_t      obdn_v_RequestFrame(Obdn_Mask* dirtyFlag); // returns available frame index.
 
 #endif /* end of include guard: V_SWAPCHAIN_H */

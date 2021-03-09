@@ -1,6 +1,7 @@
 #include "v_swapchain.h"
 #include <string.h>
 #include "private.h"
+#include "s_scene.h"
 #include "t_def.h"
 #include "v_video.h"
 
@@ -158,7 +159,7 @@ static void initSwapchainSemaphores(void)
     }
 }
 
-static uint32_t requestSwapchainFrame(void)
+static uint32_t requestSwapchainFrame(Obdn_Mask* dirtyBits)
 {
     imageAcquiredSemaphoreIndex = frameCounter % OBDN_FRAME_COUNT;
     VkResult r;
@@ -172,6 +173,7 @@ retry:
     if (VK_ERROR_OUT_OF_DATE_KHR == r) 
     {
         obdn_v_RecreateSwapchain();
+        *dirtyBits |= OBDN_S_WINDOW_BIT;
         goto retry;
     }
     frameCounter++;
@@ -185,10 +187,10 @@ static uint32_t requestOffscreenFrame(void)
     return curFrameIndex;
 }
 
-const uint32_t obdn_v_RequestFrame(void)
+const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag)
 {
     if (!useOffscreenSwapchain)
-        return requestSwapchainFrame();
+        return requestSwapchainFrame(dirtyFlag);
     else
         return requestOffscreenFrame();
 }
