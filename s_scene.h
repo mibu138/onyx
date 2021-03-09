@@ -107,6 +107,7 @@ void obdn_s_UpdatePrimXform(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, con
 
 void obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
 void obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
+void obdn_s_CleanUpScene(Obdn_S_Scene* scene);
 
 Obdn_S_PrimId    obdn_s_LoadPrim(Obdn_S_Scene* scene, const char* filePath, const Mat4* xform);
 Obdn_S_PrimId    obdn_s_AddRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive prim, const Mat4* xform);

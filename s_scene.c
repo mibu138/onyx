@@ -2,6 +2,7 @@
 #include "f_file.h"
 #include "coal/m_math.h"
 #include "coal/util.h"
+#include "obsidian/v_memory.h"
 #include "r_geo.h"
 #include "v_image.h"
 #include <string.h>
@@ -316,3 +317,16 @@ void obdn_s_ClearPrimList(Obdn_S_PrimitiveList* list)
     assert(list->primCount < OBDN_S_MAX_PRIMS);
 }
 
+void obdn_s_CleanUpScene(Obdn_S_Scene* scene)
+{
+    for (int i = 0; i < scene->primCount; i++)
+    {
+        obdn_r_FreePrim(&scene->prims[i].rprim);
+    }
+    for (int i = 0; i < scene->textureCount; i++)
+    {
+        obdn_v_FreeImage(&scene->textures[i].devImage);   
+        obdn_v_FreeBufferRegion(&scene->textures[i].hostBuffer);
+    }
+    memset(scene, 0, sizeof(*scene));
+}
