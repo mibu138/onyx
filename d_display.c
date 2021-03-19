@@ -56,6 +56,15 @@ static Obdn_I_EventData getKeyData(xcb_key_press_event_t* event)
         case XK_x:         data.keyCode = OBDN_KEY_X; break;
         case XK_y:         data.keyCode = OBDN_KEY_Y; break;
         case XK_z:         data.keyCode = OBDN_KEY_Z; break;
+        case XK_1:         data.keyCode = OBDN_KEY_1; break;
+        case XK_2:         data.keyCode = OBDN_KEY_2; break;
+        case XK_3:         data.keyCode = OBDN_KEY_3; break;
+        case XK_4:         data.keyCode = OBDN_KEY_4; break;
+        case XK_5:         data.keyCode = OBDN_KEY_5; break;
+        case XK_6:         data.keyCode = OBDN_KEY_6; break;
+        case XK_7:         data.keyCode = OBDN_KEY_7; break;
+        case XK_8:         data.keyCode = OBDN_KEY_8; break;
+        case XK_9:         data.keyCode = OBDN_KEY_9; break;
         case XK_space:     data.keyCode = OBDN_KEY_SPACE; break;
         case XK_Control_L: data.keyCode = OBDN_KEY_CTRL; break;
         case XK_Escape:    data.keyCode = OBDN_KEY_ESC; break;

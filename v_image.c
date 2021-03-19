@@ -352,6 +352,8 @@ void obdn_v_LoadImage(const char* filename, const uint8_t channelCount, const Vk
 
     obdn_v_FreeBufferRegion(&stagingBuffer);
 
+    obdn_v_DestroyCommand(cmd);
+
     if (createMips)
         createMipMaps(VK_FILTER_LINEAR, layout, image);
 }

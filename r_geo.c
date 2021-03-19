@@ -3,6 +3,7 @@
 #include "v_memory.h"
 #include "t_def.h"
 #include "t_utils.h"
+#include "r_attribute.h"
 #include <string.h>
 #include <stdlib.h>
 
@@ -10,6 +11,10 @@ const int CW = 1;
 
 typedef Obdn_R_AttributeSize AttrSize;
 typedef Obdn_R_Primitive     Prim;
+
+typedef enum {
+    OBDN_R_ATTRIBUTE_SFLOAT_TYPE,
+} Obdn_R_AttributeType;
 
 static void initPrimBuffers(Obdn_R_Primitive* prim)
 {
@@ -170,7 +175,7 @@ Obdn_R_Primitive obdn_r_CreateCubePrim(const bool isClockWise)
 
     initPrimBuffers(&prim);
 
-    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {"pos", "nor", "uvw"};
+    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME, UVW_NAME};
     for (int i = 0; i < attrCount; i++) 
     {
         memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
@@ -320,7 +325,7 @@ Obdn_R_Primitive obdn_r_CreateCubePrimUV(const bool isClockWise)
 
     initPrimBuffers(&prim);
 
-    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {"pos", "nor", "uv"};
+    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME, UV_NAME};
     for (int i = 0; i < attrCount; i++) 
     {
         memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
@@ -713,3 +718,29 @@ void obdn_r_FreePrim(Obdn_R_Primitive *prim)
     obdn_v_FreeBufferRegion(&prim->indexRegion);
 }
 
+VkDeviceSize obdn_r_GetAttrOffset(const Obdn_R_Primitive* prim, const char* attrname)
+{
+    for (int i = 0; i < prim->attrCount; i++)
+    {
+        if (strncmp(prim->attrNames[i], attrname, ATTR_NAME_LEN) == 0)
+            return prim->vertexRegion.offset + prim->attrOffsets[i];
+    }
+    assert(0 && "No attribute by that name found, or prim contains no attributes");
+    return 0;
+}
+
+VkDeviceSize obdn_r_GetAttrRange(const Obdn_R_Primitive* prim, const char* attrname)
+{
+    for (int i = 0; i < prim->attrCount; i++)
+    {
+        if (strncmp(prim->attrNames[i], attrname, ATTR_NAME_LEN) == 0)
+        {
+            if (i < prim->attrCount - 1) // not the last attribute
+                return prim->attrOffsets[i + 1] - prim->attrOffsets[i];
+            else 
+                return prim->vertexRegion.size - prim->attrOffsets[i];
+        }
+    }
+    assert(0 && "No attribute by that name found, or prim contains no attributes");
+    return 0;
+}

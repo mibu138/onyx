@@ -68,6 +68,8 @@ typedef struct {
     char*                     fragShader;
     char*                     tessCtrlShader;
     char*                     tessEvalShader;
+    uint32_t                  dynamicStateCount;
+    VkDynamicState*           pDynamicStates;
 } Obdn_R_GraphicsPipelineInfo;
 
 typedef struct {

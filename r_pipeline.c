@@ -91,7 +91,7 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
     VkPipelineMultisampleStateCreateInfo      multisampleStates[count];
     VkPipelineDepthStencilStateCreateInfo     depthStencilStates[count];
     VkPipelineColorBlendStateCreateInfo       colorBlendStates[count];
-    //VkPipelineDynamicStateCreateInfo          dynamicStates[count];
+    VkPipelineDynamicStateCreateInfo          dynamicStates[count];
 
     VkViewport viewports[count];
     VkRect2D   scissors[count];
@@ -176,8 +176,20 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         VkExtent2D viewportDim = rasterInfo->viewportDim;
         if (viewportDim.width < 1) // use window size
         {
-            viewportDim.width = OBDN_WINDOW_WIDTH;
-            viewportDim.height = OBDN_WINDOW_HEIGHT;
+            bool hasDynamicViewportEnabled = false;
+            bool hasDynamicScissorEnabled  = false;
+            for (int j = 0; j < rasterInfo->dynamicStateCount; j++)
+            {
+                if (rasterInfo->pDynamicStates[j] == VK_DYNAMIC_STATE_VIEWPORT)
+                    hasDynamicViewportEnabled = true;
+                if (rasterInfo->pDynamicStates[j] == VK_DYNAMIC_STATE_SCISSOR)
+                    hasDynamicScissorEnabled = true;
+            }
+            assert(hasDynamicViewportEnabled);
+            assert(hasDynamicScissorEnabled);
+            // no longer allow this not to rely on OBDN_WINDOW_* .
+            // if we don't specify a viewportDim parameter then we must
+            // enable dynamic viewport state
         }
 
         viewports[i] = (VkViewport){
@@ -269,6 +281,12 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         assert(rasterInfo->renderPass != VK_NULL_HANDLE);
         assert(rasterInfo->layout != VK_NULL_HANDLE);
 
+        dynamicStates[i] = (VkPipelineDynamicStateCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+            .dynamicStateCount = rasterInfo->dynamicStateCount,
+            .pDynamicStates = rasterInfo->pDynamicStates
+        };
+
         createInfos[i] = (VkGraphicsPipelineCreateInfo){
             .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
             .basePipelineIndex = 0, // not used
@@ -276,7 +294,7 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
             .subpass = rasterInfo->subpass, // which subpass in the renderpass do we use this pipeline with
             .renderPass = rasterInfo->renderPass,
             .layout = rasterInfo->layout,
-            .pDynamicState = NULL,
+            .pDynamicState = &dynamicStates[i],
             .pColorBlendState = &colorBlendStates[i],
             .pDepthStencilState = &depthStencilStates[i],
             .pMultisampleState = &multisampleStates[i],

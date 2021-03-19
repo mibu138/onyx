@@ -11,17 +11,13 @@
 
 typedef uint32_t   Obdn_R_Index;
 typedef uint8_t    Obdn_R_AttributeSize;
-typedef Obdn_Mask Obdn_R_AttributeMask;
 
-typedef enum {
-    OBDN_R_ATTRIBUTE_NORMAL_BIT = 0x00000001,
-    OBDN_R_ATTRIBUTE_UVW_BIT    = 0x00000002
-} Obdn_R_AttributeBits;
-
-typedef enum {
-    OBDN_R_ATTRIBUTE_SFLOAT_TYPE,
-} Obdn_R_AttributeType;
-
+// vertexRegion.offset is the byte offset info the buffer where the vertex data
+// is kept. attrOffsets store the byte offset relative to the vertexRegion offset
+// where the individual attribute data is kept
+// attrSizes stores how many bytes each individual attribute element takes up
+// attrCount is how many different attribute types the primitive holds
+// vertexRegion.size is the total size of the vertex attribute data
 typedef struct Obdn_R_Primitive {
     uint32_t              vertexCount;
     Obdn_V_BufferRegion  vertexRegion;
@@ -40,6 +36,10 @@ typedef struct {
     VkVertexInputAttributeDescription attributeDescriptions[OBDN_R_MAX_VERT_ATTRIBUTES];
 } Obdn_R_VertexDescription;
 
+typedef enum {
+    OBDN_R_ATTRIBUTE_NORMAL_BIT = 0x00000001,
+    OBDN_R_ATTRIBUTE_UVW_BIT    = 0x00000002
+} Obdn_R_AttributeBits;
 
 // pos and color. clockwise for now.
 Obdn_R_Primitive  obdn_r_CreateTriangle(void);
@@ -65,5 +65,8 @@ void obdn_r_DrawPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
 void obdn_r_TransferPrimToDevice(Obdn_R_Primitive* prim);
 void obdn_r_FreePrim(Obdn_R_Primitive* prim);
 void obdn_r_PrintPrim(const Obdn_R_Primitive* prim);
+
+VkDeviceSize obdn_r_GetAttrOffset(const Obdn_R_Primitive* prim, const char* attrname);
+VkDeviceSize obdn_r_GetAttrRange(const Obdn_R_Primitive* prim, const char* attrname);
 
 #endif /* end of include guard: R_GEO_H */

@@ -9,6 +9,7 @@
 #include "t_def.h"
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 typedef Obdn_V_BufferRegion          BufferRegion;
 typedef Obdn_R_AccelerationStructure AccelerationStructure;
@@ -223,9 +224,10 @@ void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blass
         const Mat4 xforms[count],
         AccelerationStructure* tlas)
 {
-    // Mat4 transform = m_Ident_Mat4();
+    //// Mat4 transform = m_Ident_Mat4();
     // instance transform member is a 4x3 row-major matrix
     // transform = m_Transpose_Mat4(&transform); // we don't need to because its identity, but leaving here to impress the point
+    assert(xforms);
 
     VkAccelerationStructureInstanceKHR instances[count];
     memset(instances, 0, sizeof(instances));

@@ -159,7 +159,7 @@ static void initSwapchainSemaphores(void)
     }
 }
 
-static uint32_t requestSwapchainFrame(Obdn_Mask* dirtyBits)
+static uint32_t requestSwapchainFrame(Obdn_Mask* dirtyBits, Obdn_S_Window window)
 {
     imageAcquiredSemaphoreIndex = frameCounter % OBDN_FRAME_COUNT;
     VkResult r;
@@ -173,6 +173,8 @@ retry:
     if (VK_ERROR_OUT_OF_DATE_KHR == r) 
     {
         obdn_v_RecreateSwapchain();
+        window[0] = OBDN_WINDOW_WIDTH;
+        window[1] = OBDN_WINDOW_HEIGHT;
         *dirtyBits |= OBDN_S_WINDOW_BIT;
         goto retry;
     }
@@ -187,10 +189,12 @@ static uint32_t requestOffscreenFrame(void)
     return curFrameIndex;
 }
 
-const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag)
+_Static_assert(sizeof(Obdn_S_Window) == sizeof(uint16_t) * 2, "Obdn_S_Window must be a size 2 array of uint16_t");
+
+const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, Obdn_S_Window window)
 {
     if (!useOffscreenSwapchain)
-        return requestSwapchainFrame(dirtyFlag);
+        return requestSwapchainFrame(dirtyFlag, window);
     else
         return requestOffscreenFrame();
 }

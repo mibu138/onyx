@@ -6,7 +6,7 @@
 typedef struct {
     VkSemaphore (*renderUi)(VkSemaphore waitSemephore);
     bool        (*presentFrame)(VkSemaphore waitSemephore);
-    VkExtent2D  (*getWindowDimensions)(void);
+    //VkExtent2D  (*getWindowDimensions)(void); now window dimensions are parts of the scene
 } Obdn_R_Import;
 
 typedef struct {

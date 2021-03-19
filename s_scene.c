@@ -106,18 +106,37 @@ void obdn_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
 
 #define DEFAULT_MAT_ID 0
 
+void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip)
+{
+    memset(scene, 0, sizeof(Scene));
+    scene->window[0] = windowWidth;
+    scene->window[1] = windowHeight;
+    scene->camera.xform = m_Ident_Mat4();
+    scene->camera.view = m_Ident_Mat4();
+    scene->camera.proj = m_BuildPerspective(nearClip, farClip);
+    for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
+    {
+        scene->xforms[i] = m_Ident_Mat4();
+    }
+    obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
+
+    scene->dirt = -1;
+}
+
 void obdn_s_CreateEmptyScene(Scene* scene)
 {
     memset(scene, 0, sizeof(Scene));
     Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
     scene->camera.xform = m;
+    scene->camera.view = m_Invert4x4(&m);
+    scene->camera.proj = m_BuildPerspective(0.01, 100);
     obdn_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
     for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
         scene->xforms[i] = m_Ident_Mat4();
     }
 
-    scene->dirt |= OBDN_S_CAMERA_BIT | OBDN_S_TEXTURES_BIT | OBDN_S_MATERIALS_BIT | OBDN_S_XFORMS_BIT;
+    scene->dirt |= OBDN_S_CAMERA_VIEW_BIT | OBDN_S_CAMERA_PROJ_BIT | OBDN_S_TEXTURES_BIT | OBDN_S_MATERIALS_BIT | OBDN_S_XFORMS_BIT;
 }
 
 void obdn_s_BindPrimToMaterial(Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId)
@@ -187,7 +206,7 @@ Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, c
             1, VK_FILTER_LINEAR, OBDN_V_MEMORY_DEVICE_TYPE, 
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
 
-    const Obdn_S_TextureId texId = scene->textureCount++; 
+    const Obdn_S_TextureId texId = ++scene->textureCount; // we purposely leave the 0th texture slot empty
     scene->textures[texId] = texture;
     assert(scene->textureCount < OBDN_S_MAX_TEXTURES);
 
@@ -259,7 +278,8 @@ Obdn_S_LightId obdn_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec
 void obdn_s_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
 {
     scene->camera.xform = m_LookAt(&pos, &target, &up);
-    scene->dirt |= OBDN_S_CAMERA_BIT;
+    scene->camera.view  = m_Invert4x4(&scene->camera.xform);
+    scene->dirt |= OBDN_S_CAMERA_VIEW_BIT;
 }
 
 void obdn_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home)
@@ -281,13 +301,14 @@ void obdn_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my,
     }
     //pos = m_RotateY_Vec3(dt, &pos);
     arcball_camera_update(pos.x, target.x, up.x, NULL, dt, 
-            ZOOM_RATE, PAN_RATE, TUMBLE_RATE, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, xPrev, mx, yPrev, my, 
+            ZOOM_RATE, PAN_RATE, TUMBLE_RATE, scene->window[0], scene->window[1], xPrev, mx, yPrev, my, 
             panning, tumbling, zoom_ticks, 0);
     Mat4 m = m_LookAt(&pos, &target, &up);
     scene->camera.xform = m;
+    scene->camera.view  = m_Invert4x4(&scene->camera.xform);
     xPrev = mx;
     yPrev = my;
-    scene->dirt |= OBDN_S_CAMERA_BIT;
+    scene->dirt |= OBDN_S_CAMERA_VIEW_BIT;
 }
 
 void obdn_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
@@ -323,10 +344,20 @@ void obdn_s_CleanUpScene(Obdn_S_Scene* scene)
     {
         obdn_r_FreePrim(&scene->prims[i].rprim);
     }
-    for (int i = 0; i < scene->textureCount; i++)
+    for (int i = 1; i <= scene->textureCount; i++) // remember 1 is the first valid texture index
     {
         obdn_v_FreeImage(&scene->textures[i].devImage);   
-        obdn_v_FreeBufferRegion(&scene->textures[i].hostBuffer);
+        if (scene->textures[i].hostBuffer.hostData)
+            obdn_v_FreeBufferRegion(&scene->textures[i].hostBuffer);
     }
     memset(scene, 0, sizeof(*scene));
+}
+
+Obdn_R_Primitive obdn_s_SwapRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive* newRprim, const Obdn_S_PrimId id)
+{
+    assert(id < scene->primCount);
+    Obdn_R_Primitive oldPrim = scene->prims[id].rprim;
+    scene->prims[id].rprim = *newRprim;
+    scene->dirt |= OBDN_S_PRIMS_BIT;
+    return oldPrim;
 }

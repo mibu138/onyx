@@ -57,6 +57,15 @@
 #define OBDN_KEY_X    120
 #define OBDN_KEY_Y    121
 #define OBDN_KEY_Z    122
+#define OBDN_KEY_1    49
+#define OBDN_KEY_2    50
+#define OBDN_KEY_3    51
+#define OBDN_KEY_4    52
+#define OBDN_KEY_5    53
+#define OBDN_KEY_6    54
+#define OBDN_KEY_7    55
+#define OBDN_KEY_8    56
+#define OBDN_KEY_9    57
 
 #define OBDN_MOUSE_LEFT  1
 #define OBDN_MOUSE_RIGHT 2

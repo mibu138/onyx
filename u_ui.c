@@ -164,6 +164,7 @@ static void initPipelines(void)
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+        .viewportDim       = {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT},
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-box-frag.spv"
     },{ 
@@ -173,6 +174,7 @@ static void initPipelines(void)
         .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
+        .viewportDim       = {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-slider-frag.spv"
@@ -183,6 +185,7 @@ static void initPipelines(void)
         .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
+        .viewportDim       = {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-texture-frag.spv"
