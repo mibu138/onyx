@@ -1,5 +1,6 @@
 #include "r_renderpass.h"
 #include "r_render.h"
+#include "v_private.h"
 
 #include "t_def.h"
 #include "v_video.h"

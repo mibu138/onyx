@@ -4,6 +4,7 @@
 #include "s_scene.h"
 #include "t_def.h"
 #include "v_video.h"
+#include "v_private.h"
 
 static VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
 

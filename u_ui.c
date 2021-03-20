@@ -15,6 +15,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <vulkan/vulkan_core.h>
+#include "v_private.h"
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
 

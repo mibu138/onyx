@@ -4,6 +4,7 @@
 #include "r_render.h"
 #include "t_def.h"
 #include "v_vulkan.h"
+#include "v_private.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>

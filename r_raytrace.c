@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "v_private.h"
 
 typedef Obdn_V_BufferRegion          BufferRegion;
 typedef Obdn_R_AccelerationStructure AccelerationStructure;

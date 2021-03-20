@@ -1,6 +1,7 @@
 #include "v_command.h"
 #include "v_video.h"
 #include <vulkan/vulkan_core.h>
+#include "v_private.h"
 
 void obdn_v_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
 {

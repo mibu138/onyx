@@ -10,6 +10,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <vulkan/vulkan_core.h>
+#include "v_private.h"
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    

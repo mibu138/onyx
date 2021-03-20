@@ -4,7 +4,7 @@
 #include "v_video.h"
 #include "v_command.h"
 #include <string.h>
-#include <vulkan/vulkan_core.h>
+#include "v_private.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "thirdparty/stb_image.h"

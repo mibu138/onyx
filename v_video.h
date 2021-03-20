@@ -12,8 +12,6 @@ typedef enum {
     OBDN_V_QUEUE_COMPUTE_TYPE,
 } Obdn_V_QueueType;
 
-extern VkDevice device;
-
 struct Obdn_V_Command;
 
 const VkInstance* obdn_v_Init(const Obdn_V_Config* config, const int extcount, const char* extensions[]);
