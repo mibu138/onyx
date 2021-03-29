@@ -4,7 +4,8 @@
 #include "r_geo.h"
 #include "t_def.h"
 
-#define OBDN_S_MAX_PRIMS     256 
+//#define OBDN_S_MAX_PRIMS     256
+#define OBDN_S_MAX_PRIMS     2000
 #define OBDN_S_MAX_MATERIALS 16
 #define OBDN_S_MAX_LIGHTS    16
 #define OBDN_S_MAX_TEXTURES  16

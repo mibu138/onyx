@@ -494,6 +494,7 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
         const size_t size, 
         uint32_t alignment, const Obdn_V_MemoryType memType)
 {
+    assert(size > 0);
     if( size % 4 != 0 ) // only allow for word-sized blocks
     {
         OBDN_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);

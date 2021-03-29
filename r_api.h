@@ -10,7 +10,7 @@ typedef struct {
 } Obdn_R_Import;
 
 typedef struct {
-    void        (*init)(const Obdn_S_Scene* scene);
+    void        (*init)(const Obdn_S_Scene* scene, VkImageLayout finalImageLayout, bool openglStyle);
     uint8_t     (*getMaxFramesInFlight)(void);
     VkSemaphore (*render)(uint32_t frameIndex, VkSemaphore waitSemephore);
     void        (*cleanUp)(void);
