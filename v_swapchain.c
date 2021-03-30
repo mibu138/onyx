@@ -226,25 +226,30 @@ retry:
             imageAcquiredSemaphores[imageAcquiredSemaphoreIndex], 
             VK_NULL_HANDLE, 
             &curFrameIndex);
-    if (VK_ERROR_OUT_OF_DATE_KHR == r) 
+    if (VK_ERROR_OUT_OF_DATE_KHR == r || swapchainDirty) 
     {
         recreateSwapchain();
-        goto retry;
-    }
-    if (swapchainDirty)
-    {
         window[0] = swapWidth;
         window[1] = swapHeight;
         *dirtyBits |= OBDN_S_WINDOW_BIT;
         swapchainDirty = false;
+        goto retry;
     }
     frameCounter++;
     return curFrameIndex;
 }
 
-static uint32_t requestOffscreenFrame(void)
+static uint32_t requestOffscreenFrame(Obdn_Mask* dirtyBits, Obdn_S_Window window)
 {
     curFrameIndex = frameCounter % OBDN_FRAME_COUNT;
+    if (swapchainDirty)
+    {
+        recreateSwapchain();
+        window[0] = swapWidth;
+        window[1] = swapHeight;
+        *dirtyBits |= OBDN_S_WINDOW_BIT;
+        swapchainDirty = false;
+    }
     frameCounter++;
     return curFrameIndex;
 }
@@ -257,7 +262,7 @@ const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, Obdn_S_Window window)
     if (!useOffscreenSwapchain)
         return requestSwapchainFrame(dirtyFlag, window);
     else
-        return requestOffscreenFrame();
+        return requestOffscreenFrame(dirtyFlag, window);
 }
 
 // this just sets the swapWidth and swapHeight and we rely on the call to request frame to detect that
@@ -265,10 +270,11 @@ const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, Obdn_S_Window window)
 // and we don't want to call recreate for every one of them. also, we may eventually run iterations of 
 // the main loop that dont render frames. 
 // this does mean that obdn_v_RequestFrame MUST be called before rendering on a given frame.
-static bool onWindowResize(const Hell_I_Event* ev)
+static bool onWindowResizeEvent(const Hell_I_Event* ev)
 {
     swapWidth  = ev->data.resizeData.width;
     swapHeight = ev->data.resizeData.height;
+    swapchainDirty = true;
     //recreateSwapchain();
     return false;
 }
@@ -284,6 +290,8 @@ void obdn_v_InitSwapchain(const VkImageUsageFlags swapImageUsageFlags_, const He
     if (!hellWindow)
     {
         swapFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        swapWidth  = 666; // arbitrary defaults
+        swapHeight = 666;
         initSwapchainOffscreen();
     }
     else
@@ -292,7 +300,7 @@ void obdn_v_InitSwapchain(const VkImageUsageFlags swapImageUsageFlags_, const He
         initSwapchainWithSurface();
     }
     initSwapchainSemaphores();
-    hell_i_Subscribe(onWindowResize, HELL_I_WINDOW_BIT);
+    hell_i_Subscribe(onWindowResizeEvent, HELL_I_WINDOW_BIT);
     printf("Obdn Renderer initialized.\n");
 }
 
