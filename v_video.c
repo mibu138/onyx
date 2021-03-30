@@ -1,6 +1,5 @@
 #include "v_video.h"
 #include "v_memory.h"
-#include "d_display.h"
 #include "t_def.h"
 #include "v_loader.h"
 #include <stdio.h>
@@ -32,9 +31,6 @@ static VkQueue  graphicsQueues[MAX_QUEUES];
 static VkQueue  transferQueues[MAX_QUEUES];
 static VkQueue  computeQueues[MAX_QUEUES];
 static VkQueue  presentQueue;
-
-static VkSurfaceKHR      nativeSurface;
-static VkSurfaceKHR*     pSurface;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
     
@@ -518,7 +514,6 @@ const VkInstance* obdn_v_Init(
         const Obdn_V_Config* config,
         const int extcount, const char* extensions[])
 {
-    nativeSurface = VK_NULL_HANDLE;
     initVkInstance(config);
     if (config->validationEnabled)
         initDebugMessenger();
@@ -529,19 +524,6 @@ const VkInstance* obdn_v_Init(
     obdn_v_InitMemory(&config->memorySizes);
     printf("Obsidian Video initialized.\n");
     return &instance;
-}
-
-void obdn_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
-{
-    const VkXcbSurfaceCreateInfoKHR ci = {
-        .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
-        .connection = connection,
-        .window = window,
-    };
-
-    V_ASSERT( vkCreateXcbSurfaceKHR(instance, &ci, NULL, &nativeSurface) );
-    V1_PRINT("Surface created successfully.\n");
-    pSurface = &nativeSurface;
 }
 
 void obdn_v_SubmitToQueue(const VkCommandBuffer* cmdBuf, const Obdn_V_QueueType queueType, const uint32_t index)
@@ -572,8 +554,6 @@ void obdn_v_CleanUp(void)
         vkGetInstanceProcAddr(instance, "vkDestroyDebugUtilsMessengerEXT");
         
     obdn_v_CleanUpMemory();
-    if (nativeSurface != VK_NULL_HANDLE)
-        vkDestroySurfaceKHR(instance, nativeSurface, NULL);
     vkDestroyDevice(device, NULL);
     if (debugMessenger != VK_NULL_HANDLE)
         vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
@@ -600,11 +580,6 @@ uint32_t obdn_v_GetQueueFamilyIndex(Obdn_V_QueueType type)
 VkDevice obdn_v_GetDevice(void)
 {
     return device;
-}
-
-VkSurfaceKHR obdn_v_GetSurface(void)
-{
-    return *pSurface;
 }
 
 VkQueue obdn_v_GetPresentQueue(void)
@@ -677,4 +652,9 @@ Obdn_V_Config obdn_v_CreateBasicConfig(void)
     config.validationEnabled = false;
 #endif
     return config;
+}
+
+const VkInstance* obdn_v_GetInstance(void)
+{
+    return &instance;
 }

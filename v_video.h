@@ -15,7 +15,7 @@ typedef enum {
 struct Obdn_V_Command;
 
 const VkInstance* obdn_v_Init(const Obdn_V_Config* config, const int extcount, const char* extensions[]);
-void              obdn_v_InitSurfaceXcb(xcb_connection_t* connection, xcb_window_t window);
+const VkInstance* obdn_v_GetInstance(void);
 void              obdn_v_SubmitToQueue(const VkCommandBuffer* buffer, const Obdn_V_QueueType, const uint32_t queueIndex);
 void              obdn_v_SubmitToQueueWait(const VkCommandBuffer* buffer, const Obdn_V_QueueType, const uint32_t queueIndex);
 void              obdn_v_CleanUp(void);
@@ -32,7 +32,6 @@ uint32_t          obdn_v_GetQueueFamilyIndex(Obdn_V_QueueType type);
 VkDevice          obdn_v_GetDevice(void);
 VkQueue           obdn_v_GetPresentQueue(void);
 VkPhysicalDevice  obdn_v_GetPhysicalDevice(void);
-VkSurfaceKHR      obdn_v_GetSurface(void);
 
 const VkPhysicalDeviceProperties*               obdn_v_GetPhysicalDeviceProperties(void);
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR obdn_v_GetPhysicalDeviceRayTracingProperties(void);

@@ -2,10 +2,10 @@
 #include "r_render.h"
 #include "v_memory.h"
 #include "t_def.h"
-#include "t_utils.h"
 #include "r_attribute.h"
 #include <string.h>
 #include <stdlib.h>
+#include <hell/common.h>
 
 const int CW = 1;
 
@@ -53,7 +53,7 @@ static void initPrimBuffersAligned(Obdn_R_Primitive* prim, const uint32_t offset
     {
         const AttrSize attrSize = prim->attrSizes[i];
         assert(attrSize > 0);
-        const size_t attrRegionSize = obdn_GetAligned(prim->vertexCount * attrSize, offsetAlignment);
+        const size_t attrRegionSize = hell_Align(prim->vertexCount * attrSize, offsetAlignment);
         prim->attrOffsets[i] = vertexBufferSize;
         vertexBufferSize += attrRegionSize;
     }

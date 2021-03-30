@@ -1,15 +1,13 @@
 #include "v_memory.h"
-#include "t_utils.h"
 #include "v_video.h"
 #include "t_def.h"
 #include "v_command.h"
-#include "t_utils.h"
 #include "private.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <vulkan/vulkan_core.h>
+#include <hell/common.h>
 #include "v_private.h"
 
 // HVC = Host Visible and Coherent
@@ -342,7 +340,7 @@ static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignme
     Obdn_V_MemBlock* newBlock = &chain->blocks[newIndex];
     assert( newIndex < MAX_BLOCKS );
     assert( newBlock->inUse == false );
-    VkDeviceSize alignedOffset = obdn_GetAligned(curBlock->offset, alignment);
+    VkDeviceSize alignedOffset = hell_Align(curBlock->offset, alignment);
     const VkDeviceSize offsetDiff = alignedOffset - curBlock->offset;
     // take away the size lost due to alignment and the new size
     newBlock->size   = curBlock->size - offsetDiff - size;
@@ -611,7 +609,7 @@ Obdn_V_Image obdn_v_CreateImage(
     V1_PRINT("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
     V1_PRINT("Width * Height * Format size = %d\n", width * height * 4);
     V1_PRINT("Required memory bits for image: %0x\n", memReqs.memoryTypeBits);
-    bitprint(&memReqs.memoryTypeBits, 32);
+    hell_BitPrint(&memReqs.memoryTypeBits, 32);
 
     image.size = memReqs.size;
     image.extent.depth = 1;

@@ -4,7 +4,7 @@ GLC = glslc
 CFLAGS = -Wall -Wno-missing-braces -fPIC
 LDFLAGS = -L/opt/hfs18.6/dsolib
 INFLAGS = -I$(HOME)/dev -I/usr/include/freetype2
-LIBS = -lm -lcarbon -lvulkan -lxcb -lxcb-keysyms -lfreetype
+LIBS = -lm -lcoal -lhell -lvulkan -lxcb -lxcb-keysyms -lfreetype
 LIB  = $(HOME)/lib
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
@@ -19,7 +19,6 @@ NAME = viewer
 
 DEPS =  \
 	Makefile       \
-    d_display.h    \
     v_video.h      \
     v_def.h        \
 	v_loader.h     \
@@ -35,8 +34,6 @@ DEPS =  \
 	s_scene.h      \
 	f_file.h       \
 	u_ui.h         \
-    i_input.h      \
-    t_utils.h      \
     t_def.h        \
 	t_text.h       
 
@@ -46,7 +43,6 @@ SHDEPS = \
 
 
 OBJS =  \
-    $(O)/d_display.o    \
     $(O)/v_video.o      \
     $(O)/v_memory.o     \
 	$(O)/v_image.o      \
@@ -61,8 +57,6 @@ OBJS =  \
 	$(O)/s_scene.o      \
 	$(O)/f_file.o       \
 	$(O)/u_ui.o         \
-    $(O)/i_input.o      \
-    $(O)/t_utils.o      \
 	$(O)/t_text.o
 
 

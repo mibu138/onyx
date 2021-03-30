@@ -12,7 +12,4 @@
 #define V_ASSERT(expr) (expr)
 #endif
 
-extern uint32_t OBDN_WINDOW_WIDTH;
-extern uint32_t OBDN_WINDOW_HEIGHT;
-
 #endif /* end of include guard: V_VULKAN_H */

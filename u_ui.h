@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <vulkan/vulkan_core.h>
-#include "i_input.h"
+#include <hell/input.h>
 #include "r_geo.h"
 
 typedef struct Obdn_U_Widget Obdn_U_Widget;
@@ -12,7 +12,7 @@ typedef struct Obdn_U_Widget Obdn_U_Widget;
 #define MAX_PRIMS_PER_WIDGET   8
 #define OBDN_U_MAX_TEXT_SIZE   31
 
-typedef bool (*Obdn_U_ResponderFn)(const Obdn_I_Event* event, Obdn_U_Widget* widget);
+typedef bool (*Obdn_U_ResponderFn)(const Hell_I_Event* event, Obdn_U_Widget* widget);
 typedef void (*Obdn_U_DrawFn)(const VkCommandBuffer cmdBuf, const Obdn_U_Widget* widget);
 typedef void (*Obdn_U_DestructFn)(Obdn_U_Widget* widget);
 

@@ -7,14 +7,13 @@
 #include "r_renderpass.h"
 #include "r_pipeline.h"
 #include "t_def.h"
-#include "i_input.h"
 #include "v_command.h"
 #include "v_swapchain.h"
 #include "v_video.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <vulkan/vulkan_core.h>
+#include <hell/input.h>
 #include "v_private.h"
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
@@ -154,7 +153,7 @@ static void updateTexture(uint8_t imageIndex)
     }
 }
 
-static void initPipelines(void)
+static void initPipelines(uint32_t width, uint32_t height)
 {
     Obdn_R_AttributeSize attrSizes[2] = {12, 12};
     Obdn_R_GraphicsPipelineInfo pipeInfos[] = {{
@@ -165,7 +164,7 @@ static void initPipelines(void)
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .viewportDim       = {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT},
+        .viewportDim       = {width, height},
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-box-frag.spv"
     },{ 
@@ -175,7 +174,7 @@ static void initPipelines(void)
         .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
-        .viewportDim       = {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT},
+        .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-slider-frag.spv"
@@ -186,7 +185,7 @@ static void initPipelines(void)
         .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
         .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
-        .viewportDim       = {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT},
+        .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
         .fragShader        = OBDN_SPVDIR"/ui-texture-frag.spv"
@@ -256,7 +255,7 @@ static void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
     }
 }
 
-static bool propogateEventToChildren(const Obdn_I_Event* event, Widget* widget)
+static bool propogateEventToChildren(const Hell_I_Event* event, Widget* widget)
 {
     const uint8_t widgetCount = widget->widgetCount;
     for (int i = widgetCount - 1; i >= 0 ; i--) 
@@ -289,13 +288,13 @@ static void dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
     obdn_r_DrawPrim(cmdBuf, prim);
 }
 
-static bool rfnSimpleBox(const Obdn_I_Event* event, Widget* widget)
+static bool rfnSimpleBox(const Hell_I_Event* event, Widget* widget)
 {
     if (propogateEventToChildren(event, widget)) return true;
 
     switch (event->type)
     {
-        case OBDN_I_MOUSEDOWN: 
+        case HELL_I_MOUSEDOWN: 
         {
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
@@ -306,8 +305,8 @@ static bool rfnSimpleBox(const Obdn_I_Event* event, Widget* widget)
             widget->dragData.prevY = my;
             return true;
         }
-        case OBDN_I_MOUSEUP: widget->dragData.active = false; break;
-        case OBDN_I_MOTION: 
+        case HELL_I_MOUSEUP: widget->dragData.active = false; break;
+        case HELL_I_MOTION: 
         {
             if (!widget->dragData.active) return false;
             const int16_t mx = event->data.mouseData.x;
@@ -344,11 +343,11 @@ static void dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
     obdn_r_DrawPrim(cmdBuf, prim);
 }
 
-static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
+static bool rfnSlider(const Hell_I_Event* event, Widget* widget)
 {
     switch (event->type)
     {
-        case OBDN_I_MOUSEDOWN: 
+        case HELL_I_MOUSEDOWN: 
         {
             const int16_t mx = event->data.mouseData.x;
             const int16_t my = event->data.mouseData.y;
@@ -358,8 +357,8 @@ static bool rfnSlider(const Obdn_I_Event* event, Widget* widget)
             widget->data.slider.sliderPos = (float)(mx - widget->x) / widget->width;
             return true;
         }
-        case OBDN_I_MOUSEUP: widget->dragData.active = false; break;
-        case OBDN_I_MOTION: 
+        case HELL_I_MOUSEUP: widget->dragData.active = false; break;
+        case HELL_I_MOTION: 
         {
             if (!widget->dragData.active) return false;
             const int16_t mx = event->data.mouseData.x;
@@ -394,17 +393,17 @@ static void destructText(Widget* text)
     obdn_v_FreeImage(&images[text->data.text.imageIndex]);
 }
 
-static bool rfnPassThrough(const Obdn_I_Event* event, Widget* widget)
+static bool rfnPassThrough(const Hell_I_Event* event, Widget* widget)
 {
     return propogateEventToChildren(event, widget);
 }
 
-static bool responder(const Obdn_I_Event* event)
+static bool responder(const Hell_I_Event* event)
 {
     return rootWidget->inputHandlerFn(event, rootWidget);
 }
 
-static void initFrameBuffers(void)
+static void initFrameBuffers(uint32_t width, uint32_t height)
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
@@ -421,8 +420,8 @@ static void initFrameBuffers(void)
             .renderPass = renderPass,
             .attachmentCount = 1,
             .pAttachments = attachments,
-            .width = OBDN_WINDOW_WIDTH,
-            .height = OBDN_WINDOW_HEIGHT,
+            .width  = width,
+            .height = height,
             .layers = 1,
         };
 
@@ -448,10 +447,11 @@ static void destroyFramebuffers(void)
 
 static void onSwapchainRecreate(void)
 {
+    VkExtent2D ex = obdn_v_GetSwapExtent();
     destroyPipelines();
     destroyFramebuffers();
-    initPipelines();
-    initFrameBuffers();
+    initPipelines(ex.width, ex.height);
+    initFrameBuffers(ex.width, ex.height);
 }
 
 // does not modify parent
@@ -483,15 +483,16 @@ static int requestImageIndex(void)
 
 void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
 {
+    VkExtent2D ex = obdn_v_GetSwapExtent();
     initRenderCommands();
     initRenderPass(inputLayout, finalLayout);
     initDescriptionsAndPipelineLayouts();
-    initPipelines();
-    initFrameBuffers();
+    initPipelines(ex.width, ex.height);
+    initFrameBuffers(ex.width, ex.height);
 
-    rootWidget = addWidget(0, 0, OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT, rfnPassThrough, NULL, NULL, NULL);
+    rootWidget = addWidget(0, 0, ex.width, ex.height, rfnPassThrough, NULL, NULL, NULL);
 
-    obdn_i_Subscribe(responder);
+    hell_i_Subscribe(responder, HELL_I_MOUSE_BIT | HELL_I_KEY_BIT);
     obdn_v_RegisterSwapchainRecreationFn(onSwapchainRecreate);
     printf("Obdn UI initialized.\n");
 }
@@ -594,12 +595,14 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
     VkCommandBuffer cmdBuf = renderCommands[frameIndex].buffer;
 
     VkClearValue clear = {0};
+
+    VkExtent2D ex = obdn_v_GetSwapExtent();
     
     const VkRenderPassBeginInfo rpassInfoUi = {
         .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .clearValueCount = 1,
         .pClearValues    = &clear,
-        .renderArea      = {{0, 0}, {OBDN_WINDOW_WIDTH, OBDN_WINDOW_HEIGHT}},
+        .renderArea      = {{0, 0}, {ex.width, ex.height}},
         .renderPass      = renderPass,
         .framebuffer     = framebuffers[frameIndex],
     };
@@ -607,8 +610,8 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
     vkCmdBeginRenderPass(cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
 
     PushConstantVert pc = {
-        .i0 = OBDN_WINDOW_WIDTH,
-        .i1 = OBDN_WINDOW_HEIGHT
+        .i0 = ex.width,
+        .i1 = ex.height 
     };
 
     vkCmdPushConstants(cmdBuf, pipelineLayout, 
