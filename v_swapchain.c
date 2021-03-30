@@ -2,6 +2,7 @@
 #include <hell/display.h>
 #include <hell/xcb_window_type.h>
 #include <string.h>
+#include <vulkan/vulkan_core.h>
 #include "hell/input.h"
 #include "private.h"
 #include "s_scene.h"
@@ -375,7 +376,10 @@ void obdn_v_CleanUpSwapchain(void)
             vkDestroyImageView(device, frames[i].view, NULL);
     }
     if (!useOffscreenSwapchain)
+    {
         vkDestroySwapchainKHR(device, swapchain, NULL);
+        vkDestroySurfaceKHR(*obdn_v_GetInstance(), surface, NULL);
+    }
     swapRecreateFnCount = 0;
     printf("Obsidian render cleaned up.\n");
 }

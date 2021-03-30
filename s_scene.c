@@ -113,6 +113,9 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     scene->window[1] = windowHeight;
     scene->camera.xform = m_Ident_Mat4();
     scene->camera.view = m_Ident_Mat4();
+    Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
+    scene->camera.xform = m;
+    scene->camera.view = m_Invert4x4(&m);
     scene->camera.proj = m_BuildPerspective(nearClip, farClip);
     for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
@@ -136,7 +139,7 @@ void obdn_s_CreateEmptyScene(Scene* scene)
         scene->xforms[i] = m_Ident_Mat4();
     }
 
-    scene->dirt |= OBDN_S_CAMERA_VIEW_BIT | OBDN_S_CAMERA_PROJ_BIT | OBDN_S_TEXTURES_BIT | OBDN_S_MATERIALS_BIT | OBDN_S_XFORMS_BIT;
+    scene->dirt |= -1;
 }
 
 void obdn_s_BindPrimToMaterial(Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId)
