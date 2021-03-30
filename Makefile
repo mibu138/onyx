@@ -69,10 +69,14 @@ nbp: debug
 release: CFLAGS += -DNDEBUG -O2 
 release: all
 
-all: lib tags shaders
+all: hell lib tags shaders
 
 FRAGS := $(patsubst %.frag,$(SPV)/%-frag.spv,$(notdir $(wildcard $(GLSL)/*.frag)))
 VERTS := $(patsubst %.vert,$(SPV)/%-vert.spv,$(notdir $(wildcard $(GLSL)/*.vert)))
+
+.PHONY: hell
+hell:
+	make -C $(HOME)/dev/hell
 
 shaders: $(FRAGS) $(VERTS)
 
