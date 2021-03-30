@@ -269,7 +269,6 @@ static bool onWindowResize(const Hell_I_Event* ev)
 {
     swapWidth  = ev->data.resizeData.width;
     swapHeight = ev->data.resizeData.height;
-    printf("%s swapWidth %d swapHeight %d\n", __func__, swapWidth, swapHeight);
     //recreateSwapchain();
     return false;
 }
