@@ -251,6 +251,7 @@ static uint32_t requestOffscreenFrame(void)
 
 _Static_assert(sizeof(Obdn_S_Window) == sizeof(uint16_t) * 2, "Obdn_S_Window must be a size 2 array of uint16_t");
 
+// must be called before making a call to render within the same frame.
 const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, Obdn_S_Window window)
 {
     if (!useOffscreenSwapchain)
@@ -259,12 +260,17 @@ const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, Obdn_S_Window window)
         return requestOffscreenFrame();
 }
 
+// this just sets the swapWidth and swapHeight and we rely on the call to request frame to detect that
+// the swapchain needs to be recreated. we do this because we can get many resize events within a frame
+// and we don't want to call recreate for every one of them. also, we may eventually run iterations of 
+// the main loop that dont render frames. 
+// this does mean that obdn_v_RequestFrame MUST be called before rendering on a given frame.
 static bool onWindowResize(const Hell_I_Event* ev)
 {
     swapWidth  = ev->data.resizeData.width;
     swapHeight = ev->data.resizeData.height;
     printf("%s swapWidth %d swapHeight %d\n", __func__, swapWidth, swapHeight);
-    recreateSwapchain();
+    //recreateSwapchain();
     return false;
 }
 
