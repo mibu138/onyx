@@ -34,7 +34,8 @@ static VkQueue  presentQueue;
 
 static VkDebugUtilsMessengerEXT debugMessenger;
     
-static VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtProperties;
+static VkPhysicalDeviceRayTracingPipelinePropertiesKHR    rtProperties;
+static VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProperties;
 
 static VkPhysicalDeviceProperties deviceProperties;
 
@@ -319,8 +320,13 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
     }
     #endif
 
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR asProps = {
+        .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_PROPERTIES_KHR,
+    };
+
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR rayTracingProps = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_PROPERTIES_KHR,
+        .pNext = &asProps
     };
 
     VkPhysicalDeviceProperties2 phsicalDeviceProperties2 = {
@@ -335,7 +341,10 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
     vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
 
     if (config->rayTraceEnabled)
+    {
         rtProperties = rayTracingProps;
+        accelStructProperties = asProps;
+    }
 
     const char* extensionsRT[] = {
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
@@ -637,6 +646,11 @@ VkPhysicalDevice obdn_v_GetPhysicalDevice(void)
 const VkPhysicalDeviceProperties* obdn_v_GetPhysicalDeviceProperties(void)
 {
     return &deviceProperties;
+}
+
+VkPhysicalDeviceAccelerationStructurePropertiesKHR obdn_v_GetPhysicalDeviceAccelerationStructureProperties(void)
+{
+    return accelStructProperties;
 }
 
 Obdn_V_Config obdn_v_CreateBasicConfig(void)

@@ -22,7 +22,7 @@ typedef struct {
 void obdn_r_BuildBlas(const Obdn_R_Primitive* prim, Obdn_R_AccelerationStructure* blas);
 void obdn_r_BuildTlas(const Obdn_R_AccelerationStructure* blas, Obdn_R_AccelerationStructure* tlas);
 void obdn_r_BuildTlasNew(const uint32_t count, const Obdn_R_AccelerationStructure blasses[count],
-        const Mat4 xforms[count],
+        const Coal_Mat4 xforms[count],
         Obdn_R_AccelerationStructure* tlas);
 void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline pipeline, Obdn_R_ShaderBindingTable* sbt);
 void obdn_r_DestroyAccelerationStruct(Obdn_R_AccelerationStructure* as);

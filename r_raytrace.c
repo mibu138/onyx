@@ -1,4 +1,5 @@
 #include "r_raytrace.h"
+#include "coal/m.h"
 #include "coal/m_math.h"
 #include "v_video.h"
 #include "r_render.h"
@@ -78,8 +79,15 @@ void obdn_r_BuildBlas(const Obdn_R_Primitive* prim, AccelerationStructure* blas)
 
     V_ASSERT( vkCreateAccelerationStructureKHR(device, &accelStructInfo, NULL, &blas->handle) );
 
-    Obdn_V_BufferRegion scratchBufferRegion = obdn_v_RequestBufferRegion(buildSizes.buildScratchSize, 
-            VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+    //Obdn_V_BufferRegion scratchBufferRegion = obdn_v_RequestBufferRegion(buildSizes.buildScratchSize, 
+    //        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
+    //        OBDN_V_MEMORY_DEVICE_TYPE);
+
+
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProps = obdn_v_GetPhysicalDeviceAccelerationStructureProperties();
+
+    Obdn_V_BufferRegion scratchBufferRegion = obdn_v_RequestBufferRegionAligned(buildSizes.buildScratchSize, 
+            accelStructProps.minAccelerationStructureScratchOffsetAlignment,
             OBDN_V_MEMORY_DEVICE_TYPE);
 
     buildAS.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
@@ -221,7 +229,7 @@ void obdn_r_BuildTlas(const AccelerationStructure* blas, AccelerationStructure* 
 }
 
 void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blasses[count],
-        const Mat4 xforms[count],
+        const Coal_Mat4 xforms[count],
         AccelerationStructure* tlas)
 {
     //// Mat4 transform = m_Ident_Mat4();
@@ -233,7 +241,9 @@ void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blass
     memset(instances, 0, sizeof(instances));
     for (int i = 0; i < count; i++)
     {
-        Mat4 xformT = m_Transpose_Mat4(&xforms[i]);
+        Mat4 xformT;
+        coal_Copy_Mat4(xforms[i], xformT.x);
+        xformT = m_Transpose_Mat4(&xformT);
         VkTransformMatrixKHR transform;
         assert(sizeof(transform) == 12 * sizeof(float));
         for (int i = 0; i < 3; i++)
