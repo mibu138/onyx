@@ -3,7 +3,6 @@
 
 #include "v_vulkan.h"
 #include <stdbool.h>
-#include <vulkan/vulkan_core.h>
 
 #define OBDN_FRAME_COUNT 2
 

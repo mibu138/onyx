@@ -1,4 +1,5 @@
 #include "s_scene.h"
+#include "coal/m.h"
 #include "f_file.h"
 #include "coal/m_math.h"
 #include "coal/util.h"
@@ -20,90 +21,6 @@ typedef Obdn_S_Texture       Texture;
 typedef Obdn_S_PrimitiveList PrimitiveList;
 
 // TODO: this function needs to updated
-void obdn_s_CreateSimpleScene_NEEDS_UPDATE(Scene *scene)
-{
-    const Primitive cube = obdn_r_CreateCubePrim(false);
-    const Primitive quad = obdn_r_CreateQuad(3, 4, OBDN_R_ATTRIBUTE_UVW_BIT | OBDN_R_ATTRIBUTE_NORMAL_BIT);
-
-    Xform cubeXform = m_Ident_Mat4();
-    Xform quadXform = m_Ident_Mat4();
-
-    cubeXform = m_Translate_Mat4((Vec3){0, 0.5, 0}, &cubeXform);
-
-    Mat4 rot = m_BuildRotate(M_PI / 2, &(Vec3){-1, 0, 0});
-    quadXform = m_Mult_Mat4(&quadXform, &rot);
-
-    printf(">>Quad Rot\n");
-    coal_PrintMat4(&rot);
-    printf(">>Quad Xform\n");
-    coal_PrintMat4(&quadXform);
-
-    const Light dirLight = {
-        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
-        .intensity = 1,
-        .color     = (Vec3){1, 1, 1},
-        .structure.directionLight.dir = (Vec3){-0.37904902,  -0.53066863, -0.75809804}
-    };
-
-    const Light dirLight2 = {
-        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
-        .intensity = 1,
-        .color     = (Vec3){1, 1, 1},
-        .structure.directionLight.dir = (Vec3){0.37904902,  0.53066863, 0.75809804}
-    };
-
-    Vec3 pos = (Vec3){0, 0, 2};
-    Vec3 tar = (Vec3){0, 0, 0};
-    Vec3 up  = (Vec3){0, 1, 0};
-    Mat4 cameraXform = m_LookAt(&pos, &tar, &up);
-
-    Scene s = {
-        .lightCount = 2,
-        .lights = {dirLight, dirLight2},
-        .primCount = 2,
-        .camera = (Camera){
-            .xform = cameraXform
-        },
-        .dirt = -1, // set to all dirty
-    };
-
-    Primitive prims[2] = {
-        cube,
-        quad
-    };
-
-    Xform xforms[2] = {
-        cubeXform,
-        quadXform
-    };
-
-    const Material cubeMat = {
-        .color        = (Vec3){0.05, 0.18, 0.516},
-        .roughness    = .5,
-        .textureAlbedo    = OBDN_S_NONE,
-        .textureRoughness = OBDN_S_NONE,
-    };
-
-    const Material quadMat = {
-        .color        = (Vec3){0.75, 0.422, 0.245},
-        .roughness    = 1,
-        .textureAlbedo    = OBDN_S_NONE,
-        .textureRoughness = OBDN_S_NONE,
-    };
-    
-
-    Material mats[2] = { 
-        cubeMat,
-        quadMat
-    };
-
-    memcpy(s.prims, prims, sizeof(prims));
-    memcpy(s.xforms, xforms, sizeof(xforms));
-    memcpy(s.materials, mats, sizeof(mats));
-
-    *scene = s;
-}
-
 #define DEFAULT_MAT_ID 0
 
 void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip)
@@ -119,7 +36,7 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     scene->camera.proj = m_BuildPerspective(nearClip, farClip);
     for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
-        scene->xforms[i] = m_Ident_Mat4();
+        coal_Mat4_Identity(scene->xforms[i]);
     }
     obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
 
@@ -136,7 +53,7 @@ void obdn_s_CreateEmptyScene(Scene* scene)
     obdn_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
     for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
-        scene->xforms[i] = m_Ident_Mat4();
+        coal_Mat4_Identity(scene->xforms[i]);
     }
 
     scene->dirt |= -1;
@@ -158,7 +75,7 @@ Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive prim, const M
     scene->prims[curIndex].rprim = prim;
 
     const Mat4 m = xform ? *xform : m_Ident_Mat4();
-    scene->xforms[curIndex] = m;
+    coal_Copy_Mat4(m.x, scene->xforms[curIndex]);
 
     scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
 
@@ -167,7 +84,7 @@ Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive prim, const M
     return curIndex;
 }
 
-Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xform)
+Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform)
 {
     Obdn_F_Primitive fprim;
     int r = obdn_f_ReadPrimitive(filePath, &fprim);
@@ -179,8 +96,10 @@ Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Mat4* xf
     assert(curIndex < OBDN_S_MAX_PRIMS);
     scene->prims[curIndex].rprim = prim;
 
-    const Mat4 m = xform ? *xform : m_Ident_Mat4();
-    scene->xforms[curIndex] = m;
+    Coal_Mat4 m = COAL_MAT4_IDENT;
+    if (xform)
+        memcpy(m, xform, sizeof(Coal_Mat4));
+    memcpy(scene->xforms[curIndex], m, sizeof(Coal_Mat4));
 
     scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
 
@@ -324,7 +243,9 @@ void obdn_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
 void obdn_s_UpdatePrimXform(Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta)
 {
     assert(primId < scene->primCount);
-    scene->xforms[primId] = m_Mult_Mat4(&scene->xforms[primId], delta);
+    Coal_Mat4 M;
+    coal_Mult_Mat4(scene->xforms[primId], delta->x, M);
+    coal_Copy_Mat4(M, scene->xforms[primId]);
     scene->dirt |= OBDN_S_XFORMS_BIT;
 }
 
@@ -363,4 +284,9 @@ Obdn_R_Primitive obdn_s_SwapRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive* n
     scene->prims[id].rprim = *newRprim;
     scene->dirt |= OBDN_S_PRIMS_BIT;
     return oldPrim;
+}
+
+bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id)
+{
+    return (s->primCount > 0 && s->prims[id].rprim.attrCount > 0);
 }

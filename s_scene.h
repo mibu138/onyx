@@ -3,6 +3,7 @@
 
 #include "r_geo.h"
 #include "t_def.h"
+#include <coal/m.h>
 
 //#define OBDN_S_MAX_PRIMS     256
 #define OBDN_S_MAX_PRIMS     2000
@@ -16,7 +17,7 @@ typedef uint32_t  Obdn_S_LightId;
 typedef uint32_t  Obdn_S_MaterialId;
 typedef uint32_t  Obdn_S_TextureId;
 typedef uint16_t  Obdn_S_Window[2];
-typedef Mat4      Obdn_S_Xform;
+typedef Coal_Mat4 Obdn_S_Xform;
 
 #define OBDN_S_NONE (uint32_t)-1
 
@@ -102,8 +103,6 @@ typedef struct {
     Obdn_S_PrimId primIds[OBDN_S_MAX_PRIMS];
 } Obdn_S_PrimitiveList;
 
-// counter-clockwise orientation
-void obdn_s_CreateSimpleScene(Obdn_S_Scene* scene);
 void obdn_s_UpdateCamera_ArcBall(Obdn_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
 void obdn_s_UpdateCamera_LookAt(Obdn_S_Scene* scene, Vec3 pos, Vec3 target, Vec3 up);
 void obdn_s_Init(Obdn_S_Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip);
@@ -116,7 +115,9 @@ void obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
 void obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
 void obdn_s_CleanUpScene(Obdn_S_Scene* scene);
 
-Obdn_S_PrimId    obdn_s_LoadPrim(Obdn_S_Scene* scene, const char* filePath, const Mat4* xform);
+bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id);
+
+Obdn_S_PrimId    obdn_s_LoadPrim(Obdn_S_Scene* scene, const char* filePath, const Coal_Mat4 xform);
 Obdn_S_PrimId    obdn_s_AddRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive prim, const Mat4* xform);
 Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount);
 Obdn_S_LightId   obdn_s_CreateDirectionLight(Obdn_S_Scene* scene, const Vec3 color, const Vec3 direction);

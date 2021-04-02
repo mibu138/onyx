@@ -1,0 +1,5 @@
+#ifndef OBSIDIAN_IMAGEFORMATS_H
+#define OBSIDIAN_IMAGEFORMATS_H
+
+
+#endif /* end of include guard: OBSIDIAN_IMAGEFORMATS_H */
