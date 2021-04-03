@@ -54,6 +54,7 @@ typedef struct {
 typedef struct {
     Obdn_R_Primitive  rprim;
     Obdn_S_MaterialId materialId;
+    bool              inactive;
 } Obdn_S_Primitive;
 
 typedef union {
@@ -118,7 +119,8 @@ void obdn_s_CleanUpScene(Obdn_S_Scene* scene);
 bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id);
 
 Obdn_S_PrimId    obdn_s_LoadPrim(Obdn_S_Scene* scene, const char* filePath, const Coal_Mat4 xform);
-Obdn_S_PrimId    obdn_s_AddRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive prim, const Mat4* xform);
+void             obdn_s_RemovePrim(Obdn_S_Scene* s, Obdn_S_PrimId id);
+Obdn_S_PrimId    obdn_s_AddRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive prim, const Coal_Mat4 xform);
 Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount);
 Obdn_S_LightId   obdn_s_CreateDirectionLight(Obdn_S_Scene* scene, const Vec3 color, const Vec3 direction);
 Obdn_S_LightId   obdn_s_CreatePointLight(Obdn_S_Scene* scene, const Vec3 color, const Vec3 position);

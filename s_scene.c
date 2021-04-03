@@ -22,6 +22,35 @@ typedef Obdn_S_PrimitiveList PrimitiveList;
 
 // TODO: this function needs to updated
 #define DEFAULT_MAT_ID 0
+#define MAX_DONOR_PRIM_IDS 16
+
+static Obdn_S_PrimId donorPrimIds[MAX_DONOR_PRIM_IDS];
+static uint8_t       donorPrimIdCount;
+
+static Obdn_S_PrimId addPrim(Scene* scene, const Obdn_R_Primitive rprim, const Coal_Mat4 xform)
+{
+    uint32_t curIndex;
+    if (donorPrimIdCount)
+        curIndex = donorPrimIds[--donorPrimIdCount];
+    else
+        curIndex = scene->primCount++;
+    assert(curIndex < OBDN_S_MAX_PRIMS);
+    if (xform)
+        coal_Copy_Mat4(xform, scene->xforms[curIndex]);
+    scene->prims[curIndex].rprim = rprim;
+    scene->prims[curIndex].inactive = false;
+    scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
+    return curIndex;
+}
+
+static void removePrim(Scene* s, Obdn_S_PrimId id)
+{
+    if (s->prims[id].inactive) return;
+    s->prims[id].inactive = true;
+    s->dirt |= OBDN_S_PRIMS_BIT;
+    obdn_r_FreePrim(&s->prims[id].rprim);
+    donorPrimIds[donorPrimIdCount++] = id;
+}
 
 void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip)
 {
@@ -34,6 +63,7 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     scene->camera.xform = m;
     scene->camera.view = m_Invert4x4(&m);
     scene->camera.proj = m_BuildPerspective(nearClip, farClip);
+    // set all xforms to identity
     for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
     {
         coal_Mat4_Identity(scene->xforms[i]);
@@ -68,20 +98,9 @@ void obdn_s_BindPrimToMaterial(Scene* scene, const Obdn_S_PrimId primId, const O
     scene->dirt |= OBDN_S_PRIMS_BIT;
 }
 
-Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive prim, const Mat4* xform)
+Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive prim, const Coal_Mat4 xform)
 {
-    const uint32_t curIndex = scene->primCount++;
-    assert(curIndex < OBDN_S_MAX_PRIMS);
-    scene->prims[curIndex].rprim = prim;
-
-    const Mat4 m = xform ? *xform : m_Ident_Mat4();
-    coal_Copy_Mat4(m.x, scene->xforms[curIndex]);
-
-    scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
-
-    scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
-
-    return curIndex;
+    return addPrim(scene, prim, xform);
 }
 
 Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform)
@@ -92,20 +111,7 @@ Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat
     Obdn_R_Primitive prim = obdn_f_CreateRPrimFromFPrim(&fprim);
     obdn_r_TransferPrimToDevice(&prim);
     obdn_f_FreePrimitive(&fprim);
-    const uint32_t curIndex = scene->primCount++;
-    assert(curIndex < OBDN_S_MAX_PRIMS);
-    scene->prims[curIndex].rprim = prim;
-
-    Coal_Mat4 m = COAL_MAT4_IDENT;
-    if (xform)
-        memcpy(m, xform, sizeof(Coal_Mat4));
-    memcpy(scene->xforms[curIndex], m, sizeof(Coal_Mat4));
-
-    scene->prims[curIndex].materialId = DEFAULT_MAT_ID;
-
-    scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
-
-    return curIndex;
+    return addPrim(scene, prim, xform);
 }
 
 Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount)
@@ -266,6 +272,7 @@ void obdn_s_CleanUpScene(Obdn_S_Scene* scene)
 {
     for (int i = 0; i < scene->primCount; i++)
     {
+        if (scene->prims[i].inactive) continue;
         obdn_r_FreePrim(&scene->prims[i].rprim);
     }
     for (int i = 1; i <= scene->textureCount; i++) // remember 1 is the first valid texture index
@@ -289,4 +296,9 @@ Obdn_R_Primitive obdn_s_SwapRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive* n
 bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id)
 {
     return (s->primCount > 0 && s->prims[id].rprim.attrCount > 0);
+}
+
+void obdn_s_RemovePrim(Obdn_S_Scene* s, Obdn_S_PrimId id)
+{
+    removePrim(s, id);
 }
