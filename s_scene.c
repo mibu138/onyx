@@ -45,15 +45,12 @@ static struct {
 
 static Obdn_S_PrimId addPrim(Scene* s, const Obdn_S_Primitive prim)
 {
-    hell_Print("Adding prim...\nBefore info:\n");
-    obdn_s_PrintPrimInfo(s);
     PrimIndex index  = s->primCount++;
     assert(index < OBDN_S_MAX_PRIMS);
     PrimId    id     = primMap.nextId++;
     while (primMap.indices[id % OBDN_S_MAX_PRIMS] >= 0) 
         id = primMap.nextId++;
     PrimId    slot   = id % OBDN_S_MAX_PRIMS;
-    printf("Index: %d slot %d\n", index, slot);
     if (index > slot)
     {
         memmove(s->prims + slot + 1, s->prims + slot, sizeof(Primitive) * (s->primCount - (slot + 1)));
@@ -67,8 +64,6 @@ static Obdn_S_PrimId addPrim(Scene* s, const Obdn_S_Primitive prim)
     memcpy(&s->prims[index], &prim, sizeof(Primitive));
 
     s->dirt |= OBDN_S_PRIMS_BIT;
-    hell_Print("After info: \n");
-    obdn_s_PrintPrimInfo(s);
     return id;
 }
 
@@ -203,7 +198,8 @@ Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive rprim, const 
 {
     Obdn_S_Primitive prim = {
         .rprim = rprim,
-        .xform = COAL_MAT4_IDENT
+        .xform = COAL_MAT4_IDENT,
+        .materialId = 0
     };
     if (xform)
         coal_Copy_Mat4(xform, prim.xform);
@@ -424,6 +420,7 @@ void obdn_s_PrintPrimInfo(const Scene* s)
     for (int i = 0; i < s->primCount; i++)
     {
         hell_Print("Prim %d material id %d\n", i, s->prims[i].materialId); 
+        hell_Print("Material: id %d roughness %f\n", s->prims[i].materialId, s->materials[s->prims[i].materialId].roughness);
         hell_Print_Mat4(s->prims[i].xform);
         hell_Print("\n");
     }
