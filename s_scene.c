@@ -3,6 +3,7 @@
 #include "f_file.h"
 #include "coal/m_math.h"
 #include "coal/util.h"
+#include "hell/common.h"
 #include "obsidian/v_memory.h"
 #include "r_geo.h"
 #include "v_image.h"
@@ -17,6 +18,7 @@ typedef Obdn_S_Light         Light;
 typedef Obdn_S_Material      Material;
 typedef Obdn_S_Camera        Camera;
 typedef Obdn_S_Texture       Texture;
+typedef Obdn_S_LightId       LightId;
 
 typedef Obdn_S_PrimitiveList PrimitiveList;
 
@@ -26,6 +28,15 @@ typedef Obdn_S_PrimitiveList PrimitiveList;
 
 static Obdn_S_PrimId donorPrimIds[MAX_DONOR_PRIM_IDS];
 static uint8_t       donorPrimIdCount;
+
+// lightMap is an indirection from Light Id to the actual light data in the scene.
+// invariants are that the active lights in the scene are tightly packed and
+// that the lights in the scene are ordered such that their indices are ordered
+// within the map.
+typedef int32_t LightIndex;
+static LightIndex lightMap[OBDN_S_MAX_LIGHTS]; // maps light id to light index
+static LightId    nextLightId = 0; // this always increases
+
 
 static Obdn_S_PrimId addPrim(Scene* scene, const Obdn_R_Primitive rprim, const Coal_Mat4 xform)
 {
@@ -52,6 +63,71 @@ static void removePrim(Scene* s, Obdn_S_PrimId id)
     donorPrimIds[donorPrimIdCount++] = id;
 }
 
+static LightId addLight(Scene* s, Light light)
+{
+    hell_Print("Adding light...\nBefore info:\n");
+    obdn_s_PrintLightInfo(s);
+    LightIndex index  = s->lightCount++;
+    LightId    id     = nextLightId++;
+    while (lightMap[id % OBDN_S_MAX_LIGHTS] >= 0) 
+        id = nextLightId++;
+    LightId    slot   = id % OBDN_S_MAX_LIGHTS;
+    printf("Index: %d slot %d\n", index, slot);
+    if (index > slot)
+    {
+        memmove(s->lights + slot + 1, s->lights + slot, sizeof(Light) * (s->lightCount - (slot + 1)));
+        for (int i = slot + 1; i < OBDN_S_MAX_LIGHTS; i++)
+        {
+            ++lightMap[i];
+        }
+    }
+    index = slot;
+    lightMap[slot] = index;
+    memcpy(&s->lights[index], &light, sizeof(Light));
+
+    s->dirt |= OBDN_S_LIGHTS_BIT;
+    hell_Print("After info: \n");
+    obdn_s_PrintLightInfo(s);
+    return id;
+}
+
+static LightId addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 color, const float intensity)
+{
+    Light light = {
+        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
+        .intensity = intensity
+    };
+    coal_Copy_Vec3(dir, light.structure.directionLight.dir.x);
+    coal_Copy_Vec3(color, light.color.x);
+    return addLight(s, light);
+}
+
+static LightId addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 color, const float intensity)
+{
+    Light light = {
+        .type = OBDN_S_LIGHT_TYPE_POINT,
+        .intensity = intensity
+    };
+    coal_Copy_Vec3(pos, light.structure.pointLight.pos.x);
+    coal_Copy_Vec3(color, light.color.x);
+    return addLight(s, light);
+}
+
+static void removeLight(Scene* s, LightId id)
+{
+    LightId slot = id % OBDN_S_MAX_PRIMS;
+    LightIndex dst = lightMap[slot];
+    LightIndex src = dst + 1;
+    memmove(s->lights + dst, s->lights + src, sizeof(Light) * (s->lightCount - src));
+    s->lightCount--;
+    lightMap[slot] = 0;
+    for (int i = slot; i < OBDN_S_MAX_LIGHTS; i++)
+    {
+        --lightMap[i];
+    }
+    s->dirt |= OBDN_S_LIGHTS_BIT;
+}
+
 void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip)
 {
     memset(scene, 0, sizeof(Scene));
@@ -69,6 +145,10 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
         coal_Mat4_Identity(scene->xforms[i]);
     }
     obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
+    for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
+    {
+        lightMap[i] = -1;
+    }
 
     scene->dirt = -1;
 }
@@ -162,38 +242,12 @@ Obdn_S_MaterialId obdn_s_CreateMaterial(Obdn_S_Scene* scene, Vec3 color, float r
 
 Obdn_S_LightId obdn_s_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
 {
-    Light light = {
-        .color = color,
-        .intensity = 1,
-        .type = OBDN_S_LIGHT_TYPE_DIRECTION,
-        .structure.directionLight.dir = m_Normalize_Vec3(&direction)
-    };
-
-    const uint32_t curIndex = scene->lightCount++;
-    assert(curIndex < OBDN_S_MAX_LIGHTS);
-    scene->lights[curIndex] = light;
-
-    scene->dirt |= OBDN_S_LIGHTS_BIT;
-
-    return curIndex;
+    return addDirectionLight(scene, direction.x, color.x, 1.0);
 }
 
 Obdn_S_LightId obdn_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
 {
-    Light light = {
-        .color = color,
-        .intensity = 1,
-        .type = OBDN_S_LIGHT_TYPE_POINT,
-        .structure.pointLight.pos = position
-    };
-
-    const uint32_t curIndex = scene->lightCount++;
-    assert(curIndex < OBDN_S_MAX_LIGHTS);
-    scene->lights[curIndex] = light;
-
-    scene->dirt |= OBDN_S_LIGHTS_BIT;
-
-    return curIndex;
+    return addPointLight(scene, position.x, color.x, 1.0);
 }
 
 #define HOME_POS    {0.0, 0.0, 1.0}
@@ -241,8 +295,7 @@ void obdn_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my,
 
 void obdn_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
 {
-    assert(id < scene->lightCount);
-    scene->lights[id].intensity = intensity;
+    scene->lights[lightMap[id]].intensity = intensity;
     scene->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
@@ -301,4 +354,26 @@ bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id)
 void obdn_s_RemovePrim(Obdn_S_Scene* s, Obdn_S_PrimId id)
 {
     removePrim(s, id);
+}
+
+void obdn_s_AddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity)
+{
+    addPointLight(s, pos, color, intensity);
+}
+
+void obdn_s_RemoveLight(Scene* s, LightId id)
+{
+    removeLight(s, id);
+}
+
+void obdn_s_PrintLightInfo(const Scene* s)
+{
+    hell_Print("====== Scene: light info =======\n");
+    hell_Print("Light count: %d\n", s->lightCount);
+    hell_Print("Light map: ");
+    for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
+    {
+        hell_Print(" %d:%d ", i, lightMap[i]);
+    }
+    hell_Print("\n");
 }

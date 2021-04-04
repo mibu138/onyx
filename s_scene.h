@@ -112,9 +112,12 @@ void obdn_s_UpdateLight(Obdn_S_Scene* scene, uint32_t id, float intensity);
 void obdn_s_BindPrimToMaterial(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId);
 void obdn_s_UpdatePrimXform(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta);
 
-void obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
-void obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
-void obdn_s_CleanUpScene(Obdn_S_Scene* scene);
+void  obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
+void  obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
+void  obdn_s_CleanUpScene(Obdn_S_Scene* scene);
+void obdn_s_AddPointLight(Obdn_S_Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity);
+void obdn_s_PrintLightInfo(const Obdn_S_Scene* s);
+void obdn_s_RemoveLight(Obdn_S_Scene* s, Obdn_S_LightId id);
 
 bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id);
 
