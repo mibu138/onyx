@@ -68,6 +68,7 @@ static LightId addLight(Scene* s, Light light)
     hell_Print("Adding light...\nBefore info:\n");
     obdn_s_PrintLightInfo(s);
     LightIndex index  = s->lightCount++;
+    assert(index < OBDN_S_MAX_LIGHTS);
     LightId    id     = nextLightId++;
     while (lightMap[id % OBDN_S_MAX_LIGHTS] >= 0) 
         id = nextLightId++;
@@ -80,8 +81,8 @@ static LightId addLight(Scene* s, Light light)
         {
             ++lightMap[i];
         }
+        index = slot;
     }
-    index = slot;
     lightMap[slot] = index;
     memcpy(&s->lights[index], &light, sizeof(Light));
 
@@ -95,7 +96,7 @@ static LightId addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 
 {
     Light light = {
         .type = OBDN_S_LIGHT_TYPE_DIRECTION,
-        .intensity = intensity
+        .intensity = intensity,
     };
     coal_Copy_Vec3(dir, light.structure.directionLight.dir.x);
     coal_Copy_Vec3(color, light.color.x);
@@ -120,11 +121,11 @@ static void removeLight(Scene* s, LightId id)
     LightIndex src = dst + 1;
     memmove(s->lights + dst, s->lights + src, sizeof(Light) * (s->lightCount - src));
     s->lightCount--;
-    lightMap[slot] = 0;
-    for (int i = slot; i < OBDN_S_MAX_LIGHTS; i++)
+    for (int i = slot + 1; i < OBDN_S_MAX_LIGHTS; i++)
     {
         --lightMap[i];
     }
+    lightMap[slot] = -OBDN_S_MAX_LIGHTS;
     s->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
@@ -147,7 +148,7 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
     {
-        lightMap[i] = -1;
+        lightMap[i] = -OBDN_S_MAX_LIGHTS;
     }
 
     scene->dirt = -1;
@@ -356,6 +357,11 @@ void obdn_s_RemovePrim(Obdn_S_Scene* s, Obdn_S_PrimId id)
     removePrim(s, id);
 }
 
+void obdn_s_AddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
+{
+    addDirectionLight(s, dir, color, intensity);
+}
+
 void obdn_s_AddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity)
 {
     addPointLight(s, pos, color, intensity);
@@ -370,6 +376,14 @@ void obdn_s_PrintLightInfo(const Scene* s)
 {
     hell_Print("====== Scene: light info =======\n");
     hell_Print("Light count: %d\n", s->lightCount);
+    for (int i = 0; i < s->lightCount; i++)
+    {
+        hell_Print("Light index %d P ", i);
+        hell_Print_Vec3(s->lights[i].structure.pointLight.pos.x);
+        hell_Print(" C ");
+        hell_Print_Vec3(s->lights[i].color.x);
+        hell_Print(" I  %f\n", s->lights[i].intensity);
+    }
     hell_Print("Light map: ");
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
     {

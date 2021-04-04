@@ -8,7 +8,7 @@
 //#define OBDN_S_MAX_PRIMS     256
 #define OBDN_S_MAX_PRIMS     2000
 #define OBDN_S_MAX_MATERIALS 16
-#define OBDN_S_MAX_LIGHTS    16
+#define OBDN_S_MAX_LIGHTS    8
 #define OBDN_S_MAX_TEXTURES  16
 
 typedef Obdn_Mask Obdn_S_DirtyMask;
@@ -63,10 +63,10 @@ typedef union {
 } Obdn_S_LightStructure;
 
 typedef struct {
-    Obdn_S_LightStructure structure;
+    Obdn_S_LightStructure  structure;
     float                  intensity;
     Vec3                   color;
-    Obdn_S_LightType      type;
+    Obdn_S_LightType       type;
 } Obdn_S_Light;
 
 typedef struct {
@@ -113,6 +113,7 @@ void obdn_s_BindPrimToMaterial(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, 
 void obdn_s_UpdatePrimXform(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta);
 
 void  obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
+void obdn_s_AddDirectionLight(Obdn_S_Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity);
 void  obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
 void  obdn_s_CleanUpScene(Obdn_S_Scene* scene);
 void obdn_s_AddPointLight(Obdn_S_Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity);
