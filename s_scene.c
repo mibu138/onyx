@@ -11,7 +11,7 @@
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
 
-typedef Obdn_R_Primitive     Primitive;
+typedef Obdn_S_Primitive     Primitive;
 typedef Obdn_S_Xform         Xform;
 typedef Obdn_S_Scene         Scene;
 typedef Obdn_S_Light         Light;
@@ -26,10 +26,6 @@ typedef Obdn_S_PrimitiveList PrimitiveList;
 
 // TODO: this function needs to updated
 #define DEFAULT_MAT_ID 0
-#define MAX_DONOR_PRIM_IDS 16
-
-static Obdn_S_PrimId donorPrimIds[MAX_DONOR_PRIM_IDS];
-static uint8_t       donorPrimIdCount;
 
 typedef int32_t LightIndex;
 typedef int32_t PrimIndex;
@@ -47,34 +43,49 @@ static struct {
     PrimId    nextId;
 } primMap;
 
-static Obdn_S_PrimId addPrim(Scene* scene, const Obdn_R_Primitive rprim, const Coal_Mat4 xform)
+static Obdn_S_PrimId addPrim(Scene* s, const Obdn_S_Primitive prim)
 {
-    uint32_t curIndex;
-    if (donorPrimIdCount)
-        curIndex = donorPrimIds[--donorPrimIdCount];
-    else
-        curIndex = scene->primCount++;
-    assert(curIndex < OBDN_S_MAX_PRIMS);
-    if (xform)
-        coal_Copy_Mat4(xform, scene->xforms[curIndex]);
-    else 
+    hell_Print("Adding prim...\nBefore info:\n");
+    obdn_s_PrintPrimInfo(s);
+    PrimIndex index  = s->primCount++;
+    assert(index < OBDN_S_MAX_PRIMS);
+    PrimId    id     = primMap.nextId++;
+    while (primMap.indices[id % OBDN_S_MAX_PRIMS] >= 0) 
+        id = primMap.nextId++;
+    PrimId    slot   = id % OBDN_S_MAX_PRIMS;
+    printf("Index: %d slot %d\n", index, slot);
+    if (index > slot)
     {
-        Coal_Mat4 M = COAL_MAT4_IDENT;
-        coal_Copy_Mat4(M, scene->xforms[curIndex]);
+        memmove(s->prims + slot + 1, s->prims + slot, sizeof(Primitive) * (s->primCount - (slot + 1)));
+        for (int i = slot + 1; i < OBDN_S_MAX_PRIMS; i++)
+        {
+            ++primMap.indices[i];
+        }
+        index = slot;
     }
-    scene->prims[curIndex].rprim = rprim;
-    scene->prims[curIndex].inactive = false;
-    scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
-    return curIndex;
+    primMap.indices[slot] = index;
+    memcpy(&s->prims[index], &prim, sizeof(Primitive));
+
+    s->dirt |= OBDN_S_PRIMS_BIT;
+    hell_Print("After info: \n");
+    obdn_s_PrintPrimInfo(s);
+    return id;
 }
 
 static void removePrim(Scene* s, Obdn_S_PrimId id)
 {
-    if (s->prims[id].inactive) return;
-    s->prims[id].inactive = true;
+    PrimId slot = id % OBDN_S_MAX_PRIMS;
+    PrimIndex dst = primMap.indices[slot];
+    PrimIndex src = dst + 1;
+    obdn_r_FreePrim(&s->prims[dst].rprim);
+    memmove(s->prims + dst, s->prims + src, sizeof(Primitive) * (s->primCount - src));
+    s->primCount--;
+    for (int i = slot + 1; i < OBDN_S_MAX_PRIMS; i++)
+    {
+        --primMap.indices[i];
+    }
+    primMap.indices[slot] = -OBDN_S_MAX_PRIMS;
     s->dirt |= OBDN_S_PRIMS_BIT;
-    obdn_r_FreePrim(&s->prims[id].rprim);
-    donorPrimIds[donorPrimIdCount++] = id;
 }
 
 static LightId addLight(Scene* s, Light light)
@@ -155,14 +166,14 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     scene->camera.view = m_Invert4x4(&m);
     scene->camera.proj = m_BuildPerspective(nearClip, farClip);
     // set all xforms to identity
-    for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
-    {
-        coal_Mat4_Identity(scene->xforms[i]);
-    }
     obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
     {
         lightMap.indices[i] = -OBDN_S_MAX_LIGHTS;
+    }
+    for (int i = 0; i < OBDN_S_MAX_PRIMS; i++)
+    {
+        primMap.indices[i] = -OBDN_S_MAX_PRIMS;
     }
 
     scene->dirt = -1;
@@ -176,10 +187,6 @@ void obdn_s_CreateEmptyScene(Scene* scene)
     scene->camera.view = m_Invert4x4(&m);
     scene->camera.proj = m_BuildPerspective(0.01, 100);
     obdn_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
-    for (int i = 0; i < OBDN_S_MAX_PRIMS; i++) 
-    {
-        coal_Mat4_Identity(scene->xforms[i]);
-    }
 
     scene->dirt |= -1;
 }
@@ -187,15 +194,20 @@ void obdn_s_CreateEmptyScene(Scene* scene)
 void obdn_s_BindPrimToMaterial(Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId)
 {
     assert(scene->materialCount > matId);
-    assert(scene->primCount > primId);
-    scene->prims[primId].materialId = matId;
+    scene->prims[primMap.indices[primId]].materialId = matId;
 
     scene->dirt |= OBDN_S_PRIMS_BIT;
 }
 
-Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive prim, const Coal_Mat4 xform)
+Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive rprim, const Coal_Mat4 xform)
 {
-    return addPrim(scene, prim, xform);
+    Obdn_S_Primitive prim = {
+        .rprim = rprim,
+        .xform = COAL_MAT4_IDENT
+    };
+    if (xform)
+        coal_Copy_Mat4(xform, prim.xform);
+    return addPrim(scene, prim);
 }
 
 Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform)
@@ -206,7 +218,7 @@ Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat
     Obdn_R_Primitive prim = obdn_f_CreateRPrimFromFPrim(&fprim);
     obdn_r_TransferPrimToDevice(&prim);
     obdn_f_FreePrimitive(&fprim);
-    return addPrim(scene, prim, xform);
+    return obdn_s_AddRPrim(scene, prim, xform);
 }
 
 Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount)
@@ -318,8 +330,8 @@ void obdn_s_UpdatePrimXform(Scene* scene, const Obdn_S_PrimId primId, const Mat4
 {
     assert(primId < scene->primCount);
     Coal_Mat4 M;
-    coal_Mult_Mat4(scene->xforms[primId], delta->x, M);
-    coal_Copy_Mat4(M, scene->xforms[primId]);
+    coal_Mult_Mat4(scene->prims[primMap.indices[primId]].xform, delta->x, M);
+    coal_Copy_Mat4(M, scene->prims[primMap.indices[primId]].xform);
     scene->dirt |= OBDN_S_XFORMS_BIT;
 }
 
@@ -340,7 +352,6 @@ void obdn_s_CleanUpScene(Obdn_S_Scene* scene)
 {
     for (int i = 0; i < scene->primCount; i++)
     {
-        if (scene->prims[i].inactive) continue;
         obdn_r_FreePrim(&scene->prims[i].rprim);
     }
     for (int i = 1; i <= scene->textureCount; i++) // remember 1 is the first valid texture index
@@ -402,6 +413,24 @@ void obdn_s_PrintLightInfo(const Scene* s)
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
     {
         hell_Print(" %d:%d ", i, lightMap.indices[i]);
+    }
+    hell_Print("\n");
+}
+
+void obdn_s_PrintPrimInfo(const Scene* s)
+{
+    hell_Print("====== Scene: primitive info =======\n");
+    hell_Print("Prim count: %d\n", s->primCount);
+    for (int i = 0; i < s->primCount; i++)
+    {
+        hell_Print("Prim %d material id %d\n", i, s->prims[i].materialId); 
+        hell_Print_Mat4(s->prims[i].xform);
+        hell_Print("\n");
+    }
+    hell_Print("Prim map: ");
+    for (int i = 0; i < OBDN_S_MAX_PRIMS; i++)
+    {
+        hell_Print(" %d:%d ", i, primMap.indices[i]);
     }
     hell_Print("\n");
 }

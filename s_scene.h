@@ -6,7 +6,7 @@
 #include <coal/m.h>
 
 //#define OBDN_S_MAX_PRIMS     256
-#define OBDN_S_MAX_PRIMS     2000
+#define OBDN_S_MAX_PRIMS     32
 #define OBDN_S_MAX_MATERIALS 16
 #define OBDN_S_MAX_LIGHTS    8
 #define OBDN_S_MAX_TEXTURES  16
@@ -53,8 +53,8 @@ typedef struct {
 
 typedef struct {
     Obdn_R_Primitive  rprim;
+    Obdn_S_Xform      xform;
     Obdn_S_MaterialId materialId;
-    bool              inactive;
 } Obdn_S_Primitive;
 
 typedef union {
@@ -89,7 +89,6 @@ typedef struct {
     Obdn_S_MaterialId materialCount;
     Obdn_S_TextureId  textureCount;
     Obdn_S_Primitive  prims[OBDN_S_MAX_PRIMS];
-    Obdn_S_Xform      xforms[OBDN_S_MAX_PRIMS];
     Obdn_S_Material   materials[OBDN_S_MAX_MATERIALS];
     Obdn_S_Texture    textures[OBDN_S_MAX_TEXTURES];
     Obdn_S_Light      lights[OBDN_S_MAX_LIGHTS];
@@ -118,6 +117,7 @@ void  obdn_s_ClearPrimList(Obdn_S_PrimitiveList*);
 void  obdn_s_CleanUpScene(Obdn_S_Scene* scene);
 void obdn_s_AddPointLight(Obdn_S_Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity);
 void obdn_s_PrintLightInfo(const Obdn_S_Scene* s);
+void obdn_s_PrintPrimInfo(const Obdn_S_Scene* s);
 void obdn_s_RemoveLight(Obdn_S_Scene* s, Obdn_S_LightId id);
 
 bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id);
