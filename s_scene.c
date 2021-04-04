@@ -18,7 +18,9 @@ typedef Obdn_S_Light         Light;
 typedef Obdn_S_Material      Material;
 typedef Obdn_S_Camera        Camera;
 typedef Obdn_S_Texture       Texture;
+
 typedef Obdn_S_LightId       LightId;
+typedef Obdn_S_PrimId        PrimId;
 
 typedef Obdn_S_PrimitiveList PrimitiveList;
 
@@ -29,14 +31,21 @@ typedef Obdn_S_PrimitiveList PrimitiveList;
 static Obdn_S_PrimId donorPrimIds[MAX_DONOR_PRIM_IDS];
 static uint8_t       donorPrimIdCount;
 
+typedef int32_t LightIndex;
+typedef int32_t PrimIndex;
 // lightMap is an indirection from Light Id to the actual light data in the scene.
 // invariants are that the active lights in the scene are tightly packed and
 // that the lights in the scene are ordered such that their indices are ordered
 // within the map.
-typedef int32_t LightIndex;
-static LightIndex lightMap[OBDN_S_MAX_LIGHTS]; // maps light id to light index
-static LightId    nextLightId = 0; // this always increases
+static struct {
+    LightIndex indices[OBDN_S_MAX_LIGHTS]; // maps light id to light index
+    LightId    nextId; // this always increases
+} lightMap;
 
+static struct {
+    PrimIndex indices[OBDN_S_MAX_PRIMS];
+    PrimId    nextId;
+} primMap;
 
 static Obdn_S_PrimId addPrim(Scene* scene, const Obdn_R_Primitive rprim, const Coal_Mat4 xform)
 {
@@ -48,6 +57,11 @@ static Obdn_S_PrimId addPrim(Scene* scene, const Obdn_R_Primitive rprim, const C
     assert(curIndex < OBDN_S_MAX_PRIMS);
     if (xform)
         coal_Copy_Mat4(xform, scene->xforms[curIndex]);
+    else 
+    {
+        Coal_Mat4 M = COAL_MAT4_IDENT;
+        coal_Copy_Mat4(M, scene->xforms[curIndex]);
+    }
     scene->prims[curIndex].rprim = rprim;
     scene->prims[curIndex].inactive = false;
     scene->dirt |= OBDN_S_XFORMS_BIT | OBDN_S_PRIMS_BIT;
@@ -69,9 +83,9 @@ static LightId addLight(Scene* s, Light light)
     obdn_s_PrintLightInfo(s);
     LightIndex index  = s->lightCount++;
     assert(index < OBDN_S_MAX_LIGHTS);
-    LightId    id     = nextLightId++;
-    while (lightMap[id % OBDN_S_MAX_LIGHTS] >= 0) 
-        id = nextLightId++;
+    LightId    id     = lightMap.nextId++;
+    while (lightMap.indices[id % OBDN_S_MAX_LIGHTS] >= 0) 
+        id = lightMap.nextId++;
     LightId    slot   = id % OBDN_S_MAX_LIGHTS;
     printf("Index: %d slot %d\n", index, slot);
     if (index > slot)
@@ -79,11 +93,11 @@ static LightId addLight(Scene* s, Light light)
         memmove(s->lights + slot + 1, s->lights + slot, sizeof(Light) * (s->lightCount - (slot + 1)));
         for (int i = slot + 1; i < OBDN_S_MAX_LIGHTS; i++)
         {
-            ++lightMap[i];
+            ++lightMap.indices[i];
         }
         index = slot;
     }
-    lightMap[slot] = index;
+    lightMap.indices[slot] = index;
     memcpy(&s->lights[index], &light, sizeof(Light));
 
     s->dirt |= OBDN_S_LIGHTS_BIT;
@@ -117,15 +131,15 @@ static LightId addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 colo
 static void removeLight(Scene* s, LightId id)
 {
     LightId slot = id % OBDN_S_MAX_PRIMS;
-    LightIndex dst = lightMap[slot];
+    LightIndex dst = lightMap.indices[slot];
     LightIndex src = dst + 1;
     memmove(s->lights + dst, s->lights + src, sizeof(Light) * (s->lightCount - src));
     s->lightCount--;
     for (int i = slot + 1; i < OBDN_S_MAX_LIGHTS; i++)
     {
-        --lightMap[i];
+        --lightMap.indices[i];
     }
-    lightMap[slot] = -OBDN_S_MAX_LIGHTS;
+    lightMap.indices[slot] = -OBDN_S_MAX_LIGHTS;
     s->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
@@ -148,7 +162,7 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
     {
-        lightMap[i] = -OBDN_S_MAX_LIGHTS;
+        lightMap.indices[i] = -OBDN_S_MAX_LIGHTS;
     }
 
     scene->dirt = -1;
@@ -228,7 +242,7 @@ Obdn_S_MaterialId obdn_s_CreateMaterial(Obdn_S_Scene* scene, Vec3 color, float r
         Obdn_S_TextureId albedoId, Obdn_S_TextureId roughnessId, Obdn_S_TextureId normalId)
 {
     Obdn_S_MaterialId matId = scene->materialCount++;
-    assert(matId < OBDN_S_MAX_TEXTURES);
+    assert(matId < OBDN_S_MAX_MATERIALS);
 
     scene->materials[matId].color     = color;
     scene->materials[matId].roughness = roughness;
@@ -296,7 +310,7 @@ void obdn_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my,
 
 void obdn_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
 {
-    scene->lights[lightMap[id]].intensity = intensity;
+    scene->lights[lightMap.indices[id]].intensity = intensity;
     scene->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
@@ -387,7 +401,7 @@ void obdn_s_PrintLightInfo(const Scene* s)
     hell_Print("Light map: ");
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
     {
-        hell_Print(" %d:%d ", i, lightMap[i]);
+        hell_Print(" %d:%d ", i, lightMap.indices[i]);
     }
     hell_Print("\n");
 }
