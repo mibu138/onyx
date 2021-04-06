@@ -431,3 +431,25 @@ void obdn_s_PrintPrimInfo(const Scene* s)
     }
     hell_Print("\n");
 }
+
+void obdn_s_UpdateLightColor(Obdn_S_Scene* scene, Obdn_S_LightId id, float r, float g, float b)
+{
+    scene->lights[lightMap.indices[id]].color.x[0] = r;
+    scene->lights[lightMap.indices[id]].color.x[1] = g;
+    scene->lights[lightMap.indices[id]].color.x[2] = b;
+    scene->dirt |= OBDN_S_LIGHTS_BIT;
+}
+
+void obdn_s_UpdateLightPos(Obdn_S_Scene* scene, Obdn_S_LightId id, float x, float y, float z)
+{
+    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x[0] = x;
+    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x[1] = y;
+    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x[2] = z;
+    scene->dirt |= OBDN_S_LIGHTS_BIT;
+}
+
+void obdn_s_UpdateLightIntensity(Obdn_S_Scene* scene, Obdn_S_LightId id, float i)
+{
+    scene->lights[lightMap.indices[id]].intensity = i;
+    scene->dirt |= OBDN_S_LIGHTS_BIT;
+}

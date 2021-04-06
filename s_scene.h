@@ -137,4 +137,8 @@ Obdn_S_MaterialId obdn_s_CreateMaterial(Obdn_S_Scene* scene, Vec3 color, float r
 // swaps an rprim into a scene. returns the rprim that was there. 
 Obdn_R_Primitive obdn_s_SwapRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive* newRprim, const Obdn_S_PrimId id);
 
+void obdn_s_UpdateLightColor(Obdn_S_Scene* scene, Obdn_S_LightId id, float r, float g, float b);
+void obdn_s_UpdateLightIntensity(Obdn_S_Scene* scene, Obdn_S_LightId id, float i);
+void obdn_s_UpdateLightPos(Obdn_S_Scene* scene, Obdn_S_LightId id, float x, float y, float z);
+
 #endif /* end of include guard: OBDN_S_SCENE_H */
