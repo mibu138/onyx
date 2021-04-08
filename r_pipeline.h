@@ -10,10 +10,7 @@
 #define OBDN_MAX_BINDINGS 10
 #define OBDN_MAX_PUSH_CONSTANTS 5
 
-#ifndef OBDN_ROOT
-#define OBDN_ROOT "."
-#endif
-#define OBDN_SPVDIR "C:/Users/Michael Buckley/dev/obsidian/shaders/spv"
+#define OBDN_FULL_SCREEN_VERT_SPV "full-screen-vert.spv"
 
 typedef struct {
     uint32_t                 descriptorCount;
@@ -102,9 +99,6 @@ void obdn_r_CleanUpPipelines(void);
 void obdn_r_CreateDescriptionsAndLayouts(const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
         VkDescriptorSetLayout layouts[descSetCount], 
         const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount]);
-
-// has clockwise orientation
-char* obdn_r_FullscreenTriVertShader(void);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

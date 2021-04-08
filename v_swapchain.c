@@ -58,8 +58,8 @@ static void initSurfaceXcb(const Hell_Window* window)
     const XcbWindow* w = window->typeSpecificData;
     const VkXcbSurfaceCreateInfoKHR ci = {
         .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
-        .connection = w.connection,
-        .window = w.window,
+        .connection = w->connection,
+        .window = w->window,
     };
 
     V_ASSERT( vkCreateXcbSurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );

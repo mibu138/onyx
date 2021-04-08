@@ -1,16 +1,16 @@
 #include "r_pipeline.h"
+#include "hell/common.h"
 #include "r_raytrace.h"
 #include "v_video.h"
 #include "r_render.h"
 #include "t_def.h"
 #include "v_vulkan.h"
 #include "v_private.h"
+#include "locations.h"
 #include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
-#include <vulkan/vulkan_beta.h>
-#include <vulkan/vulkan_core.h>
 
 enum shaderStageType { VERT, FRAG };
 
@@ -77,6 +77,34 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
     V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
 }
 
+#define SPVDIR "/shaders/spv/"
+
+static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
+{
+    const int shaderNameLen = strnlen(shaderName, OBDN_MAX_PATH_LEN);
+    if (shaderNameLen >= OBDN_MAX_PATH_LEN)
+        hell_Error(HELL_ERR_FATAL, "Shader path length exceeds limit.");
+    if (hell_FileExists(shaderName)) // check if shader name is actually a valid path to an spv file
+    {
+        strcpy(pathBuffer, shaderName);
+        return;
+    }
+    const char* obdnRoot = obdn_GetObdnRoot();
+    if (strlen(obdnRoot) + shaderNameLen + strlen(SPVDIR) > OBDN_MAX_PATH_LEN)
+        hell_Error(HELL_ERR_FATAL, "Cumulative shader path length exceeds limit.");
+    strcpy(pathBuffer, obdnRoot);
+    strcat(pathBuffer, SPVDIR);
+    strcat(pathBuffer, shaderName);
+}
+
+static const char* getResolvedSprivPath(const char* shaderName)
+{
+    static char spvpath[OBDN_MAX_PATH_LEN];
+    setResolvedShaderPath(shaderName, spvpath);
+    hell_DPrint("Resolved spv path: %s\n", spvpath);
+    return spvpath;
+}
+
 #define MAX_GP_SHADER_STAGES 4
 #define MAX_ATTACHMENT_STATES 8
 
@@ -111,8 +139,8 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         VkShaderModule tessCtrlModule;
         VkShaderModule tessEvalModule;
 
-        initShaderModule(rasterInfo->vertShader, &vertModule);
-        initShaderModule(rasterInfo->fragShader, &fragModule);
+        initShaderModule(getResolvedSprivPath(rasterInfo->vertShader), &vertModule);
+        initShaderModule(getResolvedSprivPath(rasterInfo->fragShader), &fragModule);
 
         uint8_t shaderStageCount = 2;
         for (int j = 0; j < MAX_GP_SHADER_STAGES; j++) 
@@ -133,8 +161,8 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         if (rasterInfo->tessCtrlShader)
         {
             assert(rasterInfo->tessEvalShader);
-            initShaderModule(rasterInfo->tessCtrlShader, &tessCtrlModule);
-            initShaderModule(rasterInfo->tessEvalShader, &tessEvalModule);
+            initShaderModule(getResolvedSprivPath(rasterInfo->tessCtrlShader), &tessCtrlModule);
+            initShaderModule(getResolvedSprivPath(rasterInfo->tessEvalShader), &tessEvalModule);
             shaderStages[i][2].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             shaderStages[i][2].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
             shaderStages[i][2].module = tessCtrlModule;
@@ -371,11 +399,11 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePi
         char* const* const chitShaders =   rayTraceInfo->chitShaders;
 
         for (int i = 0; i < raygenCount; i++) 
-            initShaderModule(raygenShaders[i], &raygenSM[i]);
+            initShaderModule(getResolvedSprivPath(raygenShaders[i]), &raygenSM[i]);
         for (int i = 0; i < missCount; i++) 
-            initShaderModule(missShaders[i], &missSM[i]);
+            initShaderModule(getResolvedSprivPath(missShaders[i]), &missSM[i]);
         for (int i = 0; i < chitCount; i++) 
-            initShaderModule(chitShaders[i], &chitSM[i]);
+            initShaderModule(getResolvedSprivPath(chitShaders[i]), &chitSM[i]);
 
         const int shaderCount = raygenCount + missCount + chitCount;
 
@@ -612,11 +640,6 @@ void obdn_r_CreatePipelineLayouts(const uint8_t count, const Obdn_R_PipelineLayo
 void obdn_r_CleanUpPipelines()
 {
     printf("%s called. no longer does anything\n", __PRETTY_FUNCTION__);
-}
-
-char* obdn_r_FullscreenTriVertShader(void)
-{
-    return OBDN_SPVDIR"/post-vert.spv";
 }
 
 void obdn_r_DestroyDescription(Obdn_R_Description* d)

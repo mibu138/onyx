@@ -165,8 +165,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .viewportDim       = {width, height},
-        .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
-        .fragShader        = OBDN_SPVDIR"/ui-box-frag.spv"
+        .vertShader        = "ui-vert.spv",
+        .fragShader        = "ui-box-frag.spv"
     },{ 
         // slider
         .renderPass        = renderPass,
@@ -176,8 +176,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
-        .fragShader        = OBDN_SPVDIR"/ui-slider-frag.spv"
+        .vertShader        = "ui-vert.spv",
+        .fragShader        = "ui-slider-frag.spv"
     },{ 
         // texture
         .renderPass        = renderPass,
@@ -187,8 +187,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader        = OBDN_SPVDIR"/ui-vert.spv",
-        .fragShader        = OBDN_SPVDIR"/ui-texture-frag.spv"
+        .vertShader        = "ui-vert.spv",
+        .fragShader        = "ui-texture-frag.spv"
     }};
 
     obdn_r_CreateGraphicsPipelines(OBDN_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);

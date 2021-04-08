@@ -22,18 +22,17 @@ else
 	LIBS += -lvulkan
 	HOMEDIR =  $(HOME)
 	INEXTRA = -I/usr/include/freetype2 
-	LDFLAGS = -L/opt/hfs18.6/dsolib
+	LDFLAGS = -L$(HOMEDIR)/lib -L/opt/hfs18.6/dsolib
 endif
 LIBDIR  = $(HOMEDIR)/lib
 DEV = $(HOMEDIR)/dev
 INFLAGS = -I$(DEV) $(INEXTRA)
-CFLAGS  += -DOBDN_ROOT="C\:/Users/Michael Buckley/dev/obsidian"
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
 LIBNAME = obsidian
 LIBPATH = $(LIBDIR)/lib$(LIBNAME).$(LIBEXT)
 
-O = build
+O = $(PWD)/build
 GLSL = shaders
 SPV  = shaders/spv
 
@@ -58,7 +57,8 @@ DEPS =  \
 	f_file.h       \
 	u_ui.h         \
     t_def.h        \
-	t_text.h       
+	t_text.h       \
+	locations.h
 
 SHDEPS = \
 	shaders/common.glsl \
@@ -80,7 +80,8 @@ OBJS =  \
 	$(O)/s_scene.o      \
 	$(O)/f_file.o       \
 	$(O)/u_ui.o         \
-	$(O)/t_text.o
+	$(O)/t_text.o       \
+	$(O)/locations.o    
 
 
 debug: CFLAGS += -g -DVERBOSE=1
@@ -120,7 +121,7 @@ bin: main.c $(OBJS) $(DEPS) shaders
 lib: $(OBJS) $(DEPS) shaders
 	$(CC) $(LDFLAGS) -shared -o $(LIBPATH) $(OBJS) $(LIBS)
 
-$(O)/%.o:  %.c $(DEPS)
+$(O)/%.o:  $(PWD)/%.c $(DEPS)
 	$(CC) $(CFLAGS) $(INFLAGS) -c $< -o $@
 
 $(SPV)/%-vert.spv: $(GLSL)/%.vert $(SHDEPS)
