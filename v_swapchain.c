@@ -1,14 +1,18 @@
 #include "v_swapchain.h"
 #include <hell/display.h>
-#include <hell/xcb_window_type.h>
+#include <hell/platform.h>
 #include <string.h>
-#include <vulkan/vulkan_core.h>
 #include "hell/input.h"
 #include "private.h"
 #include "s_scene.h"
 #include "t_def.h"
 #include "v_video.h"
 #include "v_private.h"
+#ifdef UNIX
+#include <hell/xcb_window_type.h>
+#elif defined(WINDOWS)
+#include <hell/win32_window.h>
+#endif
 
 static VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
 
@@ -48,25 +52,45 @@ static void correctSwapDimensions(const VkSurfaceCapabilitiesKHR capabilities) {
     }
 }
 
-static void initSurfaceXcb(xcb_connection_t* connection, xcb_window_t window) 
+#ifdef UNIX
+static void initSurfaceXcb(const Hell_Window* window) 
 {
+    const XcbWindow* w = window->typeSpecificData;
     const VkXcbSurfaceCreateInfoKHR ci = {
         .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
-        .connection = connection,
-        .window = window,
+        .connection = w.connection,
+        .window = w.window,
     };
 
     V_ASSERT( vkCreateXcbSurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );
     V1_PRINT("Surface created successfully.\n");
 }
+#endif
+
+#ifdef WINDOWS
+static void initSurfaceWin32(const Hell_Window* window) 
+{
+    const Win32Window* w = window->typeSpecificData;
+    VkWin32SurfaceCreateInfoKHR ci = {
+        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .hinstance = w->hinstance,
+        .hwnd = w->hwnd
+    };
+
+    V_ASSERT( vkCreateWin32SurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );
+    V1_PRINT("Surface created successfully.\n");
+}
+#endif
 
 static void initSurface(const Hell_Window* window)
 {
     assert(window);
-    assert(window->type == HELL_WINDOW_XCB_TYPE); // only type supported currently
     assert(window->typeSpecificData);
-    const XcbWindow* w = window->typeSpecificData;
-    initSurfaceXcb(w->connection, w->window);
+    #ifdef UNIX
+    initSurfaceXcb(window);
+    #elif defined(WINDOWS)
+    initSurfaceWin32(window);
+    #endif
 }
 
 static void initSwapchainWithSurface()

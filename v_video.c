@@ -1,3 +1,4 @@
+#include "v_vulkan.h"
 #include "v_video.h"
 #include "v_memory.h"
 #include "t_def.h"
@@ -9,10 +10,10 @@
 #include <stdlib.h>
 #include "v_command.h"
 #include "private.h"
+#include <hell/platform.h>
+#include <hell/common.h>
 
 #include <unistd.h>
-#include <vulkan/vulkan_core.h>
-#include <vulkan/vulkan_xcb.h>
 
 #define MAX_QUEUES 32
 
@@ -106,8 +107,8 @@ static void initVkInstance(const Obdn_V_Config* config)
     //uint32_t vulkver = VK_MAKE_VERSION(1, 2, 0);
     //printf("Choosing vulkan version: 1.2.0\n");
 
-    const char appName[] =    "Asteroids"; 
-    const char engineName[] = "Sword";
+    const char appName[] =    "Hell"; 
+    const char engineName[] = "Obsidian";
 
     const VkApplicationInfo appInfo = {
         .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -147,7 +148,13 @@ static void initVkInstance(const Obdn_V_Config* config)
 
     const char* enabledExtensions[] = {
         "VK_KHR_surface",
+        #ifdef UNIX
         "VK_KHR_xcb_surface",
+        #elif defined(WINDOWS)
+        "VK_KHR_win32_surface",
+        #else
+        #error Unsupported platform
+        #endif
         "VK_EXT_debug_report",
         "VK_EXT_debug_utils",
         VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME
@@ -517,6 +524,7 @@ static void initQueues(void)
         vkGetDeviceQueue(device, computeQueueFamilyIndex, i, &computeQueues[i]);
     }
     presentQueue = graphicsQueues[0]; // use the first queue to present
+    hell_Print("Obsidian: Queues Initialized\n");
 }
 
 const VkInstance* obdn_v_Init(
@@ -531,7 +539,7 @@ const VkInstance* obdn_v_Init(
         obdn_v_LoadFunctions(device);
     initQueues();
     obdn_v_InitMemory(&config->memorySizes);
-    printf("Obsidian Video initialized.\n");
+    hell_Print("Obsidian Video initialized.\n");
     return &instance;
 }
 

@@ -12,7 +12,8 @@
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
-#define MAX_BLOCKS 100000
+//#define MAX_BLOCKS 100000 we overflowed the stack...
+#define MAX_BLOCKS 1000
 
 typedef Obdn_V_BufferRegion BufferRegion;
 
@@ -38,7 +39,7 @@ typedef struct BlockChain {
     VkBuffer           buffer;
     VkBufferUsageFlags bufferFlags;
     uint8_t*           hostData;
-    Obdn_V_MemBlock   blocks[MAX_BLOCKS];
+    Obdn_V_MemBlock    blocks[MAX_BLOCKS];
 } BlockChain;
 
 static BlockChain blockChainHostGraphicsBuffer;
@@ -58,19 +59,19 @@ static void printBlockChainInfo(const BlockChain* chain) __attribute__ ((unused)
 
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
-    printf("Size: %ld\tAlignment: %ld\n", reqs->size, reqs->alignment);
+    printf("Size: %zu\tAlignment: %zu\n", reqs->size, reqs->alignment);
 }
 
 static void printBlockChainInfo(const BlockChain* chain)
 {
     printf("BlockChain %s:\n", chain->name);
-    printf("totalSize: %ld\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
+    printf("totalSize: %zu\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
     printf("memory: %p\t buffer: %p\t hostData: %p\n", chain->memory, chain->buffer, chain->hostData);
     printf("Blocks: \n");
     for (int i = 0; i < chain->count; i++) 
     {
         const Obdn_V_MemBlock* block = &chain->blocks[i];
-        printf("{ Block %d: size = %ld, offset = %ld, inUse = %s, id: %d}, ", i, block->size, block->offset, block->inUse ? "true" : "false", block->id);
+        printf("{ Block %d: size = %zu, offset = %zu, inUse = %s, id: %d}, ", i, block->size, block->offset, block->inUse ? "true" : "false", block->id);
     }
     printf("\n");
 }
@@ -105,8 +106,7 @@ static void initBlockChain(
         const char* name,
         struct BlockChain* chain)
 {
-    *chain = (BlockChain){};
-    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_V_MemBlock));
+    memset(chain, 0, sizeof(BlockChain));
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
     chain->count = 1;
     chain->cur   = 0;
@@ -123,6 +123,7 @@ static void initBlockChain(
     strcpy(chain->name, name);
 
     if (chain->totalSize == 0) return; // nothing else to do
+
 
     VkExportMemoryAllocateInfo exportMemoryAllocInfo;
     const void* pNext = NULL;
@@ -183,7 +184,7 @@ static void initBlockChain(
 
         //chain->defaultAlignment = memReqs.alignment;
 
-        V1_PRINT("Host Buffer ALIGNMENT: %ld\n", memReqs.alignment);
+        V1_PRINT("Host Buffer ALIGNMENT: %zu\n", memReqs.alignment);
 
         const VkBufferDeviceAddressInfo addrInfo = {
             .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -223,7 +224,7 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
     size_t cur  = 0;
     size_t init = cur;
     const size_t count = chain->count;
-    printf(">>> requesting block of size %d from chain %s with totalSize %ld\n", size, chain->name, chain->totalSize);
+    printf(">>> requesting block of size %d from chain %s with totalSize %zu\n", size, chain->name, chain->totalSize);
     assert( size < chain->totalSize );
     assert( count > 0 );
     assert( cur < count );
@@ -332,7 +333,7 @@ static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignme
         printf("%s here %d\n", __PRETTY_FUNCTION__, curIndex);
         curBlock->inUse = true;
         chain->usedSize += curBlock->size;
-        V1_PRINT(">> Re-using block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
+        V1_PRINT(">> Re-using block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
         return curBlock;
     }
     // split the block
@@ -353,7 +354,7 @@ static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignme
         rotateBlockDown(newIndex, curIndex + 1, chain);
     assert( chainIsOrdered(chain) );
     chain->usedSize += curBlock->size;
-    V1_PRINT(">> Alocating block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
+    V1_PRINT(">> Alocating block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
     return curBlock;
 }
 
@@ -373,7 +374,7 @@ static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
     block->inUse = false;
     mergeBlocks(chain);
     chain->usedSize -= size;
-    V1_PRINT(">> Freeing block %d of size %09ld from chain %s. %ld bytes out of %ld now in use.\n", id, size, chain->name, chain->usedSize, chain->totalSize);
+    V1_PRINT(">> Freeing block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", id, size, chain->name, chain->usedSize, chain->totalSize);
 }
 
 void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
@@ -388,7 +389,7 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
     V1_PRINT("Memory Heap Info:\n");
     for (int i = 0; i < memoryProperties.memoryHeapCount; i++) 
     {
-        V1_PRINT("Heap %d: Size %ld: %s local\n", 
+        V1_PRINT("Heap %d: Size %zu: %s local\n", 
                 i,
                 memoryProperties.memoryHeaps[i].size, 
                 memoryProperties.memoryHeaps[i].flags 
@@ -466,6 +467,7 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
         memSizes = &ms;
     }
 
+    V1_PRINT("Obsidian: Initializing memory block chains...\n");
     initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
             memSizes->hostGraphicsBufferMemorySize, 
             hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
@@ -495,7 +497,7 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
     assert(size > 0);
     if( size % 4 != 0 ) // only allow for word-sized blocks
     {
-        OBDN_DEBUG_PRINT("Size %ld is not 4 byte aligned.", size);
+        OBDN_DEBUG_PRINT("Size %zu is not 4 byte aligned.", size);
         assert(0);
     }
     Obdn_V_MemBlock*  block = NULL;
@@ -606,7 +608,7 @@ Obdn_V_Image obdn_v_CreateImage(
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(device, image.handle, &memReqs);
 
-    V1_PRINT("Requesting image of size %ld (0x%lx) \n", memReqs.size, memReqs.size);
+    V1_PRINT("Requesting image of size %zu (0x%zx) \n", memReqs.size, memReqs.size);
     V1_PRINT("Width * Height * Format size = %d\n", width * height * 4);
     V1_PRINT("Required memory bits for image: %0x\n", memReqs.memoryTypeBits);
     hell_BitPrint(&memReqs.memoryTypeBits, 32);
@@ -767,6 +769,7 @@ const VkDeviceMemory obdn_v_GetDeviceMemory(const Obdn_V_MemoryType memType)
     {
         case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE: return blockChainExternalDeviceGraphicsImage.memory;
         default: assert(0); //TODO
+        return 0;
     }
 }
 
@@ -776,6 +779,7 @@ const VkDeviceSize obdn_v_GetMemorySize(const Obdn_V_MemoryType memType)
     {
         case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE: return blockChainExternalDeviceGraphicsImage.totalSize;
         default: assert(0); //TODO
+        return 0;
     }
 }
 

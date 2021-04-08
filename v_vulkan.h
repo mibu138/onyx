@@ -1,8 +1,13 @@
 #ifndef OBDN_V_VULKAN_H
 #define OBDN_V_VULKAN_H
 
-//#define VK_ENABLE_BETA_EXTENSIONS
+#include <hell/platform.h>
+
+#ifdef UNIX
 #define VK_USE_PLATFORM_XCB_KHR
+#else 
+#define VK_USE_PLATFORM_WIN32_KHR
+#endif
 #include <vulkan/vulkan.h>
 #include <assert.h>
 

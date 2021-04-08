@@ -10,7 +10,10 @@
 #define OBDN_MAX_BINDINGS 10
 #define OBDN_MAX_PUSH_CONSTANTS 5
 
-#define OBDN_SPVDIR "./obsidian/shaders/spv"
+#ifndef OBDN_ROOT
+#define OBDN_ROOT "."
+#endif
+#define OBDN_SPVDIR "C:/Users/Michael Buckley/dev/obsidian/shaders/spv"
 
 typedef struct {
     uint32_t                 descriptorCount;

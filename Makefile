@@ -1,14 +1,37 @@
+ifeq ($(OS), Windows_NT)
+	OS = WIN
+else 
+	OS = UNIX
+endif
+
 CC = gcc
 GLC = glslc
 
 CFLAGS = -Wall -Wno-missing-braces -fPIC
-LDFLAGS = -L/opt/hfs18.6/dsolib
-INFLAGS = -I$(HOME)/dev -I/usr/include/freetype2
-LIBS = -lm -lcoal -lhell -lvulkan -lxcb -lxcb-keysyms -lfreetype
-LIB  = $(HOME)/lib
+LIBS = -lm -lcoal -lhell -lfreetype
+ifeq ($(OS), WIN)
+	OS_HEADERS = $(WIN_HEADERS)
+	LIBEXT = dll
+	LIBS += -lvulkan-1
+	HOMEDIR =  "$(HOMEDRIVE)/$(HOMEPATH)"
+	INEXTRA = -IC:\VulkanSDK\1.2.170.0\Include -IC:\msys64\mingw64\include\freetype2
+	LDFLAGS = -L$(HOMEDIR)/lib -LC:\VulkanSDK\1.2.170.0\Lib
+else
+	OS_HEADERS = $(UNIX_HEADERS)
+	LIBEXT = so
+	LIBS += -lvulkan
+	HOMEDIR =  $(HOME)
+	INEXTRA = -I/usr/include/freetype2 
+	LDFLAGS = -L/opt/hfs18.6/dsolib
+endif
+LIBDIR  = $(HOMEDIR)/lib
+DEV = $(HOMEDIR)/dev
+INFLAGS = -I$(DEV) $(INEXTRA)
+CFLAGS  += -DOBDN_ROOT="C\:/Users/Michael Buckley/dev/obsidian"
 GLFLAGS = --target-env=vulkan1.2
 BIN = bin
 LIBNAME = obsidian
+LIBPATH = $(LIBDIR)/lib$(LIBNAME).$(LIBEXT)
 
 O = build
 GLSL = shaders
@@ -69,19 +92,24 @@ nbp: debug
 release: CFLAGS += -DNDEBUG -O2 
 release: all
 
-all: hell lib tags shaders
+all: lib shaders
 
 FRAGS := $(patsubst %.frag,$(SPV)/%-frag.spv,$(notdir $(wildcard $(GLSL)/*.frag)))
 VERTS := $(patsubst %.vert,$(SPV)/%-vert.spv,$(notdir $(wildcard $(GLSL)/*.vert)))
 
-.PHONY: hell
+.PHONY: hell clean
 hell:
-	make -C $(HOME)/dev/hell
+	make -C $(DEV)/hell
 
 shaders: $(FRAGS) $(VERTS)
 
+ifeq ($(OS), UNIX)
 clean: 
-	rm -f $(O)/* $(LIB)/$(LIBNAME) $(BIN)/*
+	rm -f $(O)/* $(LIBPATH) $(BIN)/*
+else
+clean: 
+	del -S $(O)/* $(LIBPATH) $(BIN)/*
+endif
 
 tags:
 	ctags -R .
@@ -90,10 +118,7 @@ bin: main.c $(OBJS) $(DEPS) shaders
 	$(CC) $(CFLAGS) $(INFLAGS) $(LDFLAGS) $(OBJS) $< -o $(BIN)/$(NAME) $(LIBS)
 
 lib: $(OBJS) $(DEPS) shaders
-	$(CC) -shared -o $(LIB)/lib$(LIBNAME).so $(OBJS)
-
-staticlib: $(OBJS) $(DEPS) shaders
-	ar rcs $(LIB)/lib$(NAME).a $(OBJS)
+	$(CC) $(LDFLAGS) -shared -o $(LIBPATH) $(OBJS) $(LIBS)
 
 $(O)/%.o:  %.c $(DEPS)
 	$(CC) $(CFLAGS) $(INFLAGS) -c $< -o $@
