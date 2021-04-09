@@ -2,6 +2,8 @@
 #include "v_image.h"
 #include "v_memory.h"
 #include <ft2build.h>
+#include <hell/platform.h>
+#include <hell/common.h>
 
 #include FT_FREETYPE_H
 #include FT_MODULE_H
@@ -80,7 +82,13 @@ static void initFT(const size_t fontSize)
         printf("FT_Init_FreeType error: %d\n", error);
     }
     assert(!error);
-    error = FT_New_Face(library, "/usr/share/fonts/truetype/freefont/FreeMono.ttf", 0, &face);
+    #ifdef UNIX
+    const char* fontpath = "/usr/share/fonts/truetype/freefont/FreeMono.ttf";
+    #elif defined(WINDOWS)
+    const char* fontpath = "C:/Windows/Fonts/lucon.ttf";
+    #endif
+    hell_Print("Loading font at path %s...\n", fontpath);
+    error = FT_New_Face(library, fontpath, 0, &face);
     assert(!error);
     error = FT_Set_Pixel_Sizes(face, 0, fontSize);
     assert(!error);

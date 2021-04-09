@@ -13,7 +13,7 @@ ifeq ($(OS), WIN)
 	OS_HEADERS = $(WIN_HEADERS)
 	LIBEXT = dll
 	LIBS += -lvulkan-1
-	HOMEDIR =  "$(HOMEDRIVE)/$(HOMEPATH)"
+	HOMEDIR = C:
 	INEXTRA = -IC:\VulkanSDK\1.2.170.0\Include -IC:\msys64\mingw64\include\freetype2
 	LDFLAGS = -L$(HOMEDIR)/lib -LC:\VulkanSDK\1.2.170.0\Lib
 else
@@ -104,13 +104,8 @@ hell:
 
 shaders: $(FRAGS) $(VERTS)
 
-ifeq ($(OS), UNIX)
 clean: 
 	rm -f $(O)/* $(LIBPATH) $(BIN)/*
-else
-clean: 
-	del -S $(O)/* $(LIBPATH) $(BIN)/*
-endif
 
 tags:
 	ctags -R .
