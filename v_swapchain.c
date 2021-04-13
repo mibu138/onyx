@@ -1,5 +1,5 @@
 #include "v_swapchain.h"
-#include <hell/display.h>
+#include <hell/window.h>
 #include <hell/platform.h>
 #include <string.h>
 #include "hell/input.h"

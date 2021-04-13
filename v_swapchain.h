@@ -4,7 +4,7 @@
 #include "v_def.h"
 #include "t_def.h"
 #include "v_memory.h"
-#include <hell/display.h>
+#include <hell/window.h>
 
 typedef Obdn_V_Image Obdn_R_Frame;
 
