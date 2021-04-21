@@ -1,16 +1,18 @@
 #include "r_pipeline.h"
-#include "hell/common.h"
 #include "r_raytrace.h"
 #include "v_video.h"
 #include "r_render.h"
-#include "t_def.h"
 #include "v_vulkan.h"
 #include "v_private.h"
 #include "locations.h"
-#include <stdio.h>
+#include "dtags.h"
+#include <hell/common.h>
+#include <hell/debug.h>
+#include <hell/len.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 enum shaderStageType { VERT, FRAG };
 
@@ -51,14 +53,12 @@ static void initShaderModule(const char* filepath, VkShaderModule* module)
     fp = fopen(filepath, "rb");
     if (fp == 0)
     {
-        printf("Failed to open %s\n", filepath);
-        exit(0);
+        hell_Error(HELL_ERR_FATAL, "Failed to open %s\n", filepath);
     }
     fr = fseek(fp, 0, SEEK_END);
     if (fr != 0)
     {
-        printf("Seek failed on %s\n", filepath);
-        exit(0);
+        hell_Error(HELL_ERR_FATAL, "Seek failed on %s\n", filepath);
     }
     assert( fr == 0 ); // success 
     size_t codeSize = ftell(fp);
@@ -101,7 +101,7 @@ static const char* getResolvedSprivPath(const char* shaderName)
 {
     static char spvpath[OBDN_MAX_PATH_LEN];
     setResolvedShaderPath(shaderName, spvpath);
-    hell_DPrint("Resolved spv path: %s\n", spvpath);
+    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Resolved spv path: %s\n", spvpath);
     return spvpath;
 }
 
@@ -176,8 +176,8 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
             shaderStageCount += 2;
         }
 
-        OBDN_COND_PRINT(rasterInfo->vertexDescription.attributeCount == 0, 
-                "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.");
+        if (rasterInfo->vertexDescription.attributeCount == 0)
+                hell_DebugPrint(OBDN_DEBUG_TAG_GRAPHIC_PIPE, "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.\n");
 
         vertexInputStates[i] = (VkPipelineVertexInputStateCreateInfo){
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -595,7 +595,7 @@ void obdn_r_CreateDescriptorSets(const uint8_t count, const Obdn_R_DescriptorSet
     const VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .maxSets = count,
-        .poolSizeCount = OBDN_ARRAY_SIZE(poolSizes),
+        .poolSizeCount = LEN(poolSizes),
         .pPoolSizes = poolSizes, 
     };
 
@@ -639,7 +639,7 @@ void obdn_r_CreatePipelineLayouts(const uint8_t count, const Obdn_R_PipelineLayo
 
 void obdn_r_CleanUpPipelines()
 {
-    printf("%s called. no longer does anything\n", __PRETTY_FUNCTION__);
+    hell_DebugPrint(OBDN_DEBUG_TAG_PIPE, "%s called. no longer does anything\n", __PRETTY_FUNCTION__);
 }
 
 void obdn_r_DestroyDescription(Obdn_R_Description* d)

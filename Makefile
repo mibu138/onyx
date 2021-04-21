@@ -56,8 +56,8 @@ DEPS =  \
 	s_scene.h      \
 	f_file.h       \
 	u_ui.h         \
-    t_def.h        \
 	t_text.h       \
+	common.h       \
 	locations.h
 
 SHDEPS = \
@@ -81,6 +81,7 @@ OBJS =  \
 	$(O)/f_file.o       \
 	$(O)/u_ui.o         \
 	$(O)/t_text.o       \
+	$(O)/common.o       \
 	$(O)/locations.o    
 
 

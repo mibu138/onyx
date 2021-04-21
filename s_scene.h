@@ -2,7 +2,7 @@
 #define OBDN_S_SCENE_H
 
 #include "r_geo.h"
-#include "t_def.h"
+#include "types.h"
 #include <coal/m.h>
 
 //#define OBDN_S_MAX_PRIMS     256

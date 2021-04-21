@@ -6,14 +6,17 @@
 #include "r_render.h"
 #include "r_renderpass.h"
 #include "r_pipeline.h"
-#include "t_def.h"
 #include "v_command.h"
 #include "v_swapchain.h"
 #include "v_video.h"
-#include <stdio.h>
+#include "dtags.h"
 #include <stdlib.h>
 #include <string.h>
 #include <hell/input.h>
+#include <hell/debug.h>
+#include <hell/len.h>
+#include <hell/common.h>
+#include "common.h"
 #include "v_private.h"
 
 #define MAX_WIDGETS 256 // might actually be a good design constraint
@@ -42,6 +45,7 @@ enum {
     PIPELINE_TEXTURE,
     PIPELINE_COUNT
 };
+
 _Static_assert(PIPELINE_COUNT < OBDN_MAX_PIPELINES, "");
 
 static Widget*  rootWidget;
@@ -62,9 +66,11 @@ static Image   images[MAX_IMAGE_COUNT];
 
 static Obdn_V_Command  renderCommands[OBDN_FRAME_COUNT];
 
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_UI, fmt, ##__VA_ARGS__);
+
 static Widget* allocWidget(void)
 {
-    return malloc(sizeof(Widget));
+    return hell_Malloc(sizeof(Widget));
 }
 
 static void freeWidget(Widget* w)
@@ -79,7 +85,7 @@ static void initRenderCommands(void)
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
         renderCommands[i] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
-        printf("UI COMMAND BUF: %p\n", renderCommands[i].buffer);
+        DPRINT("UI COMMAND BUF: %p\n", renderCommands[i].buffer);
     }
 }
 
@@ -120,11 +126,11 @@ static void initDescriptionsAndPipelineLayouts(void)
     const Obdn_R_PipelineLayoutInfo pipelayoutInfos[] = {{
         .descriptorSetCount = 1,
         .descriptorSetLayouts = &descriptorSetLayout,
-        .pushConstantCount   = OBDN_ARRAY_SIZE(pcRanges),
+        .pushConstantCount   = LEN(pcRanges),
         .pushConstantsRanges = pcRanges
     }};
 
-    obdn_r_CreatePipelineLayouts(OBDN_ARRAY_SIZE(pipelayoutInfos), 
+    obdn_r_CreatePipelineLayouts(LEN(pipelayoutInfos), 
             pipelayoutInfos, &pipelineLayout);
 }
 
@@ -191,7 +197,7 @@ static void initPipelines(uint32_t width, uint32_t height)
         .fragShader        = "ui-texture-frag.spv"
     }};
 
-    obdn_r_CreateGraphicsPipelines(OBDN_ARRAY_SIZE(pipeInfos), pipeInfos, pipelines);
+    obdn_r_CreateGraphicsPipelines(LEN(pipeInfos), pipeInfos, pipelines);
 }
 
 static Widget* addWidget(const int16_t x, const int16_t y, 
@@ -494,7 +500,7 @@ void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayou
 
     hell_i_Subscribe(responder, HELL_I_MOUSE_BIT | HELL_I_KEY_BIT);
     obdn_v_RegisterSwapchainRecreationFn(onSwapchainRecreate);
-    printf("Obdn UI initialized.\n");
+    obdn_Announce("UI initialized.\n");
 }
 
 Obdn_U_Widget* obdn_u_CreateSimpleBox(const int16_t x, const int16_t y, 
@@ -512,7 +518,7 @@ Obdn_U_Widget* obdn_u_CreateSlider(const int16_t x, const int16_t y,
         Widget* parent)
 {
     Widget* widget = addWidget(x, y, 300, 40, rfnSlider, dfnSlider, NULL, parent);
-    printf("Slider X %d Y %d\n", x, y);
+    DPRINT("Slider X %d Y %d\n", x, y);
 
     widget->primCount = 1;
     widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
@@ -528,7 +534,7 @@ Obdn_U_Widget* obdn_u_CreateText(const int16_t x, const int16_t y, const char* t
     const int charCount = strlen(text);
     const int width = charCount * 25;
     Widget* widget = addWidget(x, y, width, 100, NULL, dfnText, destructText, parent);
-    printf("UI: Text widget X %d Y %d\n", x, y);
+    DPRINT("UI: Text widget X %d Y %d\n", x, y);
 
     widget->primCount = 1;
     widget->primitives[0] = obdn_r_CreateQuadNDC(widget->x, widget->y, widget->width, widget->height);
@@ -553,10 +559,10 @@ void obdn_u_UpdateText(const char* text, Widget* widget)
 
 static void widgetReport(Widget* widget)
 {
-    printf("Widget %p:\n", widget);
-    printf("\tPos: %d, %d\n", widget->x, widget->y);
-    printf("\tDim: %d, %d\n", widget->width, widget->height);
-    printf("\tChildCount: %d\n", widget->widgetCount);
+    hell_Print("Widget %p:\n", widget);
+    hell_Print("\tPos: %d, %d\n", widget->x, widget->y);
+    hell_Print("\tDim: %d, %d\n", widget->width, widget->height);
+    hell_Print("\tChildCount: %d\n", widget->widgetCount);
     for (int i = 0; i < widget->widgetCount; i++)
     {
         widgetReport(widget->widgets[i]);
@@ -565,7 +571,7 @@ static void widgetReport(Widget* widget)
 
 void obdn_u_DebugReport(void)
 {
-    printf("========== Obdn_U_Report ==========\n");
+    hell_Print("========== Obdn_U_Report ==========\n");
     widgetReport(rootWidget);
 }
 
@@ -676,7 +682,7 @@ void obdn_u_CleanUp(void)
     }
     vkDestroyDescriptorSetLayout(device, descriptorSetLayout, NULL);
     destroyWidget(rootWidget);
-    printf("Obsidian ui cleaned up.\n");
+    obdn_Announce("UI cleaned up.\n");
 }
 
 const VkSemaphore obdn_u_GetSemaphore(uint32_t frameIndex)

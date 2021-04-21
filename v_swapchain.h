@@ -2,8 +2,8 @@
 #define V_SWAPCHAIN_H
 
 #include "v_def.h"
-#include "t_def.h"
 #include "v_memory.h"
+#include "types.h"
 #include <hell/window.h>
 
 typedef Obdn_V_Image Obdn_R_Frame;

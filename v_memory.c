@@ -1,14 +1,15 @@
 #include "v_memory.h"
 #include "v_video.h"
-#include "t_def.h"
 #include "v_command.h"
-#include "private.h"
-#include <stdio.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <hell/common.h>
+#include <hell/debug.h>
+#include "common.h"
 #include "v_private.h"
+#include "dtags.h"
+#include <hell/minmax.h>
 
 // HVC = Host Visible and Coherent
 // DL = Device Local    
@@ -57,23 +58,25 @@ static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement) __attribute__
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs) __attribute__ ((unused));
 static void printBlockChainInfo(const BlockChain* chain) __attribute__ ((unused));
 
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_MEM, fmt, ##__VA_ARGS__)
+
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
 {
-    printf("Size: %zu\tAlignment: %zu\n", reqs->size, reqs->alignment);
+    DPRINT("Size: %zu\tAlignment: %zu\n", reqs->size, reqs->alignment);
 }
 
 static void printBlockChainInfo(const BlockChain* chain)
 {
-    printf("BlockChain %s:\n", chain->name);
-    printf("totalSize: %zu\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
-    printf("memory: %p\t buffer: %p\t hostData: %p\n", chain->memory, chain->buffer, chain->hostData);
-    printf("Blocks: \n");
+    DPRINT("BlockChain %s:\n", chain->name);
+    DPRINT("totalSize: %zu\t count: %d\t cur: %d\t nextBlockId: %d\n", chain->totalSize, chain->count, chain->cur, chain->nextBlockId);
+    DPRINT("memory: %p\t buffer: %p\t hostData: %p\n", chain->memory, chain->buffer, chain->hostData);
+    DPRINT("Blocks: \n");
     for (int i = 0; i < chain->count; i++) 
     {
         const Obdn_V_MemBlock* block = &chain->blocks[i];
-        printf("{ Block %d: size = %zu, offset = %zu, inUse = %s, id: %d}, ", i, block->size, block->offset, block->inUse ? "true" : "false", block->id);
+        DPRINT("{ Block %d: size = %zu, offset = %zu, inUse = %s, id: %d}, ", i, block->size, block->offset, block->inUse ? "true" : "false", block->id);
     }
-    printf("\n");
+    DPRINT("\n");
 }
 
 static Obdn_V_MemorySizes getDefaultMemSizes(void)
@@ -184,7 +187,7 @@ static void initBlockChain(
 
         //chain->defaultAlignment = memReqs.alignment;
 
-        V1_PRINT("Host Buffer ALIGNMENT: %zu\n", memReqs.alignment);
+        DPRINT("Host Buffer ALIGNMENT: %zu\n", memReqs.alignment);
 
         const VkBufferDeviceAddressInfo addrInfo = {
             .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -224,7 +227,7 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
     size_t cur  = 0;
     size_t init = cur;
     const size_t count = chain->count;
-    printf(">>> requesting block of size %d from chain %s with totalSize %zu\n", size, chain->name, chain->totalSize);
+    DPRINT(">>> requesting block of size %d from chain %s with totalSize %zu\n", size, chain->name, chain->totalSize);
     assert( size < chain->totalSize );
     assert( count > 0 );
     assert( cur < count );
@@ -233,7 +236,7 @@ static int findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain
         cur = (cur + 1) % count;
         if (cur == init) 
         {
-            V1_PRINT("%s: no suitable block found in chain %s\n", __PRETTY_FUNCTION__, chain->name);
+            DPRINT("%s: no suitable block found in chain %s\n", __PRETTY_FUNCTION__, chain->name);
             return -1;
         }
     }
@@ -300,7 +303,7 @@ static void mergeBlocks(struct BlockChain* chain)
 static void defragment(struct BlockChain* chain)
 {
     // TODO: implement a proper defragment function
-    V1_PRINT("Empty defragment function called\n");
+    DPRINT("Empty defragment function called\n");
 }
 
 static bool chainIsOrdered(const struct BlockChain* chain)
@@ -323,17 +326,17 @@ static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignme
         const int curIndex = findAvailableBlockIndex(size, chain);
         if (curIndex < 0)
         {
-            printf("Memory allocation failed\n");
+            DPRINT("Memory allocation failed\n");
             exit(0);
         }
     }
     Obdn_V_MemBlock* curBlock = &chain->blocks[curIndex];
     if (curBlock->size == size && (curBlock->offset % alignment == 0)) // just reuse this block;
     {
-        printf("%s here %d\n", __PRETTY_FUNCTION__, curIndex);
+        DPRINT("%s here %d\n", __PRETTY_FUNCTION__, curIndex);
         curBlock->inUse = true;
         chain->usedSize += curBlock->size;
-        V1_PRINT(">> Re-using block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
+        DPRINT(">> Re-using block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
         return curBlock;
     }
     // split the block
@@ -354,7 +357,7 @@ static Obdn_V_MemBlock* requestBlock(const uint32_t size, const uint32_t alignme
         rotateBlockDown(newIndex, curIndex + 1, chain);
     assert( chainIsOrdered(chain) );
     chain->usedSize += curBlock->size;
-    V1_PRINT(">> Alocating block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
+    DPRINT(">> Alocating block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", curBlock->id, curBlock->size, chain->name, chain->usedSize, chain->totalSize);
     return curBlock;
 }
 
@@ -374,7 +377,7 @@ static void freeBlock(struct BlockChain* chain, const Obdn_V_BlockId id)
     block->inUse = false;
     mergeBlocks(chain);
     chain->usedSize -= size;
-    V1_PRINT(">> Freeing block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", id, size, chain->name, chain->usedSize, chain->totalSize);
+    DPRINT(">> Freeing block %d of size %09zu from chain %s. %zu bytes out of %zu now in use.\n", id, size, chain->name, chain->usedSize, chain->totalSize);
 }
 
 void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
@@ -386,10 +389,10 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
 
     vkGetPhysicalDeviceMemoryProperties(obdn_v_GetPhysicalDevice(), &memoryProperties);
 
-    V1_PRINT("Memory Heap Info:\n");
+    DPRINT("Memory Heap Info:\n");
     for (int i = 0; i < memoryProperties.memoryHeapCount; i++) 
     {
-        V1_PRINT("Heap %d: Size %zu: %s local\n", 
+        DPRINT("Heap %d: Size %zu: %s local\n", 
                 i,
                 memoryProperties.memoryHeaps[i].size, 
                 memoryProperties.memoryHeaps[i].flags 
@@ -400,11 +403,11 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
     bool foundHvc = false;
     bool foundDl  = false;
 
-    V1_PRINT("Memory Type Info:\n");
+    DPRINT("Memory Type Info:\n");
     for (int i = 0; i < memoryProperties.memoryTypeCount; i++) 
     {
         VkMemoryPropertyFlags flags = memoryProperties.memoryTypes[i].propertyFlags;
-        V1_PRINT("Type %d: Heap Index: %d Flags: | %s%s%s%s%s%s\n", 
+        DPRINT("Type %d: Heap Index: %d Flags: | %s%s%s%s%s%s\n", 
                 i, 
                 memoryProperties.memoryTypes[i].heapIndex,
                 flags & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT ?  "Device Local | " : "",
@@ -429,8 +432,8 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
 
     assert( foundHvc );
     assert( foundDl );
-    V1_PRINT( "Host Visible and Coherent memory type index found: %d\n", hostVisibleCoherentTypeIndex);
-    V1_PRINT( "Device local memory type index found: %d\n", deviceLocalTypeIndex);
+    DPRINT("Host Visible and Coherent memory type index found: %d\n", hostVisibleCoherentTypeIndex);
+    DPRINT("Device local memory type index found: %d\n", deviceLocalTypeIndex);
 
     VkBufferUsageFlags hostGraphicsFlags = 
          VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | 
@@ -467,7 +470,7 @@ void obdn_v_InitMemory(const Obdn_V_MemorySizes* memSizes)
         memSizes = &ms;
     }
 
-    V1_PRINT("Obsidian: Initializing memory block chains...\n");
+    DPRINT("Obsidian: Initializing memory block chains...\n");
     initBlockChain(OBDN_V_MEMORY_HOST_GRAPHICS_TYPE, 
             memSizes->hostGraphicsBufferMemorySize, 
             hostVisibleCoherentTypeIndex, hostGraphicsFlags, 
@@ -497,8 +500,7 @@ Obdn_V_BufferRegion obdn_v_RequestBufferRegionAligned(
     assert(size > 0);
     if( size % 4 != 0 ) // only allow for word-sized blocks
     {
-        OBDN_DEBUG_PRINT("Size %zu is not 4 byte aligned.", size);
-        assert(0);
+        hell_Error(HELL_ERR_FATAL, "Size %zu is not 4 byte aligned.", size);
     }
     Obdn_V_MemBlock*  block = NULL;
     struct BlockChain* chain = NULL;
@@ -608,10 +610,9 @@ Obdn_V_Image obdn_v_CreateImage(
     VkMemoryRequirements memReqs;
     vkGetImageMemoryRequirements(device, image.handle, &memReqs);
 
-    V1_PRINT("Requesting image of size %zu (0x%zx) \n", memReqs.size, memReqs.size);
-    V1_PRINT("Width * Height * Format size = %d\n", width * height * 4);
-    V1_PRINT("Required memory bits for image: %0x\n", memReqs.memoryTypeBits);
-    hell_BitPrint(&memReqs.memoryTypeBits, 32);
+    DPRINT("Requesting image of size %zu (0x%zx) \n", memReqs.size, memReqs.size);
+    DPRINT("Width * Height * Format size = %d\n", width * height * 4);
+    DPRINT("Required memory bits for image: %0x\n", memReqs.memoryTypeBits);
 
     image.size = memReqs.size;
     image.extent.depth = 1;

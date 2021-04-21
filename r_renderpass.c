@@ -1,9 +1,8 @@
 #include "r_renderpass.h"
 #include "r_render.h"
 #include "v_private.h"
-
-#include "t_def.h"
 #include "v_video.h"
+#include <hell/len.h>
 
 void obdn_r_CreateRenderPass(const Obdn_R_RenderPassInfo *info, VkRenderPass *pRenderPass)
 {
@@ -104,7 +103,7 @@ void obdn_r_CreateRenderPass_Color(const VkImageLayout initialLayout,
         .pAttachments = &attachment,
         .subpassCount = 1,
         .pSubpasses = &subpass,
-        .dependencyCount = OBDN_ARRAY_SIZE(deps),
+        .dependencyCount = LEN(deps),
         .pDependencies = deps };
 
     V_ASSERT( vkCreateRenderPass(device, &rpiInfo, NULL, pRenderPass) );
@@ -192,7 +191,7 @@ void obdn_r_CreateRenderPass_ColorDepth(
         .pSubpasses = &subpass,
         .attachmentCount = 2,
         .pAttachments = attachments,
-        .dependencyCount = OBDN_ARRAY_SIZE(dependencies),
+        .dependencyCount = LEN(dependencies),
         .pDependencies = dependencies,
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
     };

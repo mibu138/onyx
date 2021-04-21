@@ -1,8 +1,10 @@
 #include "v_image.h"
-#include "t_def.h"
 #include "v_memory.h"
 #include "v_video.h"
+#include "common.h"
 #include "v_command.h"
+#include "dtags.h"
+#include <hell/debug.h>
 #include <string.h>
 #include "v_private.h"
 #define STB_IMAGE_IMPLEMENTATION
@@ -17,9 +19,11 @@ typedef Obdn_V_Barrier      Barrier;
 typedef Obdn_V_BufferRegion BufferRegion;
 typedef Obdn_V_Image        Image;
 
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_IMG, fmt, ##__VA_ARGS__)
+
 static void createMipMaps(const VkFilter filter, const VkImageLayout finalLayout, Image* image)
 {
-    printf("Creating mips for image %p\n", image->handle);
+    DPRINT("Creating mips for image %p\n", image->handle);
 
     Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 
@@ -195,7 +199,7 @@ void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_Buff
         .bufferRowLength = 0
     };
 
-    printf("Copying buffer to image...\n");
+    DPRINT("Copying buffer to image...\n");
     vkCmdCopyBufferToImage(cmdbuf, region->buffer, image->handle, 
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopy);
 }
@@ -288,7 +292,7 @@ void obdn_v_CopyBufferToImage(const Obdn_V_BufferRegion* region,
 
     obdn_v_DestroyCommand(cmd);
 
-    printf("Copying complete.\n");
+    DPRINT("Copying complete.\n");
 }
 
 void obdn_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
@@ -314,8 +318,8 @@ void obdn_v_LoadImage(const char* filename, const uint8_t channelCount, const Vk
     BufferRegion stagingBuffer = obdn_v_RequestBufferRegion(image->size, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
 
-    printf("%s loading image: width %d height %d channels %d\n", __PRETTY_FUNCTION__, w, h, channelCount);
-    printf("Obdn_V_Image size: %ld\n", image->size);
+    DPRINT("%s loading image: width %d height %d channels %d\n", __PRETTY_FUNCTION__, w, h, channelCount);
+    DPRINT("Obdn_V_Image size: %ld\n", image->size);
     memcpy(stagingBuffer.hostData, data, w*h*channelCount);
 
     stbi_image_free(data);
@@ -379,10 +383,10 @@ void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const 
         .z = 0
     };
 
-    OBDN_DEBUG_PRINT("Extent: %d, %d", image->extent.width, image->extent.height); 
-    OBDN_DEBUG_PRINT("Image Layout: %d", image->layout);
-    OBDN_DEBUG_PRINT("Orig Layout: %d", origLayout);
-    OBDN_DEBUG_PRINT("Image size: %ld", image->size);
+    DPRINT("Extent: %d, %d", image->extent.width, image->extent.height); 
+    DPRINT("Image Layout: %d", image->layout);
+    DPRINT("Orig Layout: %d", origLayout);
+    DPRINT("Image size: %ld", image->size);
 
     const VkBufferImageCopy imgCopy = {
         .imageOffset = imgOffset,
@@ -397,7 +401,7 @@ void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const 
 
     obdn_v_BeginCommandBuffer(cmd.buffer);
 
-    printf("Copying image to host...\n");
+    DPRINT("Copying image to host...\n");
     vkCmdCopyImageToBuffer(cmd.buffer, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.buffer, 1, &imgCopy);
 
     obdn_v_EndCommandBuffer(cmd.buffer);
@@ -408,8 +412,8 @@ void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const 
 
     obdn_v_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout, image);
 
-    printf("Copying complete.\n");
-    printf("Writing out to jpg...\n");
+    DPRINT("Copying complete.\n");
+    obdn_Announce("Writing out to jpg...\n");
 
     char strbuf[256];
     const char* pwd = getenv("PWD");
@@ -420,7 +424,7 @@ void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const 
     strcat(strbuf, dir);
     strcat(strbuf, filename);
 
-    OBDN_DEBUG_PRINT("Filepath: %s", strbuf);
+    DPRINT("Filepath: %s", strbuf);
 
     int r;
     switch (fileType)
@@ -443,7 +447,7 @@ void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const 
 
     obdn_v_FreeBufferRegion(&region);
 
-    printf("Image saved to %s!\n", strbuf);
+    obdn_Announce("Image saved to %s!\n", strbuf);
 }
 
 void obdn_v_ClearColorImage(Obdn_V_Image* image)

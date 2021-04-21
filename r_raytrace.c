@@ -6,16 +6,18 @@
 #include "v_memory.h"
 #include "v_command.h"
 #include <assert.h>
-#include "t_def.h"
-#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <hell/debug.h>
+#include "dtags.h"
 #include "v_private.h"
 
 typedef Obdn_V_BufferRegion          BufferRegion;
 typedef Obdn_R_AccelerationStructure AccelerationStructure;
 typedef Obdn_V_Command               Command;
 typedef Obdn_R_ShaderBindingTable    ShaderBindingTable;
+
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_RAYTRACE, fmt, ##__VA_ARGS__)
 
 void obdn_r_BuildBlas(const Obdn_R_Primitive* prim, AccelerationStructure* blas)
 {
@@ -365,9 +367,9 @@ void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline
 
     uint8_t shaderHandleData[sbtSize];
 
-    printf("ShaderGroup handle size: %d\n", groupHandleSize);
-    printf("ShaderGroup base alignment: %d\n", baseAlignment);
-    printf("ShaderGroups total size   : %d\n", sbtSize);
+    DPRINT("ShaderGroup handle size: %d\n", groupHandleSize);
+    DPRINT("ShaderGroup base alignment: %d\n", baseAlignment);
+    DPRINT("ShaderGroups total size   : %d\n", sbtSize);
 
     VkResult r;
     r = vkGetRayTracingShaderGroupHandlesKHR(device, pipeline, 0, groupCount, sbtSize, shaderHandleData);
@@ -398,7 +400,7 @@ void obdn_r_CreateShaderBindingTable(const uint32_t groupCount, const VkPipeline
     sbt->hitTable.size          = baseAlignment;
     sbt->hitTable.stride        = baseAlignment;
 
-    printf("Created shader binding table\n");
+    DPRINT("Created shader binding table\n");
 }
 
 void obdn_r_DestroyAccelerationStruct(AccelerationStructure* as)

@@ -3,9 +3,11 @@
 #include <hell/platform.h>
 #include <string.h>
 #include "hell/input.h"
-#include "private.h"
+#include <hell/minmax.h>
+#include <hell/debug.h>
+#include "dtags.h"
+#include "obsidian/common.h"
 #include "s_scene.h"
-#include "t_def.h"
 #include "v_video.h"
 #include "v_private.h"
 #ifdef UNIX
@@ -39,6 +41,8 @@ static VkSurfaceKHR       surface;
 
 static bool useOffscreenSwapchain = false;
 
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_SWAP, fmt, ##__VA_ARGS__)
+
 static void correctSwapDimensions(const VkSurfaceCapabilitiesKHR capabilities) {
     if (capabilities.currentExtent.width != UINT32_MAX)
     {
@@ -63,7 +67,6 @@ static void initSurfaceXcb(const Hell_Window* window)
     };
 
     V_ASSERT( vkCreateXcbSurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );
-    V1_PRINT("Surface created successfully.\n");
 }
 #endif
 
@@ -78,9 +81,9 @@ static void initSurfaceWin32(const Hell_Window* window)
     };
 
     V_ASSERT( vkCreateWin32SurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );
-    V1_PRINT("Surface created successfully.\n");
 }
 #endif
+
 
 static void initSurface(const Hell_Window* window)
 {
@@ -91,6 +94,7 @@ static void initSurface(const Hell_Window* window)
     #elif defined(WINDOWS)
     initSurfaceWin32(window);
     #endif
+    obdn_Announce("Vulkan Surface initialized.\n");
 }
 
 static void initSwapchainWithSurface()
@@ -110,9 +114,9 @@ static void initSwapchainWithSurface()
     VkSurfaceFormatKHR surfaceFormats[formatsCount];
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, surfaceFormats);
 
-    V1_PRINT("Surface formats: \n");
+    DPRINT("Surface formats: \n");
     for (int i = 0; i < formatsCount; i++) {
-        V1_PRINT("Format: %d   Colorspace: %d\n", surfaceFormats[i].format, surfaceFormats[i].colorSpace);
+        DPRINT("Format: %d   Colorspace: %d\n", surfaceFormats[i].format, surfaceFormats[i].colorSpace);
     }
 
     uint32_t presentModeCount;
@@ -124,7 +128,7 @@ static void initSwapchainWithSurface()
     const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
 
     assert(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    V1_PRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
+    DPRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
 
     correctSwapDimensions(capabilities);
 
@@ -191,7 +195,7 @@ static void initSwapchainWithSurface()
         frames[i].size =   extent3d.height * extent3d.width * 4; // TODO make this robust
     }
 
-    V1_PRINT("Swapchain created successfully.\n");
+    DPRINT("Swapchain created successfully.\n");
 }
 
 static void initSwapchainOffscreen(void)
@@ -209,7 +213,7 @@ static void initSwapchainSemaphores(void)
     {
         VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
         V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
-        printf("Created swapchain semaphore: %p \n", imageAcquiredSemaphores[i]);
+        DPRINT("Created swapchain semaphore: %p \n", imageAcquiredSemaphores[i]);
     }
 }
 
@@ -326,7 +330,7 @@ void obdn_v_InitSwapchain(const VkImageUsageFlags swapImageUsageFlags_, const He
     }
     initSwapchainSemaphores();
     hell_i_Subscribe(onWindowResizeEvent, HELL_I_WINDOW_BIT);
-    printf("Obdn Renderer initialized.\n");
+    obdn_Announce("Swapchain initialized.\n");
 }
 
 bool obdn_v_PresentFrame(VkSemaphore waitSemaphore)
@@ -361,7 +365,7 @@ void obdn_v_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn)
 void obdn_v_UnregisterSwapchainRecreateFn(Obdn_R_SwapchainRecreationFn fn)
 {
     assert(swapRecreateFnCount > 0);
-    printf("R) Unregistering SCR fn...\n");
+    DPRINT("R) Unregistering SCR fn...\n");
     int fnIndex = -1;
     for (int i = 0; i < swapRecreateFnCount ; i++)
     {
@@ -405,7 +409,7 @@ void obdn_v_CleanUpSwapchain(void)
         vkDestroySurfaceKHR(*obdn_v_GetInstance(), surface, NULL);
     }
     swapRecreateFnCount = 0;
-    printf("Obsidian render cleaned up.\n");
+    obdn_Announce("Swapchain cleaned up.\n");
 }
 
 VkFormat obdn_v_GetSwapFormat(void) { return swapFormat; }

@@ -1,8 +1,9 @@
 #include "r_geo.h"
 #include "r_render.h"
 #include "v_memory.h"
-#include "t_def.h"
 #include "r_attribute.h"
+#include "dtags.h"
+#include <hell/debug.h>
 #include <string.h>
 #include <stdlib.h>
 #include <hell/common.h>
@@ -15,6 +16,8 @@ typedef Obdn_R_Primitive     Prim;
 typedef enum {
     OBDN_R_ATTRIBUTE_SFLOAT_TYPE,
 } Obdn_R_AttributeType;
+
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
 static void initPrimBuffers(Obdn_R_Primitive* prim)
 {
@@ -67,34 +70,34 @@ static void initPrimBuffersAligned(Obdn_R_Primitive* prim, const uint32_t offset
 
 static void printPrim(const Prim* prim)
 {
-    printf(">>> printing Fprim info...\n");
-    printf(">>> attrCount %d vertexCount %d indexCount %d \n", prim->attrCount, prim->vertexCount, prim->indexCount);
-    printf(">>> attrSizes ");
+    hell_Print(">>> printing Fprim info...\n");
+    hell_Print(">>> attrCount %d vertexCount %d indexCount %d \n", prim->attrCount, prim->vertexCount, prim->indexCount);
+    hell_Print(">>> attrSizes ");
     for (int i = 0; i < prim->attrCount; i++) 
-        printf("%d ", prim->attrSizes[i]);
-    printf("\n>>> attrNames ");
+        hell_Print("%d ", prim->attrSizes[i]);
+    hell_Print("\n>>> attrNames ");
     for (int i = 0; i < prim->attrCount; i++) 
-        printf("%s ", prim->attrNames[i]);
-    printf("\n>>> Attributes: \n");
+        hell_Print("%s ", prim->attrNames[i]);
+    hell_Print("\n>>> Attributes: \n");
     for (int i = 0; i < prim->attrCount; i++) 
     {
         const size_t offset = prim->attrOffsets[i];
-        printf(">>> %s @ offset %ld: ", prim->attrNames[i], offset);
+        hell_Print(">>> %s @ offset %ld: ", prim->attrNames[i], offset);
         for (int j = 0; j < prim->vertexCount; j++) 
         {
-            printf("{");
+            hell_Print("{");
             const int dim = prim->attrSizes[i]/4;
             const float* vals = &((float*)(prim->vertexRegion.hostData + offset))[j * dim];
             for (int k = 0; k < dim; k++)
-                printf("%f%s", vals[k], k == dim - 1 ? "" : ", ");
-            printf("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
+                hell_Print("%f%s", vals[k], k == dim - 1 ? "" : ", ");
+            hell_Print("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
         }
-        printf("\n");
+        hell_Print("\n");
     }
-    printf("Indices: ");
+    hell_Print("Indices: ");
     for (int i = 0; i < prim->indexCount; i++) 
-        printf("%d%s", ((Obdn_R_Index*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
-    printf("\n");
+        hell_Print("%d%s", ((Obdn_R_Index*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
+    hell_Print("\n");
 }
 
 static VkFormat getFormat(const Obdn_R_AttributeSize attrSize, const Obdn_R_AttributeType attrType)

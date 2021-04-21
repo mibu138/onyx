@@ -1,9 +1,8 @@
 #ifndef OBDN_R_GEO_H
 #define OBDN_R_GEO_H
 
-#include <stdint.h>
 #include "v_memory.h"
-#include "t_def.h"
+#include <stdint.h>
 #include <coal/coal.h>
 
 #define OBDN_R_MAX_VERT_ATTRIBUTES 8

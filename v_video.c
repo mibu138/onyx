@@ -1,17 +1,19 @@
 #include "v_vulkan.h"
 #include "v_video.h"
 #include "v_memory.h"
-#include "t_def.h"
 #include "v_loader.h"
-#include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include "v_command.h"
-#include "private.h"
 #include <hell/platform.h>
 #include <hell/common.h>
+#include <hell/debug.h>
+#include <hell/attributes.h>
+#include <hell/len.h>
+#include "common.h"
+#include "dtags.h"
 
 #include <unistd.h>
 
@@ -43,12 +45,14 @@ static VkPhysicalDeviceProperties deviceProperties;
 static void inspectAvailableLayers(void) __attribute__ ((unused));
 static void inspectAvailableExtensions(void) __attribute__ ((unused));
 
+#define DPRINT_VK(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_VK, fmt, ##__VA_ARGS__)
+
 static VkBool32 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
         const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
         void* pUserData)
 {
-    V1_PRINT("%s\n", pCallbackData->pMessage);
+    DPRINT_VK("%s\n", pCallbackData->pMessage);
     return VK_FALSE; // application must return false;
 }
 
@@ -58,23 +62,23 @@ static void inspectAvailableLayers(void)
     vkEnumerateInstanceLayerProperties(&availableCount, NULL);
     VkLayerProperties propertiesAvailable[availableCount];
     vkEnumerateInstanceLayerProperties(&availableCount, propertiesAvailable);
-    V1_PRINT("%s\n", "Vulkan Instance layers available:");
+    obdn_Announce("%s\n", "Vulkan Instance layers available:");
     const int padding = 90;
     for (int i = 0; i < padding; i++) {
-        putchar('-');   
+        hell_Print("-");   
     }
-    putchar('\n');
+    hell_Print("\n");
     for (int i = 0; i < availableCount; i++) {
         const char* name = propertiesAvailable[i].layerName;
-        const char* desc UNUSED_ = propertiesAvailable[i].description;
-        const int pad UNUSED_ = padding - strlen(name);
-        V1_PRINT("%s%*s\n", name, pad, desc );
+        const char* desc UNUSED = propertiesAvailable[i].description;
+        const int pad UNUSED = padding - strlen(name);
+        hell_Print("%s%*s\n", name, pad, desc );
         for (int i = 0; i < padding; i++) {
-            putchar('-');   
+            hell_Print("-");   
         }
-        putchar('\n');
+        hell_Print("\n");
     }
-    putchar('\n');
+    hell_Print("\n");
 }
 
 static void inspectAvailableExtensions(void)
@@ -83,21 +87,21 @@ static void inspectAvailableExtensions(void)
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount, NULL);
     VkExtensionProperties propertiesAvailable[availableCount];
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount, propertiesAvailable);
-    V1_PRINT("%s\n", "Vulkan Instance extensions available:");
+    obdn_Announce("%s\n", "Vulkan Instance extensions available:");
     for (int i = 0; i < availableCount; i++) {
-        V1_PRINT("%s\n", propertiesAvailable[i].extensionName);
+        hell_Print("%s\n", propertiesAvailable[i].extensionName);
     }
-    putchar('\n');
+    hell_Print("\n");
 }
 
 static uint32_t getVkVersionAvailable(void)
 {
     uint32_t v;
     vkEnumerateInstanceVersion(&v);
-    uint32_t major UNUSED_ = VK_VERSION_MAJOR(v);
-    uint32_t minor UNUSED_ = VK_VERSION_MINOR(v);
-    uint32_t patch UNUSED_ = VK_VERSION_PATCH(v);
-    V1_PRINT("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
+    uint32_t major UNUSED = VK_VERSION_MAJOR(v);
+    uint32_t minor UNUSED = VK_VERSION_MINOR(v);
+    uint32_t patch UNUSED = VK_VERSION_PATCH(v);
+    obdn_Announce("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
     return v;
 }
 
@@ -176,7 +180,7 @@ static void initVkInstance(const Obdn_V_Config* config)
     }
 
     V_ASSERT( vkCreateInstance(&instanceInfo, NULL, &instance) );
-    V1_PRINT("Successfully initialized Vulkan instance.\n");
+    obdn_Announce("Vulkan Instance initilized.\n");
 }
 
 static void initDebugMessenger(void)
@@ -216,18 +220,18 @@ static VkPhysicalDevice retrievePhysicalDevice(void)
     VkPhysicalDevice devices[physdevcount];
     V_ASSERT( vkEnumeratePhysicalDevices(instance, &physdevcount, devices) );
     VkPhysicalDeviceProperties props[physdevcount];
-    V1_PRINT("Physical device count: %d\n", physdevcount);
-    V1_PRINT("Physical device names:\n");
+    DPRINT_VK("Physical device count: %d\n", physdevcount);
+    DPRINT_VK("Physical device names:\n");
     int nvidiaCardIndex = -1;
     for (int i = 0; i < physdevcount; i++) 
     {
         vkGetPhysicalDeviceProperties(devices[i], &props[i]);
-        V1_PRINT("Device %d: name: %s\t vendorID: %d\n", i, props[i].deviceName, props[i].vendorID);
+        DPRINT_VK("Device %d: name: %s\t vendorID: %d\n", i, props[i].deviceName, props[i].vendorID);
         if (props[i].vendorID == NVIDIA_ID) nvidiaCardIndex = i;
     }
     int selected = 0;
     if (nvidiaCardIndex != -1) selected = nvidiaCardIndex;
-    V1_PRINT("Selecting Device: %s\n", props[selected].deviceName);
+    obdn_Announce("Selecting Device: %s\n", props[selected].deviceName);
     deviceProperties = props[selected];
     return devices[selected];
 }
@@ -247,11 +251,11 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
     for (int i = 0; i < qfcount; i++) 
     {
         VkQueryControlFlags flags = qfprops[i].queueFlags;
-        V1_PRINT("Queue Family %d: count: %d flags: ", i, qfprops[i].queueCount);
-        if (flags & VK_QUEUE_GRAPHICS_BIT) V1_PRINT(" Graphics ");
-        if (flags & VK_QUEUE_COMPUTE_BIT)  V1_PRINT(" Compute ");
-        if (flags & VK_QUEUE_TRANSFER_BIT) V1_PRINT(" Tranfer ");
-        V1_PRINT("\n");
+        DPRINT_VK("Queue Family %d: count: %d flags: ", i, qfprops[i].queueCount);
+        if (flags & VK_QUEUE_GRAPHICS_BIT) DPRINT_VK(" Graphics ");
+        if (flags & VK_QUEUE_COMPUTE_BIT)  DPRINT_VK(" Compute ");
+        if (flags & VK_QUEUE_TRANSFER_BIT) DPRINT_VK(" Tranfer ");
+        DPRINT_VK("\n");
         if (flags & VK_QUEUE_GRAPHICS_BIT && graphicsQueueCount == 0) // first graphics queue
         {
             graphicsQueueCount = qfprops[i].queueCount;
@@ -271,9 +275,9 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
         }
     }
 
-    V1_PRINT("Graphics Queue family index: %d\n", graphicsQueueFamilyIndex); 
-    V1_PRINT("Transfer Queue family index: %d\n", transferQueueFamilyIndex); 
-    V1_PRINT("Compute  Queue family index: %d\n", computeQueueFamilyIndex); 
+    DPRINT_VK("Graphics Queue family index: %d\n", graphicsQueueFamilyIndex); 
+    DPRINT_VK("Transfer Queue family index: %d\n", transferQueueFamilyIndex); 
+    DPRINT_VK("Compute  Queue family index: %d\n", computeQueueFamilyIndex); 
 
     assert(graphicsQueueCount < MAX_QUEUES);
     assert(transferQueueCount < MAX_QUEUES);
@@ -323,7 +327,7 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
     V1_PRINT("Device Extensions available: \n");
     for (int i = 0; i < propCount; i++) 
     {
-        V1_PRINT("Name: %s    Spec Version: %d\n", properties[i].extensionName, properties[i].specVersion);    
+        DPRINT_VK("Name: %s    Spec Version: %d\n", properties[i].extensionName, properties[i].specVersion);    
     }
     #endif
 
@@ -426,10 +430,10 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
             "rayTracingPipelineTraceRaysIndirect",
             "rayTraversalPrimitiveCulling",
         };
-        int len = OBDN_ARRAY_SIZE(rtMemberNames);
+        int len = LEN(rtMemberNames);
         for (int i = 0; i < len; i++) 
         {
-            printf("%s available: %s\n", rtMemberNames[i], iter[i] ? "TRUE" : "FALSE");
+            DPRINT_VK("%s available: %s\n", rtMemberNames[i], iter[i] ? "TRUE" : "FALSE");
         }
         iter = &devAddressFeatures.bufferDeviceAddress;
         const char* daMemberNames[] = {
@@ -437,10 +441,10 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
             "bufferDeviceAddressCaptureReplay",
             "bufferDeviceAddressMultiDevice",
         };
-        len = OBDN_ARRAY_SIZE(daMemberNames);
+        len = LEN(daMemberNames);
         for (int i = 0; i < len; i++) 
         {
-            printf("%s available: %s\n", daMemberNames[i], iter[i] ? "TRUE" : "FALSE");
+            DPRINT_VK("%s available: %s\n", daMemberNames[i], iter[i] ? "TRUE" : "FALSE");
         }
     } 
     #endif
@@ -462,12 +466,12 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
     const char** defaultExtNames;
     if (config->rayTraceEnabled)
     {
-        defExtCount += OBDN_ARRAY_SIZE(extensionsRT);
+        defExtCount += LEN(extensionsRT);
         defaultExtNames = extensionsRT;
     }
     else 
     {
-        defExtCount += OBDN_ARRAY_SIZE(extensionsReg);
+        defExtCount += LEN(extensionsReg);
         defaultExtNames = extensionsReg;
     }
 
@@ -485,14 +489,12 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
         extNames[i] = extNamesData[i];
     }
 
-#if VERBOSE
-    printf("Requesting extensions...\n");
+    DPRINT_VK("Requesting extensions...\n");
     for (int i = 0; i < extCount; i++)
     {
-        printf("%s\n", extNames[i]);
+        DPRINT_VK("%s\n", extNames[i]);
     }
 
-#endif
     VkDeviceCreateInfo dci = {
         .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
         .enabledLayerCount = 0,
@@ -502,11 +504,11 @@ static void initDevice(const Obdn_V_Config* config, const uint32_t userExtCount,
         .ppEnabledLayerNames = NULL,
         .pEnabledFeatures = NULL, // not used in newer vulkan versions
         .pQueueCreateInfos = qci,
-        .queueCreateInfoCount = OBDN_ARRAY_SIZE(qci),
+        .queueCreateInfoCount = LEN(qci),
     };
 
     V_ASSERT( vkCreateDevice(physicalDevice, &dci, NULL, &device) );
-    V1_PRINT("Device created successfully.\n");
+    obdn_Announce("Vulkan Device created successfully.\n");
 }
 
 static void initQueues(void)
@@ -524,7 +526,7 @@ static void initQueues(void)
         vkGetDeviceQueue(device, computeQueueFamilyIndex, i, &computeQueues[i]);
     }
     presentQueue = graphicsQueues[0]; // use the first queue to present
-    hell_Print("Obsidian: Queues Initialized\n");
+    obdn_Announce("Obsidian: Queues Initialized\n");
 }
 
 const VkInstance* obdn_v_Init(
@@ -539,7 +541,7 @@ const VkInstance* obdn_v_Init(
         obdn_v_LoadFunctions(device);
     initQueues();
     obdn_v_InitMemory(&config->memorySizes);
-    hell_Print("Obsidian Video initialized.\n");
+    obdn_Announce("Initialized.\n");
     return &instance;
 }
 
@@ -575,7 +577,7 @@ void obdn_v_CleanUp(void)
     if (debugMessenger != VK_NULL_HANDLE)
         vkDestroyDebugUtilsMessengerEXT(instance, debugMessenger, NULL);
     vkDestroyInstance(instance, NULL);
-    printf("Obsidian video cleaned up.\n");
+    obdn_Announce("Cleaned up.\n");
 }
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR obdn_v_GetPhysicalDeviceRayTracingProperties(void)

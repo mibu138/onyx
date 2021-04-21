@@ -1,5 +1,6 @@
 #include "locations.h"
 #include <hell/common.h>
+#include <hell/debug.h>
 #include <string.h>
 #include <assert.h>
 

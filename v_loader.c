@@ -1,8 +1,8 @@
 #include "v_loader.h"
-#include "obsidian/t_def.h"
 #include "v_def.h"
+#include "dtags.h"
 #include <assert.h>
-#include <vulkan/vulkan_core.h>
+#include <hell/debug.h>
 
 static PFN_vkCreateAccelerationStructureKHR                pfn_vkCreateAccelerationStructureKHR;
 static PFN_vkCmdBuildAccelerationStructuresKHR             pfn_vkCmdBuildAccelerationStructuresKHR;
@@ -145,5 +145,5 @@ void obdn_v_LoadFunctions(const VkDevice device)
         vkGetDeviceProcAddr(device, "vkGetMemoryFdKHR");
     pfn_vkGetSemaphoreFdKHR = (PFN_vkGetSemaphoreFdKHR)
         vkGetDeviceProcAddr(device, "vkGetSemaphoreFdKHR");
-    V1_PRINT("======= Vulkan Functions loaded ===== \n");
+    hell_DebugPrint(OBDN_DEBUG_TAG_VK, "======= Vulkan Functions loaded ===== \n");
 }

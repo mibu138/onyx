@@ -4,6 +4,8 @@
 #include "coal/m_math.h"
 #include "coal/util.h"
 #include "hell/common.h"
+#include "dtags.h"
+#include <hell/debug.h>
 #include "obsidian/v_memory.h"
 #include "r_geo.h"
 #include "v_image.h"
@@ -26,6 +28,8 @@ typedef Obdn_S_PrimitiveList PrimitiveList;
 
 // TODO: this function needs to updated
 #define DEFAULT_MAT_ID 0
+
+#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_SCENE, fmt, ##__VA_ARGS__)
 
 typedef int32_t LightIndex;
 typedef int32_t PrimIndex;
@@ -85,7 +89,7 @@ static void removePrim(Scene* s, Obdn_S_PrimId id)
 
 static LightId addLight(Scene* s, Light light)
 {
-    hell_Print("Adding light...\nBefore info:\n");
+    DPRINT("Adding light...\nBefore info:\n");
     obdn_s_PrintLightInfo(s);
     LightIndex index  = s->lightCount++;
     assert(index < OBDN_S_MAX_LIGHTS);
@@ -93,7 +97,7 @@ static LightId addLight(Scene* s, Light light)
     while (lightMap.indices[id % OBDN_S_MAX_LIGHTS] >= 0) 
         id = lightMap.nextId++;
     LightId    slot   = id % OBDN_S_MAX_LIGHTS;
-    printf("Index: %d slot %d\n", index, slot);
+    DPRINT("Index: %d slot %d\n", index, slot);
     if (index > slot)
     {
         memmove(s->lights + slot + 1, s->lights + slot, sizeof(Light) * (s->lightCount - (slot + 1)));
@@ -107,7 +111,7 @@ static LightId addLight(Scene* s, Light light)
     memcpy(&s->lights[index], &light, sizeof(Light));
 
     s->dirt |= OBDN_S_LIGHTS_BIT;
-    hell_Print("After info: \n");
+    DPRINT("After info: \n");
     obdn_s_PrintLightInfo(s);
     return id;
 }
@@ -228,7 +232,7 @@ Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, c
         case 1: format = VK_FORMAT_R8_UNORM; break;
         case 3: format = VK_FORMAT_R8G8B8A8_UNORM; break;
         case 4: format = VK_FORMAT_R8G8B8A8_UNORM; break;
-        default: printf("ChannelCount %d not support.\n", channelCount); return OBDN_S_NONE;
+        default: DPRINT("ChannelCount %d not support.\n", channelCount); return OBDN_S_NONE;
     }
 
     obdn_v_LoadImage(filePath, channelCount, format,

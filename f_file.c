@@ -1,4 +1,3 @@
-#include "private.h"
 #include "f_file.h"
 #include "r_geo.h"
 #include "v_memory.h"
@@ -6,6 +5,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <hell/common.h>
+#include <hell/attributes.h>
+#include <hell/common.h>
 
 _Static_assert(sizeof(uint8_t) == sizeof(Obdn_R_AttributeSize), "sizeof(Obdn_R_AttributeSize) must be 1");
 
@@ -15,33 +17,33 @@ typedef Obdn_F_Primitive FPrim;
 
 static void printPrim(const FPrim* prim)
 {
-    printf(">>> printing Fprim info...\n");
-    printf(">>> attrCount %d vertexCount %d indexCount %d \n", prim->attrCount, prim->vertexCount, prim->indexCount);
-    printf(">>> attrSizes ");
+    hell_Print(">>> printing Fprim info...\n");
+    hell_Print(">>> attrCount %d vertexCount %d indexCount %d \n", prim->attrCount, prim->vertexCount, prim->indexCount);
+    hell_Print(">>> attrSizes ");
     for (int i = 0; i < prim->attrCount; i++) 
-        printf("%d ", prim->attrSizes[i]);
-    printf("\n>>> attrNames ");
+        hell_Print("%d ", prim->attrSizes[i]);
+    hell_Print("\n>>> attrNames ");
     for (int i = 0; i < prim->attrCount; i++) 
-        printf("%s ", prim->attrNames[i]);
-    printf("\n>>> Attributes: \n");
+        hell_Print("%s ", prim->attrNames[i]);
+    hell_Print("\n>>> Attributes: \n");
     for (int i = 0; i < prim->attrCount; i++) 
     {
-        printf(">>> %s: ", prim->attrNames[i]);
+        hell_Print(">>> %s: ", prim->attrNames[i]);
         for (int j = 0; j < prim->vertexCount; j++) 
         {
-            printf("{");
+            hell_Print("{");
             const int dim = prim->attrSizes[i]/4;
             const float* vals = &((float**)prim->attributes)[i][j * dim];
             for (int k = 0; k < dim; k++)
-                printf("%f%s", vals[k], k == dim - 1 ? "" : ", ");
-            printf("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
+                hell_Print("%f%s", vals[k], k == dim - 1 ? "" : ", ");
+            hell_Print("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
         }
-        printf("\n");
+        hell_Print("\n");
     }
-    printf("Indices: ");
+    hell_Print("Indices: ");
     for (int i = 0; i < prim->indexCount; i++) 
-        printf("%d%s", prim->indices[i], i == prim->indexCount - 1 ? "" : ", ");
-    printf("\n");
+        hell_Print("%d%s", prim->indices[i], i == prim->indexCount - 1 ? "" : ", ");
+    hell_Print("\n");
 }
 
 void obdn_f_PrintPrim(const Obdn_F_Primitive* prim)
@@ -59,16 +61,16 @@ Obdn_F_Primitive obdn_f_CreatePrimitive(const uint32_t vertexCount, const uint32
         .attrCount   = attrCount
     };
 
-    fprim.attrSizes  = malloc(attrCount * sizeof(Obdn_R_AttributeSize));
-    fprim.indices    = malloc(indexCount * sizeof(Obdn_R_Index)); 
-    fprim.attrNames  = malloc(attrCount * sizeof(char*));
-    fprim.attributes = malloc(attrCount * sizeof(void*));
+    fprim.attrSizes  = hell_Malloc(attrCount * sizeof(Obdn_R_AttributeSize));
+    fprim.indices    = hell_Malloc(indexCount * sizeof(Obdn_R_Index)); 
+    fprim.attrNames  = hell_Malloc(attrCount * sizeof(char*));
+    fprim.attributes = hell_Malloc(attrCount * sizeof(void*));
 
     for (int i = 0; i < attrCount; i++) 
     {
-        fprim.attrSizes[i] = attrSizes[i];
-        fprim.attrNames[i] = malloc(OBDN_R_ATTR_NAME_LEN);
-        fprim.attributes[i] = malloc(vertexCount * attrSizes[i]);
+        fprim.attrSizes[i]  = attrSizes[i];
+        fprim.attrNames[i]  = hell_Malloc(OBDN_R_ATTR_NAME_LEN);
+        fprim.attributes[i] = hell_Malloc(vertexCount * attrSizes[i]);
     }
 
     if (attrNames != NULL)
@@ -180,26 +182,26 @@ int obdn_f_ReadPrimitive(const char* filename, Obdn_F_Primitive* fprim)
 {
     FILE* file = fopen(filename, "rb");
     assert(file);
-    size_t r UNUSED_;
+    size_t r UNUSED;
     const size_t headerSize   = offsetof(Obdn_F_Primitive, attrSizes);
     assert(headerSize == 16);
     r = fread(fprim, headerSize, 1, file);
     assert(r == 1);
-    fprim->attrSizes  = malloc(fprim->attrCount * sizeof(Obdn_R_AttributeSize));
-    fprim->indices    = malloc(fprim->indexCount * sizeof(Obdn_R_Index));
-    fprim->attrNames  = malloc(fprim->attrCount * sizeof(char*));
-    fprim->attributes = malloc(fprim->attrCount * sizeof(void*));
+    fprim->attrSizes  = hell_Malloc(fprim->attrCount * sizeof(Obdn_R_AttributeSize));
+    fprim->indices    = hell_Malloc(fprim->indexCount * sizeof(Obdn_R_Index));
+    fprim->attrNames  = hell_Malloc(fprim->attrCount * sizeof(char*));
+    fprim->attributes = hell_Malloc(fprim->attrCount * sizeof(void*));
     r = fread(fprim->attrSizes, fprim->attrCount * sizeof(Obdn_R_AttributeSize), 1, file);
     assert(r);
     for (int i = 0; i < fprim->attrCount; i++) 
     {
-        fprim->attrNames[i] = malloc(OBDN_R_ATTR_NAME_LEN);
+        fprim->attrNames[i] = hell_Malloc(OBDN_R_ATTR_NAME_LEN);
         r = fread(fprim->attrNames[i], OBDN_R_ATTR_NAME_LEN, 1, file);
         assert(r);
     }
     for (int i = 0; i < fprim->attrCount; i++) 
     {
-        fprim->attributes[i] = malloc(fprim->vertexCount * fprim->attrSizes[i]);
+        fprim->attributes[i] = hell_Malloc(fprim->vertexCount * fprim->attrSizes[i]);
         r = fread(fprim->attributes[i], fprim->vertexCount * fprim->attrSizes[i], 1, file);
         assert(r);
     }
@@ -227,12 +229,12 @@ void obdn_f_FreePrimitive(Obdn_F_Primitive* fprim)
 {
     for (int i = 0; i < fprim->attrCount; i++) 
     {
-        free(fprim->attributes[i]);
-        free(fprim->attrNames[i]);
+        hell_Free(fprim->attributes[i]);
+        hell_Free(fprim->attrNames[i]);
     }
-    free(fprim->attributes);
-    free(fprim->indices);
-    free(fprim->attrNames);
-    free(fprim->attrSizes);
+    hell_Free(fprim->attributes);
+    hell_Free(fprim->indices);
+    hell_Free(fprim->attrNames);
+    hell_Free(fprim->attrSizes);
     memset(fprim, 0, sizeof(Obdn_F_Primitive));
 }
