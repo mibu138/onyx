@@ -10,7 +10,7 @@
 #define OBDN_MAX_BINDINGS 10
 #define OBDN_MAX_PUSH_CONSTANTS 5
 
-#define OBDN_FULL_SCREEN_VERT_SPV "full-screen-vert.spv"
+#define OBDN_FULL_SCREEN_VERT_SPV "full-screen.vert.spv"
 
 typedef struct {
     uint32_t                 descriptorCount;

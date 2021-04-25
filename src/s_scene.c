@@ -6,7 +6,7 @@
 #include "hell/common.h"
 #include "dtags.h"
 #include <hell/debug.h>
-#include "obsidian/v_memory.h"
+#include "v_memory.h"
 #include "r_geo.h"
 #include "v_image.h"
 #include <string.h>

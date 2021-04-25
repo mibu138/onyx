@@ -9,8 +9,8 @@
 #include "v_private.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "thirdparty/stb_image.h"
-#include "thirdparty/stb_image_write.h"
+#include "stb_image.h"
+#include "stb_image_write.h"
 
 #define IMG_OUT_DIR "/out/images/"
 

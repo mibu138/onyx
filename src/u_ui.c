@@ -1,7 +1,7 @@
 #include "u_ui.h"
-#include "obsidian/t_text.h"
-#include "obsidian/v_image.h"
-#include "obsidian/v_memory.h"
+#include "t_text.h"
+#include "v_image.h"
+#include "v_memory.h"
 #include "r_geo.h"
 #include "r_render.h"
 #include "r_renderpass.h"
@@ -171,8 +171,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .viewportDim       = {width, height},
-        .vertShader        = "ui-vert.spv",
-        .fragShader        = "ui-box-frag.spv"
+        .vertShader        = "ui.vert.spv",
+        .fragShader        = "ui-box.frag.spv"
     },{ 
         // slider
         .renderPass        = renderPass,
@@ -182,8 +182,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader        = "ui-vert.spv",
-        .fragShader        = "ui-slider-frag.spv"
+        .vertShader        = "ui.vert.spv",
+        .fragShader        = "ui-slider.frag.spv"
     },{ 
         // texture
         .renderPass        = renderPass,
@@ -193,8 +193,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader        = "ui-vert.spv",
-        .fragShader        = "ui-texture-frag.spv"
+        .vertShader        = "ui.vert.spv",
+        .fragShader        = "ui-texture.frag.spv"
     }};
 
     obdn_r_CreateGraphicsPipelines(LEN(pipeInfos), pipeInfos, pipelines);

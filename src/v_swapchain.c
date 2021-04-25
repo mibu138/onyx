@@ -6,7 +6,7 @@
 #include <hell/minmax.h>
 #include <hell/debug.h>
 #include "dtags.h"
-#include "obsidian/common.h"
+#include "common.h"
 #include "s_scene.h"
 #include "v_video.h"
 #include "v_private.h"
