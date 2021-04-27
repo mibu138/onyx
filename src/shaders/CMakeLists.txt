@@ -33,3 +33,5 @@ add_custom_target(shaders DEPENDS ${SPVS})
 install(FILES ${SPVS}
     DESTINATION shaders/obsidian)
 
+install(FILES ${SPVS}
+    DESTINATION ${HOUDINI_TOOL_INS_DIR}/shaders/obsidian)

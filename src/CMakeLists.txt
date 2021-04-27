@@ -51,3 +51,7 @@ add_dependencies(obsidian shaders)
 install(TARGETS obsidian 
     LIBRARY DESTINATION lib 
     PUBLIC_HEADER DESTINATION include/obsidian)
+
+install(TARGETS obsidian
+    LIBRARY DESTINATION ${HOUDINI_TOOL_INS_DIR}/lib 
+    PUBLIC_HEADER DESTINATION ${HOUDINI_TOOL_INS_DIR}/include/obsidian)
