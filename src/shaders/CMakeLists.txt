@@ -29,9 +29,12 @@ foreach(SRC ${SRCS})
     list(APPEND SPVS ${SPV})
 endforeach(SRC)
 
+if (NOT DEFINED SHADER_INSTALL_PREFIX)
+    set(SHADER_INSTALL_PREFIX shaders/)
+endif()
+
 add_custom_target(shaders DEPENDS ${SPVS})
-install(FILES ${SPVS}
-    DESTINATION shaders/obsidian)
 
 install(FILES ${SPVS}
-    DESTINATION ${HOUDINI_TOOL_INS_DIR}/shaders/obsidian)
+    DESTINATION ${SHADER_INSTALL_PREFIX}${LIBRARY_NAME})
+

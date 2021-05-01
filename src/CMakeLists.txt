@@ -43,15 +43,27 @@ set(PUBLIC_HEADERS
     v_video.h
     v_vulkan.h)
 
-add_library(obsidian SHARED ${SRCS})
+add_library(${LIBRARY_NAME} SHARED ${SRCS})
 set_target_properties(obsidian PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
-target_link_libraries(obsidian hell freetype vulkan)
+target_link_libraries(${LIBRARY_NAME} hell freetype vulkan)
+
 add_subdirectory(shaders)
 add_dependencies(obsidian shaders)
-install(TARGETS obsidian 
-    LIBRARY DESTINATION lib 
-    PUBLIC_HEADER DESTINATION include/obsidian)
 
-install(TARGETS obsidian
-    LIBRARY DESTINATION ${HOUDINI_TOOL_INS_DIR}/lib 
-    PUBLIC_HEADER DESTINATION ${HOUDINI_TOOL_INS_DIR}/include/obsidian)
+if (NOT DEFINED LIB_INSTALL_PREFIX)
+    set(LIB_INSTALL_PREFIX lib)
+endif()
+
+install(TARGETS ${LIBRARY_NAME} 
+    LIBRARY DESTINATION ${LIB_INSTALL_PREFIX})
+
+message("Obsidian: library prefix: ${LIB_INSTALL_PREFIX}")
+
+if (NOT ${HEADER_INSTALL_PREFIX})
+    set(HEADER_INSTALL_PREFIX include/)
+endif()
+
+if (NOT DEFINED NO_HEADER_INSTALL)
+    install(TARGETS ${LIBRARY_NAME} 
+        PUBLIC_HEADER DESTINATION ${HEADER_INSTALL_PREFIX}${LIBRARY_NAME})
+endif()
