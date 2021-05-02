@@ -110,6 +110,10 @@ static void initBlockChain(
         struct BlockChain* chain)
 {
     memset(chain, 0, sizeof(BlockChain));
+    strcpy(chain->name, name);
+    if (memorySize == 0) return; // basically saying we arent using this memory type
+    if (memorySize % 0x40 != 0)
+        hell_Error(HELL_ERR_FATAL, "Failed to initialize %s block chain because requested %zu bytes is not divisible by 0x40\n", name, memorySize);
     assert( memorySize % 0x40 == 0 ); // make sure memorysize is 64 byte aligned (arbitrary choice)
     chain->count = 1;
     chain->cur   = 0;

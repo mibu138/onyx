@@ -333,6 +333,13 @@ void obdn_v_InitSwapchain(const VkImageUsageFlags swapImageUsageFlags_, const He
     obdn_Announce("Swapchain initialized.\n");
 }
 
+void obdn_v_CreateSurface(const Hell_Window* hellWindow)
+{
+    useOffscreenSwapchain = false;
+    initSurface(hellWindow);
+    recreateSwapchain();
+}
+
 bool obdn_v_PresentFrame(VkSemaphore waitSemaphore)
 {
     VkResult r;
@@ -421,4 +428,51 @@ VkExtent2D          obdn_v_GetSwapExtent(void)
         .height = swapHeight
     };
     return ex;
+}
+
+unsigned obdn_AcquireSwapchainImage(VkFence fence, VkSemaphore semaphore)
+{
+    VkResult r;
+retry:
+    r = vkAcquireNextImageKHR(device, 
+            swapchain, 
+            1000000, 
+            semaphore,
+            fence, 
+            &curFrameIndex);
+    if (VK_ERROR_OUT_OF_DATE_KHR == r || swapchainDirty) 
+    {
+        hell_DPrint("\nHere!\n\n");
+        recreateSwapchain();
+        swapchainDirty = false;
+        if (fence)
+        {
+            vkWaitForFences(device, 1, &fence, true, 100000);
+            vkResetFences(device, 1, &fence);
+        }
+        goto retry;
+    }
+    frameCounter++;
+    return curFrameIndex;
+}
+
+bool obdn_PresentFrame(VkSemaphore waitSemaphore)
+{
+    VkResult r;
+    const VkPresentInfoKHR info = {
+        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+        .swapchainCount = 1,
+        .pSwapchains = &swapchain,
+        .waitSemaphoreCount = 1,
+        .pWaitSemaphores = &waitSemaphore,
+        .pResults = &r,
+        .pImageIndices = &curFrameIndex,
+    };
+
+    VkResult presentResult;
+    presentResult = vkQueuePresentKHR(obdn_v_GetPresentQueue(), &info);
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+        return false;
+    assert( VK_SUCCESS == r );
+    return true;
 }

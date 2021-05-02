@@ -8,8 +8,9 @@
 #define OBDN_R_MAX_VERT_ATTRIBUTES 8
 #define OBDN_R_ATTR_NAME_LEN 4
 
-typedef uint32_t   Obdn_R_Index;
-typedef uint8_t    Obdn_R_AttributeSize;
+typedef uint32_t     Obdn_R_Index;
+typedef Obdn_R_Index Obdn_AttrIndex;
+typedef uint8_t      Obdn_R_AttributeSize;
 
 // vertexRegion.offset is the byte offset info the buffer where the vertex data
 // is kept. attrOffsets store the byte offset relative to the vertexRegion offset

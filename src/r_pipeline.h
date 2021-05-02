@@ -12,6 +12,7 @@
 
 #define OBDN_FULL_SCREEN_VERT_SPV "full-screen.vert.spv"
 
+
 typedef struct {
     uint32_t                 descriptorCount;
     VkDescriptorType         type;
@@ -99,6 +100,12 @@ void obdn_r_CleanUpPipelines(void);
 void obdn_r_CreateDescriptionsAndLayouts(const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
         VkDescriptorSetLayout layouts[descSetCount], 
         const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount]);
+
+// very simple pipeline. counter clockwise. only considers position attribute (3 floats).
+void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass,
+                                        const VkPipelineLayout layout,
+                                        const VkPolygonMode mode,
+                                        VkPipeline *pipeline);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

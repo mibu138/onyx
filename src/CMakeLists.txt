@@ -44,26 +44,10 @@ set(PUBLIC_HEADERS
     v_vulkan.h)
 
 add_library(${LIBRARY_NAME} SHARED ${SRCS})
-set_target_properties(obsidian PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
-target_link_libraries(${LIBRARY_NAME} hell freetype vulkan)
+target_link_libraries(${LIBRARY_NAME} hell coal freetype vulkan)
 
+set(SHADER_TARGET_NAME obsidian-shaders)
 add_subdirectory(shaders)
-add_dependencies(obsidian shaders)
+add_dependencies(${LIBRARY_NAME} ${SHADER_TARGET_NAME})
 
-if (NOT DEFINED LIB_INSTALL_PREFIX)
-    set(LIB_INSTALL_PREFIX lib)
-endif()
-
-install(TARGETS ${LIBRARY_NAME} 
-    LIBRARY DESTINATION ${LIB_INSTALL_PREFIX})
-
-message("Obsidian: library prefix: ${LIB_INSTALL_PREFIX}")
-
-if (NOT ${HEADER_INSTALL_PREFIX})
-    set(HEADER_INSTALL_PREFIX include/)
-endif()
-
-if (NOT DEFINED NO_HEADER_INSTALL)
-    install(TARGETS ${LIBRARY_NAME} 
-        PUBLIC_HEADER DESTINATION ${HEADER_INSTALL_PREFIX}${LIBRARY_NAME})
-endif()
+install_library()

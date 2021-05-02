@@ -7,3 +7,4 @@ shaders/spv/*
 qrenderdoc
 tags
 .cache
+log.txt

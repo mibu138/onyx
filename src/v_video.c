@@ -619,9 +619,9 @@ void obdn_v_SubmitGraphicsCommand(const uint32_t queueIndex,
     VkSubmitInfo si = {
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
         .pWaitDstStageMask = &waitDstStageMask,
-        .waitSemaphoreCount = waitSemephore == 0 ? 0 : 1,
+        .waitSemaphoreCount = waitSemephore == VK_NULL_HANDLE ? 0 : 1,
         .pWaitSemaphores = &waitSemephore,
-        .signalSemaphoreCount = signalSemphore == 0 ? 0 : 1,
+        .signalSemaphoreCount = signalSemphore == VK_NULL_HANDLE ? 0 : 1,
         .pSignalSemaphores = &signalSemphore,
         .commandBufferCount = 1,
         .pCommandBuffers = &cmdBuf

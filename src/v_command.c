@@ -113,3 +113,31 @@ void obdn_v_MemoryBarrier(
             dstStageMask, dependencyFlags, 
             1, &barrier, 0, NULL, 0, NULL);
 }
+
+void obdn_CreateFence(VkFence* fence)
+{
+    VkFenceCreateInfo ci = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+    };
+
+    vkCreateFence(device, &ci, NULL, fence);
+}
+
+void obdn_CmdSetViewportScissorFull(unsigned width, unsigned height, VkCommandBuffer cmdbuf)
+{
+    VkViewport vp = {
+        .width = width,
+        .height = height,
+        .x = 0, .y = 0,
+        .minDepth = 0.0,
+        .maxDepth = 1.0,
+    };
+    VkRect2D sz = {
+        .extent = {width, height},
+        .offset = {0, 0}
+    };
+
+    vkCmdSetViewport(cmdbuf, 0, 1, &vp);
+    vkCmdSetScissor(cmdbuf, 0, 1, &sz);
+}
+

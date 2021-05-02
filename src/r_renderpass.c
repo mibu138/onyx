@@ -301,3 +301,4 @@ void obdn_r_CreateRenderPass_ColorDepthMSAA(const VkSampleCountFlags sampleCount
 
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
+

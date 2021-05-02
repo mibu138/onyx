@@ -675,3 +675,22 @@ void obdn_r_CreateDescriptionsAndLayouts(const uint32_t descSetCount, const Obdn
         obdn_r_CreateDescriptorSets(descSetCount, sets, layouts, &descriptions[i]);
     }
 }
+
+void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass, const VkPipelineLayout layout, const VkPolygonMode mode, VkPipeline* pipeline)
+{
+    uint8_t attrSize = 3 * sizeof(float);
+    VkDynamicState dynamicStates[2] = {VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT};
+    Obdn_R_GraphicsPipelineInfo gpi = {
+        .renderPass = renderPass,
+        .layout = layout,
+        .attachmentCount = 1,
+        .sampleCount = VK_SAMPLE_COUNT_1_BIT,
+        .polygonMode = mode,
+        .dynamicStateCount = 2,
+        .pDynamicStates = dynamicStates,
+        .vertexDescription = obdn_r_GetVertexDescription(1, &attrSize),
+        .vertShader = "build/example-shaders/simple.vert.spv",
+        .fragShader = "build/example-shaders/simple.frag.spv"
+    };
+    obdn_r_CreateGraphicsPipelines(1, &gpi, pipeline);
+}
