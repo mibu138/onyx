@@ -447,7 +447,8 @@ retry:
         swapchainDirty = false;
         if (fence)
         {
-            vkWaitForFences(device, 1, &fence, true, 100000);
+            // if we passed a fence we technically need to wait on it and reset it to use it again.
+            vkWaitForFences(device, 1, &fence, true, 100);
             vkResetFences(device, 1, &fence);
         }
         goto retry;
