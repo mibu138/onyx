@@ -40,9 +40,17 @@ void obdn_v_MemoryBarrier(
     VkAccessFlags        dstAccessMask);
 
 void obdn_CreateFence(VkFence* fence);
+void obdn_CreateSemaphore(VkSemaphore* semaphore);
 
 void obdn_SubmitCommand(Obdn_V_Command* cmd, VkSemaphore semaphore, VkFence fence);
 
-void obdn_CmdSetViewportScissorFull(unsigned width, unsigned height, VkCommandBuffer cmdbuf);
+void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height);
+
+void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf, 
+        const VkRenderPass renderPass, const VkFramebuffer framebuffer,
+        unsigned width, unsigned height,
+        float r, float g, float b, float a);
+
+void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf);
 
 #endif /* end of include guard: OBDN_V_COMMAND_H */

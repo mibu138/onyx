@@ -5,6 +5,7 @@
 #include "hell/input.h"
 #include <hell/minmax.h>
 #include <hell/debug.h>
+#include <hell/common.h>
 #include "dtags.h"
 #include "common.h"
 #include "s_scene.h"
@@ -430,28 +431,34 @@ VkExtent2D          obdn_v_GetSwapExtent(void)
     return ex;
 }
 
+#define WAIT_TIME_NS 500000
+
 unsigned obdn_AcquireSwapchainImage(VkFence fence, VkSemaphore semaphore)
 {
     VkResult r;
 retry:
     r = vkAcquireNextImageKHR(device, 
             swapchain, 
-            1000000, 
+            WAIT_TIME_NS, 
             semaphore,
             fence, 
             &curFrameIndex);
-    if (VK_ERROR_OUT_OF_DATE_KHR == r || swapchainDirty) 
+    if (VK_ERROR_OUT_OF_DATE_KHR == r || VK_SUBOPTIMAL_KHR == r || VK_TIMEOUT == r || swapchainDirty) 
     {
         hell_DPrint("\nHere!\n\n");
         recreateSwapchain();
         swapchainDirty = false;
-        if (fence)
-        {
-            // if we passed a fence we technically need to wait on it and reset it to use it again.
-            vkWaitForFences(device, 1, &fence, true, 100);
-            vkResetFences(device, 1, &fence);
-        }
+        //if (fence)
+        //{
+        //    // if we passed a fence we technically need to wait on it and reset it to use it again.
+        //    vkWaitForFences(device, 1, &fence, true, UINT64_MAX);
+        //    vkResetFences(device, 1, &fence); // may not be necesary
+        //}
         goto retry;
+    }
+    if (VK_ERROR_DEVICE_LOST == r)
+    {
+        hell_Error(HELL_ERR_FATAL, "Device lost\n");
     }
     frameCounter++;
     return curFrameIndex;

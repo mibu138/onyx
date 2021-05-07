@@ -120,10 +120,19 @@ void obdn_CreateFence(VkFence* fence)
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
     };
 
-    vkCreateFence(device, &ci, NULL, fence);
+    V_ASSERT( vkCreateFence(device, &ci, NULL, fence) );
 }
 
-void obdn_CmdSetViewportScissorFull(unsigned width, unsigned height, VkCommandBuffer cmdbuf)
+void obdn_CreateSemaphore(VkSemaphore* semaphore)
+{
+    const VkSemaphoreCreateInfo semaCi = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+
+    V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, semaphore) );
+}
+
+void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height)
 {
     VkViewport vp = {
         .width = width,
@@ -141,3 +150,29 @@ void obdn_CmdSetViewportScissorFull(unsigned width, unsigned height, VkCommandBu
     vkCmdSetScissor(cmdbuf, 0, 1, &sz);
 }
 
+void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf, 
+        const VkRenderPass renderPass, const VkFramebuffer framebuffer,
+        unsigned width, unsigned height,
+        float r, float g, float b, float a)
+{
+    VkClearValue clears[2] = {
+        {r, g, b, a},
+        {0.0} //depth
+    };
+
+    VkRenderPassBeginInfo rpi = {
+        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+        .renderPass = renderPass,
+        .framebuffer = framebuffer,
+        .renderArea = {0, 0, width, height},
+        .clearValueCount = 2,
+        .pClearValues = clears
+    };
+
+    vkCmdBeginRenderPass(cmdbuf, &rpi, VK_SUBPASS_CONTENTS_INLINE);
+}
+
+void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf)
+{
+    vkCmdEndRenderPass(cmdbuf);
+}

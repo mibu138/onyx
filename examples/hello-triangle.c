@@ -47,7 +47,6 @@ static void destroySurfaceDependent(void)
 
 static void onSwapchainRecreate(void)
 {
-    hell_DPrint("\nYOOOOOOO\n");
     destroySurfaceDependent();
     createSurfaceDependent();
 }
@@ -55,8 +54,6 @@ static void onSwapchainRecreate(void)
 void init(void)
 {
     uint8_t attrSize = 3 * sizeof(float);
-    VkDynamicState dynamicStates[2] = {VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT};
-
     triangle = obdn_r_CreatePrimitive(3, 4, 1, &attrSize);
     Coal_Vec3* verts = (Coal_Vec3*)triangle.vertexRegion.hostData;
     verts[0][0] =  0.0;
@@ -72,7 +69,7 @@ void init(void)
     indices[0] = 0;
     indices[1] = 1;
     indices[2] = 2;
-    indices[3] = 0;
+    indices[3] = 0; // this last index is so we render the full triangle in line mode
 
     obdn_r_PrintPrim(&triangle);
 
@@ -95,7 +92,7 @@ void init(void)
     obdn_v_RegisterSwapchainRecreationFn(onSwapchainRecreate);
 }
 
-#define TARGET_RENDER_INTERVAL 30000 // render every 30 ms
+#define TARGET_RENDER_INTERVAL 10000 // render every 30 ms
 
 void draw(void)
 {
@@ -106,43 +103,40 @@ void draw(void)
         return;
     timeOfLastRender = hell_Time();
     timeSinceLastRender = 0;
-    static VkFence drawFence;
-    static bool fenceInitialized = false;
-    if (!fenceInitialized)
+
+    static VkFence      drawFence;
+    static Obdn_Command drawCommands[2];
+    static uint64_t     frameCounter = 0;
+    static bool         initialized = false;
+
+    if (!initialized)
     {
         obdn_CreateFence(&drawFence);
-        fenceInitialized = true;
+        drawCommands[0] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
+        drawCommands[1] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
+        initialized = true;
     }
+
     unsigned frameId = obdn_AcquireSwapchainImage(drawFence, VK_NULL_HANDLE);
 
     obdn_v_WaitForFence(&drawFence);
 
-    Obdn_Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Obdn_Command cmd = drawCommands[frameCounter % 2];
+
+    obdn_v_ResetCommand(&cmd);
+    
     obdn_v_BeginCommandBuffer(cmd.buffer);
 
-    obdn_CmdSetViewportScissorFull(obdn_GetSurfaceWidth(), obdn_GetSurfaceHeight(), cmd.buffer);
+    obdn_CmdSetViewportScissorFull(cmd.buffer, obdn_GetSurfaceWidth(), obdn_GetSurfaceHeight());
 
-    // TODO: see if we can wrap up beingRenderPass into a library function.
-    VkClearValue clears[2] = {
-        {0.0, 0.1, 0.2, 1.0}, //color
-        {0.0} //depth
-    };
-    VkRenderPassBeginInfo rpi = {
-        .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
-        .renderPass = renderPass,
-        .framebuffer = framebuffers[frameId],
-        .renderArea = {0, 0, obdn_GetSurfaceWidth(), obdn_GetSurfaceHeight()},
-        .clearValueCount = 2,
-        .pClearValues = clears
-    };
+    obdn_CmdBeginRenderPass_ColorDepth(
+        cmd.buffer, renderPass, framebuffers[frameId], obdn_GetSurfaceWidth(),
+        obdn_GetSurfaceHeight(), 0.0, 0.0, 0.01, 1.0);
 
-    vkCmdBeginRenderPass(cmd.buffer, &rpi, VK_SUBPASS_CONTENTS_INLINE);
+        vkCmdBindPipeline(cmd.buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
+        obdn_r_DrawPrim(cmd.buffer, &triangle);
 
-    vkCmdBindPipeline(cmd.buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-
-    obdn_r_DrawPrim(cmd.buffer, &triangle);
-
-    vkCmdEndRenderPass(cmd.buffer);
+    obdn_CmdEndRenderPass(cmd.buffer);
 
     obdn_v_EndCommandBuffer(cmd.buffer);
 
@@ -153,7 +147,7 @@ void draw(void)
 
     obdn_v_WaitForFence(&drawFence);
 
-    obdn_v_DestroyCommand(cmd);
+    frameCounter++;
 }
 
 int main(int argc, char *argv[])
