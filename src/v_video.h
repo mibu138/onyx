@@ -33,6 +33,10 @@ VkDevice          obdn_v_GetDevice(void);
 VkQueue           obdn_v_GetPresentQueue(void);
 VkPhysicalDevice  obdn_v_GetPhysicalDevice(void);
 
+void obdn_PresentQueueWaitIdle();
+
+void obdn_DeviceWaitIdle(void);
+
 const VkPhysicalDeviceProperties*                  obdn_v_GetPhysicalDeviceProperties(void);
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR    obdn_v_GetPhysicalDeviceRayTracingProperties(void);
 VkPhysicalDeviceAccelerationStructurePropertiesKHR obdn_v_GetPhysicalDeviceAccelerationStructureProperties(void);

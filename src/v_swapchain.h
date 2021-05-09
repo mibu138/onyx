@@ -22,7 +22,9 @@ const Obdn_V_Image* obdn_v_GetFrame(const int8_t index);
 const uint32_t      obdn_v_GetCurrentFrameIndex(void);
 VkExtent2D          obdn_v_GetSwapExtent(void);
 void                obdn_v_CreateSurface(const Hell_Window* hellWindow);
-unsigned            obdn_AcquireSwapchainImage(VkFence fence, VkSemaphore semaphore);
+unsigned            obdn_AcquireSwapchainImage(VkFence* fence, VkSemaphore* semaphore);
+
+// one thing to be careful of here is if this function fails the waitSemaphore will not be signalled.
 bool                obdn_PresentFrame(VkSemaphore waitSemaphore);
 
 #endif /* end of include guard: V_SWAPCHAIN_H */

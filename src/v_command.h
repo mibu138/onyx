@@ -53,4 +53,10 @@ void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf,
 
 void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf);
 
+void obdn_DestroyFence(VkFence fence);
+
+void obdn_DestroySemaphore(VkSemaphore semaphore);
+
+void obdn_DeviceWaitIdle(void);
+
 #endif /* end of include guard: OBDN_V_COMMAND_H */

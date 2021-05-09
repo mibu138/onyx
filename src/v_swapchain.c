@@ -11,6 +11,7 @@
 #include "s_scene.h"
 #include "v_video.h"
 #include "v_private.h"
+#include "v_command.h"
 #ifdef UNIX
 #include <hell/xcb_window_type.h>
 #elif defined(WINDOWS)
@@ -107,9 +108,6 @@ static void initSwapchainWithSurface()
 
     assert(supported == VK_TRUE);
 
-    VkSurfaceCapabilitiesKHR capabilities;
-    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities) );
-
     uint32_t formatsCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, NULL);
     VkSurfaceFormatKHR surfaceFormats[formatsCount];
@@ -127,6 +125,9 @@ static void initSwapchainWithSurface()
 
     //const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
     const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
+
+    VkSurfaceCapabilitiesKHR capabilities;
+    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities) );
 
     assert(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
     DPRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
@@ -433,19 +434,18 @@ VkExtent2D          obdn_v_GetSwapExtent(void)
 
 #define WAIT_TIME_NS 500000
 
-unsigned obdn_AcquireSwapchainImage(VkFence fence, VkSemaphore semaphore)
+unsigned obdn_AcquireSwapchainImage(VkFence* fence, VkSemaphore* semaphore)
 {
     VkResult r;
 retry:
     r = vkAcquireNextImageKHR(device, 
             swapchain, 
             WAIT_TIME_NS, 
-            semaphore,
-            fence, 
+            *semaphore,
+            *fence, 
             &curFrameIndex);
-    if (VK_ERROR_OUT_OF_DATE_KHR == r || VK_SUBOPTIMAL_KHR == r || VK_TIMEOUT == r || swapchainDirty) 
+    if (VK_ERROR_OUT_OF_DATE_KHR == r) 
     {
-        hell_DPrint("\nHere!\n\n");
         recreateSwapchain();
         swapchainDirty = false;
         //if (fence)
@@ -455,6 +455,10 @@ retry:
         //    vkResetFences(device, 1, &fence); // may not be necesary
         //}
         goto retry;
+    }
+    if (VK_SUBOPTIMAL_KHR == r)
+    {
+        hell_DPrint("FOOOOOOOOOOOOOO\n");
     }
     if (VK_ERROR_DEVICE_LOST == r)
     {

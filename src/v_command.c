@@ -1,6 +1,5 @@
 #include "v_command.h"
 #include "v_video.h"
-#include <vulkan/vulkan_core.h>
 #include "v_private.h"
 
 void obdn_v_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
@@ -75,6 +74,16 @@ void obdn_v_WaitForFence(VkFence* fence)
 {
     vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, fence);
+}
+
+void obdn_DestroyFence(VkFence fence)
+{
+    vkDestroyFence(device, fence, NULL);
+}
+
+void obdn_DestroySemaphore(VkSemaphore semaphore)
+{
+    vkDestroySemaphore(device, semaphore, NULL);
 }
 
 void obdn_v_WaitForFenceNoReset(VkFence* fence)
@@ -176,3 +185,4 @@ void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf)
 {
     vkCmdEndRenderPass(cmdbuf);
 }
+

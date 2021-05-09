@@ -682,3 +682,13 @@ const VkInstance* obdn_v_GetInstance(void)
 {
     return &instance;
 }
+
+void obdn_PresentQueueWaitIdle()
+{
+    vkQueueWaitIdle(presentQueue);
+}
+
+void obdn_DeviceWaitIdle(void)
+{
+    vkDeviceWaitIdle(device);
+}

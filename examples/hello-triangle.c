@@ -104,22 +104,27 @@ void draw(void)
     timeOfLastRender = hell_Time();
     timeSinceLastRender = 0;
 
-    static VkFence      drawFence;
     static Obdn_Command drawCommands[2];
     static uint64_t     frameCounter = 0;
     static bool         initialized = false;
 
     if (!initialized)
     {
-        obdn_CreateFence(&drawFence);
         drawCommands[0] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
         drawCommands[1] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
         initialized = true;
     }
+    
+    VkFence      drawFence;
+    VkSemaphore  drawSemaphore;
+    VkSemaphore  acquireSemaphore;
+    obdn_CreateFence(&drawFence);
+    obdn_CreateSemaphore(&drawSemaphore);
+    obdn_CreateSemaphore(&acquireSemaphore);
 
-    unsigned frameId = obdn_AcquireSwapchainImage(drawFence, VK_NULL_HANDLE);
+    VkFence fence = VK_NULL_HANDLE;
 
-    obdn_v_WaitForFence(&drawFence);
+    unsigned frameId = obdn_AcquireSwapchainImage(&fence, &acquireSemaphore);
 
     Obdn_Command cmd = drawCommands[frameCounter % 2];
 
@@ -141,11 +146,17 @@ void draw(void)
     obdn_v_EndCommandBuffer(cmd.buffer);
 
     obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
-            VK_NULL_HANDLE, cmd.semaphore, drawFence, cmd.buffer);
+            acquireSemaphore, drawSemaphore, drawFence, cmd.buffer);
 
-    obdn_PresentFrame(cmd.semaphore);
+    obdn_PresentFrame(drawSemaphore);
 
     obdn_v_WaitForFence(&drawFence);
+
+    obdn_PresentQueueWaitIdle();
+
+    obdn_DestroyFence(drawFence);
+    obdn_DestroySemaphore(acquireSemaphore);
+    obdn_DestroySemaphore(drawSemaphore);
 
     frameCounter++;
 }
