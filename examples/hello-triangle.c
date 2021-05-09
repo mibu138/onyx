@@ -24,16 +24,18 @@ static VkPipeline          pipeline;
 static VkFramebuffer       framebuffers[2];
 static Obdn_Image          depthImage;
 
+static Obdn_Swapchain* swapchain;
+
 static const VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
 static void createSurfaceDependent(void)
 {
-    depthImage = obdn_v_CreateImage(obdn_GetSurfaceWidth(), obdn_GetSurfaceHeight(),
+    depthImage = obdn_v_CreateImage(obdn_GetSwapchainWidth(swapchain), obdn_GetSwapchainHeight(swapchain),
                        depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                        VK_IMAGE_ASPECT_DEPTH_BIT, VK_SAMPLE_COUNT_1_BIT, 1,
                        OBDN_V_MEMORY_DEVICE_TYPE);
-    VkImageView attachments_0[2] = {obdn_GetSwapchainImage(0, 0)->view, depthImage.view};
-    VkImageView attachments_1[2] = {obdn_GetSwapchainImage(0, 1)->view, depthImage.view};
+    VkImageView attachments_0[2] = {obdn_GetSwapchainImageView(swapchain, 0), depthImage.view};
+    VkImageView attachments_1[2] = {obdn_GetSwapchainImageView(swapchain, 1), depthImage.view};
     obdn_CreateFramebuffer(2, attachments_0, window->width, window->height, renderPass, &framebuffers[0]);
     obdn_CreateFramebuffer(2, attachments_1, window->width, window->height, renderPass, &framebuffers[1]);
 }
@@ -79,7 +81,7 @@ void init(void)
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
-        obdn_v_GetSwapFormat(), depthFormat, &renderPass);
+        obdn_GetSwapchainFormat(swapchain), depthFormat, &renderPass);
     Obdn_R_PipelineLayoutInfo pli = {0}; //nothin
     obdn_r_CreatePipelineLayouts(1, &pli, &pipelineLayout);
     if (WIREFRAME)
@@ -89,7 +91,7 @@ void init(void)
 
     createSurfaceDependent();
 
-    obdn_v_RegisterSwapchainRecreationFn(onSwapchainRecreate);
+    obdn_RegisterSwapchainRecreationFn(swapchain, onSwapchainRecreate);
 }
 
 #define TARGET_RENDER_INTERVAL 10000 // render every 30 ms
@@ -124,7 +126,7 @@ void draw(void)
 
     VkFence fence = VK_NULL_HANDLE;
 
-    unsigned frameId = obdn_AcquireSwapchainImage(&fence, &acquireSemaphore);
+    unsigned frameId = obdn_AcquireSwapchainImage(swapchain, &fence, &acquireSemaphore);
 
     Obdn_Command cmd = drawCommands[frameCounter % 2];
 
@@ -132,11 +134,12 @@ void draw(void)
     
     obdn_v_BeginCommandBuffer(cmd.buffer);
 
-    obdn_CmdSetViewportScissorFull(cmd.buffer, obdn_GetSurfaceWidth(), obdn_GetSurfaceHeight());
+    const VkExtent2D dim = obdn_GetSwapchainExtent(swapchain);
+    obdn_CmdSetViewportScissorFull(cmd.buffer, dim.width, dim.height);
 
     obdn_CmdBeginRenderPass_ColorDepth(
-        cmd.buffer, renderPass, framebuffers[frameId], obdn_GetSurfaceWidth(),
-        obdn_GetSurfaceHeight(), 0.0, 0.0, 0.01, 1.0);
+        cmd.buffer, renderPass, framebuffers[frameId], dim.width,
+        dim.height, 0.0, 0.0, 0.01, 1.0);
 
         vkCmdBindPipeline(cmd.buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
         obdn_r_DrawPrim(cmd.buffer, &triangle);
@@ -148,7 +151,7 @@ void draw(void)
     obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
             acquireSemaphore, drawSemaphore, drawFence, cmd.buffer);
 
-    obdn_PresentFrame(drawSemaphore);
+    obdn_PresentFrame(swapchain, drawSemaphore);
 
     obdn_v_WaitForFence(&drawFence);
 
@@ -165,10 +168,11 @@ int main(int argc, char *argv[])
 {
     hell_Init(true, draw, 0);
     hell_c_SetVar("maxFps", "1000", 0);
-    hell_Print("Starting hello triangle.");
+    hell_Print("Starting hello triangle.\n");
     window = hell_OpenWindow(500, 500, 0);
     obdn_Init();
-    obdn_CreateSwapchain(window);
+    swapchain = hell_Malloc(obdn_SizeOfSwapchain());
+    obdn_InitSwapchain(swapchain, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window);
     init();
     hell_Loop();
     return 0;

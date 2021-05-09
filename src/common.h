@@ -15,7 +15,6 @@ void obdn_Init(void);
 
 // if null is passed it will be an offscreen swapchain.
 // returns the swapchain id. currently not used for anything.
-unsigned obdn_CreateSwapchain(const struct Hell_Window *window);
 
 void obdn_CreateFramebuffer(const unsigned attachmentCount,
                             const VkImageView *attachments,
@@ -24,11 +23,5 @@ void obdn_CreateFramebuffer(const unsigned attachmentCount,
                             VkFramebuffer *framebuffer);
 
 void obdn_DestroyFramebuffer(VkFramebuffer fb);
-
-// swapchainId is not used currently. just put 0.
-const Obdn_Image* obdn_GetSwapchainImage(const unsigned swapchainId, const int8_t imageIndex);
-
-unsigned obdn_GetSurfaceWidth(void);
-unsigned obdn_GetSurfaceHeight(void);
 
 #endif /* end of include guard: OBSIDIAN_COMMON_H */

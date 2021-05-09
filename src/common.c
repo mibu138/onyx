@@ -38,17 +38,6 @@ void obdn_Init(void)
     obdn_v_Init(&cfg, 0, NULL);
 }
 
-void obdn_InitUI(void)
-{
-    obdn_u_Init(VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR);
-}
-
-unsigned obdn_CreateSwapchain(const struct Hell_Window* window)
-{
-    obdn_v_InitSwapchain(VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window);
-    return 0;
-}
-
 void obdn_CreateFramebuffer(const unsigned attachmentCount, const VkImageView* attachments, 
         const unsigned width, const unsigned height, 
         const VkRenderPass renderpass,
@@ -71,17 +60,3 @@ void obdn_DestroyFramebuffer(VkFramebuffer fb)
     vkDestroyFramebuffer(device, fb, NULL);
 }
 
-const Obdn_Image* obdn_GetSwapchainImage(const unsigned int swapchainId, const int8_t imageIndex)
-{
-    return obdn_v_GetFrame(imageIndex);
-}
-
-unsigned obdn_GetSurfaceWidth(void)
-{
-    return obdn_v_GetSwapExtent().width;
-}
-
-unsigned obdn_GetSurfaceHeight(void)
-{
-    return obdn_v_GetSwapExtent().height;
-}

@@ -10,21 +10,32 @@
 typedef Obdn_V_Image   Obdn_R_Frame;
 
 typedef void (*Obdn_R_SwapchainRecreationFn)(void);
+typedef struct Obdn_Swapchain Obdn_Swapchain;
 
-void                obdn_v_InitSwapchain(const VkImageUsageFlags swapImageUsageFlags_, const Hell_Window* hellWindow);
-bool                obdn_v_PresentFrame(VkSemaphore waitSemaphore);
-void                obdn_v_CleanUpSwapchain(void);
-void                obdn_v_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn);
-void                obdn_v_UnregisterSwapchainRecreateFn(Obdn_R_SwapchainRecreationFn fn);
-const uint32_t      obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, uint16_t window[2]);
-VkFormat            obdn_v_GetSwapFormat(void);
-const Obdn_V_Image* obdn_v_GetFrame(const int8_t index);
-const uint32_t      obdn_v_GetCurrentFrameIndex(void);
-VkExtent2D          obdn_v_GetSwapExtent(void);
-void                obdn_v_CreateSurface(const Hell_Window* hellWindow);
-unsigned            obdn_AcquireSwapchainImage(VkFence* fence, VkSemaphore* semaphore);
+Obdn_Swapchain* obdn_AllocSwapchain(void);
+size_t          obdn_SizeOfSwapchain(void);
+void            obdn_FreeSwapchain(Obdn_Swapchain* swapchain);
+void            obdn_InitSwapchain(Obdn_Swapchain*         swapchain,
+                                   const VkImageUsageFlags swapImageUsageFlags_,
+                                   const Hell_Window*      hellWindow);
+void            obdn_RegisterSwapchainRecreationFn(Obdn_Swapchain*              swapchain,
+                                                   Obdn_R_SwapchainRecreationFn fn);
+void            obdn_UnregisterSwapchainRecreateFn(Obdn_Swapchain*              swapchain,
+                                                   Obdn_R_SwapchainRecreationFn fn);
+unsigned        obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain);
+unsigned        obdn_GetSwapchainHeight(const Obdn_Swapchain* swapchain);
+VkExtent2D      obdn_GetSwapchainExtent(const Obdn_Swapchain* swapchain);
+VkFormat        obdn_GetSwapchainFormat(const Obdn_Swapchain* swapchain);
 
-// one thing to be careful of here is if this function fails the waitSemaphore will not be signalled.
-bool                obdn_PresentFrame(VkSemaphore waitSemaphore);
+VkImageView obdn_GetSwapchainImageView(const Obdn_Swapchain* swapchain,
+                                       int                   index);
+
+// one thing to be careful of here is if this function fails the waitSemaphore
+// will not be signalled.
+bool obdn_PresentFrame(const Obdn_Swapchain* swapchain,
+                       VkSemaphore           waitSemaphore);
+
+unsigned obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
+                                    VkSemaphore* semaphore);
 
 #endif /* end of include guard: V_SWAPCHAIN_H */

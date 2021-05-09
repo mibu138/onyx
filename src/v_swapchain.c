@@ -1,459 +1,398 @@
 #include "v_swapchain.h"
-#include <hell/window.h>
-#include <hell/platform.h>
-#include <string.h>
-#include "hell/input.h"
-#include <hell/minmax.h>
-#include <hell/debug.h>
-#include <hell/common.h>
-#include "dtags.h"
 #include "common.h"
+#include "dtags.h"
+#include "hell/input.h"
 #include "s_scene.h"
-#include "v_video.h"
-#include "v_private.h"
 #include "v_command.h"
+#include "v_private.h"
+#include "v_video.h"
+#include <hell/common.h>
+#include <hell/debug.h>
+#include <hell/minmax.h>
+#include <hell/platform.h>
+#include <hell/window.h>
+#include <string.h>
 #ifdef UNIX
 #include <hell/xcb_window_type.h>
 #elif defined(WINDOWS)
 #include <hell/win32_window.h>
 #endif
 
-static VkFormat swapFormat = VK_FORMAT_B8G8R8A8_SRGB;
+#define DPRINT(fmt, ...)                                                       \
+    hell_DebugPrint(OBDN_DEBUG_TAG_SWAP, fmt, ##__VA_ARGS__)
 
-static Obdn_R_Frame        frames[OBDN_FRAME_COUNT];
-static uint32_t            curFrameIndex;
-
-static VkSwapchainKHR      swapchain;
-
-static uint32_t            swapWidth;
-static uint32_t            swapHeight;
-
-static VkSemaphore  imageAcquiredSemaphores[OBDN_FRAME_COUNT];
-static uint8_t      imageAcquiredSemaphoreIndex = 0;
-static uint64_t     frameCounter;
-static bool         swapchainDirty;
-
+#define SWAPCHAIN_IMAGE_COUNT 2
 #define MAX_SWAP_RECREATE_FNS 8
 
-static uint8_t swapRecreateFnCount = 0;
-static Obdn_R_SwapchainRecreationFn swapchainRecreationFns[MAX_SWAP_RECREATE_FNS];
+#define SWAPCHAIN_DEFAULT_FORMAT VK_FORMAT_B8G8R8A8_SRGB
 
-static VkImageUsageFlags  swapImageUsageFlags;
-static VkSurfaceKHR       surface;
+typedef struct Obdn_Swapchain {
+    VkImage                      images[SWAPCHAIN_IMAGE_COUNT];
+    VkImageView                  views[SWAPCHAIN_IMAGE_COUNT];
+    uint32_t                     imageCount;
+    VkFormat                     format;
+    VkSwapchainKHR               swapchain;
+    VkImageUsageFlags            imageUsageFlags;
+    // native windows are abstrated by surfaces. a swapchain can only be
+    // associated with one window. 30.7 in spec.
+    VkSurfaceKHR                 surface;
+    Obdn_R_SwapchainRecreationFn recreationFns[MAX_SWAP_RECREATE_FNS];
+    uint32_t                     acquiredImageIndex;
+    uint8_t                      recreateFnCount;
+    bool                         dirty;
+    uint32_t                     width;
+    uint32_t                     height;
+} Obdn_Swapchain;
 
-static bool useOffscreenSwapchain = false;
-
-#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_SWAP, fmt, ##__VA_ARGS__)
-
-static void correctSwapDimensions(const VkSurfaceCapabilitiesKHR capabilities) {
+static VkExtent2D
+getCorrectedSwapchainDimensions(const VkSurfaceCapabilitiesKHR capabilities,
+                                VkExtent2D                     hint)
+{
+    VkExtent2D dim = {};
     if (capabilities.currentExtent.width != UINT32_MAX)
     {
-        swapWidth  = capabilities.currentExtent.width;
-        swapHeight = capabilities.currentExtent.height;
-    } 
-    else 
-    {
-        swapWidth  = MAX(capabilities.minImageExtent.width,  MIN(capabilities.maxImageExtent.width, swapWidth)); 
-        swapHeight = MAX(capabilities.minImageExtent.width,  MIN(capabilities.maxImageExtent.width, swapHeight)); 
+        dim.width  = capabilities.currentExtent.width;
+        dim.height = capabilities.currentExtent.height;
     }
+    else
+    {
+        dim.width  = MAX(capabilities.minImageExtent.width,
+                        MIN(capabilities.maxImageExtent.width, hint.width));
+        dim.height = MAX(capabilities.minImageExtent.width,
+                         MIN(capabilities.maxImageExtent.width, hint.height));
+    }
+    return dim;
 }
 
 #ifdef UNIX
-static void initSurfaceXcb(const Hell_Window* window) 
+static void
+initSurfaceXcb(const Hell_Window* window, VkSurfaceKHR* surface)
 {
-    const XcbWindow* w = window->typeSpecificData;
+    const XcbWindow*                w  = window->typeSpecificData;
     const VkXcbSurfaceCreateInfoKHR ci = {
-        .sType = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
+        .sType      = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
         .connection = w->connection,
-        .window = w->window,
+        .window     = w->window,
     };
 
-    V_ASSERT( vkCreateXcbSurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );
+    V_ASSERT(vkCreateXcbSurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, surface));
 }
 #endif
 
 #ifdef WINDOWS
-static void initSurfaceWin32(const Hell_Window* window) 
+static void
+initSurfaceWin32(const Hell_Window* window, VkSurfaceKHR* surface)
 {
-    const Win32Window* w = window->typeSpecificData;
+    const Win32Window*          w  = window->typeSpecificData;
     VkWin32SurfaceCreateInfoKHR ci = {
-        .sType = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
+        .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
         .hinstance = w->hinstance,
-        .hwnd = w->hwnd
-    };
+        .hwnd      = w->hwnd};
 
-    V_ASSERT( vkCreateWin32SurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface) );
+    V_ASSERT(
+        vkCreateWin32SurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface));
 }
 #endif
 
-
-static void initSurface(const Hell_Window* window)
+static void
+initSurface(const Hell_Window* window, VkSurfaceKHR* surface)
 {
     assert(window);
     assert(window->typeSpecificData);
-    #ifdef UNIX
-    initSurfaceXcb(window);
-    #elif defined(WINDOWS)
-    initSurfaceWin32(window);
-    #endif
+#ifdef UNIX
+    initSurfaceXcb(window, surface);
+#elif defined(WINDOWS)
+    initSurfaceWin32(window, surface);
+#endif
     obdn_Announce("Vulkan Surface initialized.\n");
 }
 
-static void initSwapchainWithSurface()
+static VkFormat chooseFormat(const VkPhysicalDevice physicalDevice, const VkSurfaceKHR surface)
+{
+    uint32_t formatsCount;
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount,
+                                         NULL);
+    VkSurfaceFormatKHR surfaceFormats[formatsCount];
+    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount,
+                                         surfaceFormats);
+
+    DPRINT("Surface formats: \n");
+    for (int i = 0; i < formatsCount; i++)
+    {
+        DPRINT("Format: %d   Colorspace: %d\n", surfaceFormats[i].format,
+               surfaceFormats[i].colorSpace);
+    }
+
+    return SWAPCHAIN_DEFAULT_FORMAT; //TODO: actually choose a format based on physical device;
+}
+
+static void
+createSwapchainWithSurface(const VkSurfaceKHR surface, const uint32_t widthHint,
+                           const uint32_t heightHint, const VkFormat swapFormat,
+                           const VkImageUsageFlags usageFlags, const VkFormat format,
+                           uint32_t* correctedWidth, uint32_t* correctedHeight,
+                           VkSwapchainKHR* swapchain)
 {
     assert(surface);
-    VkBool32 supported;
+    VkBool32               supported;
     const VkPhysicalDevice physicalDevice = obdn_v_GetPhysicalDevice();
-    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, surface, &supported);
+    vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, surface,
+                                         &supported);
 
     assert(supported == VK_TRUE);
 
-    uint32_t formatsCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, NULL);
-    VkSurfaceFormatKHR surfaceFormats[formatsCount];
-    vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount, surfaceFormats);
-
-    DPRINT("Surface formats: \n");
-    for (int i = 0; i < formatsCount; i++) {
-        DPRINT("Format: %d   Colorspace: %d\n", surfaceFormats[i].format, surfaceFormats[i].colorSpace);
-    }
-
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, NULL);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface,
+                                              &presentModeCount, NULL);
     VkPresentModeKHR presentModes[presentModeCount];
-    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface, &presentModeCount, presentModes);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface,
+                                              &presentModeCount, presentModes);
 
-    //const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i already know its supported 
-    const VkPresentModeKHR presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
+    // const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i
+    // already know its supported
+    const VkPresentModeKHR presentMode =
+        VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
 
     VkSurfaceCapabilitiesKHR capabilities;
-    V_ASSERT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface, &capabilities) );
+    V_ASSERT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface,
+                                                       &capabilities));
 
-    assert(capabilities.supportedUsageFlags & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
-    DPRINT("Surface Capabilities: Min swapchain image count: %d\n", capabilities.minImageCount);
+    assert(capabilities.supportedUsageFlags &
+           VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT);
+    DPRINT("Surface Capabilities: Min swapchain image count: %d\n",
+           capabilities.minImageCount);
 
-    correctSwapDimensions(capabilities);
+    VkExtent2D swapDim = getCorrectedSwapchainDimensions(
+        capabilities, (VkExtent2D){widthHint, heightHint});
 
-    VkExtent2D extent2D = {
-        .width = swapWidth,
-        .height = swapHeight
-    };
+    *correctedWidth = swapDim.width;
+    *correctedHeight = swapDim.height;
 
     const VkSwapchainCreateInfoKHR ci = {
-        .sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface = surface,
-        .minImageCount = 2,
-        .imageFormat = swapFormat, //50
-        .imageColorSpace = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
-        .imageExtent = extent2D,
-        .imageArrayLayers = 1, // number of views in a multiview / stereo surface
-        .imageUsage = swapImageUsageFlags,
-        .imageSharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue sharing. see vkspec section 11.7. 
-        .queueFamilyIndexCount = 0, // dont need with exclusive sharing
-        .pQueueFamilyIndices = NULL, // ditto
-        .preTransform = capabilities.currentTransform,
-        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR, //dunno. may affect blending
-        .presentMode = presentMode,
-        .clipped = VK_FALSE, // allows pixels convered by another window to be clipped. but will mess up saving the swap image.
-        .oldSwapchain = VK_NULL_HANDLE
-    };
+        .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface               = surface,
+        .minImageCount         = 2,
+        .imageFormat           = format,
+        .imageColorSpace       = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
+        .imageExtent           = swapDim,
+        // number of views in a multiview / stereo surface
+        .imageArrayLayers      = 1,
+        .imageUsage            = usageFlags,
+        // queue sharing. see
+        // vkspec section 11.7.
+        .imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE,
+        // dont need with exclusive sharing
+        .queueFamilyIndexCount = 0,
+        // ditto
+        .pQueueFamilyIndices   = NULL,
+        .preTransform          = capabilities.currentTransform,
+        // dunno. may affect blending
+        .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode           = presentMode,
+        // allows pixels convered by another window to be
+        // clipped. but will mess up saving the swap image.        .clipped =
+        // VK_FALSE,
 
-    V_ASSERT( vkCreateSwapchainKHR(device, &ci, NULL, &swapchain) );
+        .oldSwapchain = VK_NULL_HANDLE};
 
-    uint32_t imageCount;
-    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, NULL) );
-    assert(OBDN_FRAME_COUNT == imageCount);
-    VkImage swapchainImages[imageCount];
-    V_ASSERT( vkGetSwapchainImagesKHR(device, swapchain, &imageCount, swapchainImages) );
-
-    for (int i = 0; i < imageCount; i++) 
-    {
-        frames[i].handle = swapchainImages[i];
-        VkImageSubresourceRange ssr = {
-            .baseArrayLayer = 0,
-            .layerCount = 1,
-            .baseMipLevel = 0,
-            .levelCount = 1,
-            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT
-        };
-
-        VkImageViewCreateInfo imageViewInfo = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .subresourceRange = ssr,
-            .format = swapFormat,
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .image = frames[i].handle,
-        };
-
-        V_ASSERT( vkCreateImageView(device, &imageViewInfo, NULL, &frames[i].view) );
-
-        VkExtent3D extent3d = {
-            .width  = swapWidth,
-            .height = swapHeight,
-            .depth = 1
-        };
-
-        frames[i].extent = extent3d;
-        frames[i].size =   extent3d.height * extent3d.width * 4; // TODO make this robust
-    }
+    V_ASSERT(vkCreateSwapchainKHR(device, &ci, NULL, swapchain));
 
     DPRINT("Swapchain created successfully.\n");
 }
 
-static void initSwapchainOffscreen(void)
+static void
+createSwapchainImageViews(const VkSwapchainKHR swapchain, const VkFormat format,
+                          const uint32_t width, const uint32_t height,
+                          uint32_t* imageCount, VkImage* images,
+                          VkImageView* views)
 {
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++)
-        frames[i] = obdn_v_CreateImage(
-                swapWidth, swapHeight, swapFormat,
-                swapImageUsageFlags, VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT,
-                1, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
-}
+    V_ASSERT(vkGetSwapchainImagesKHR(device, swapchain, imageCount, NULL));
+    assert(SWAPCHAIN_IMAGE_COUNT == *imageCount);
+    V_ASSERT(vkGetSwapchainImagesKHR(device, swapchain, imageCount, images));
 
-static void initSwapchainSemaphores(void)
-{
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+    for (int i = 0; i < *imageCount; i++)
     {
-        VkSemaphoreCreateInfo semaCi = {.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO};
-        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &imageAcquiredSemaphores[i]) );
-        DPRINT("Created swapchain semaphore: %p \n", imageAcquiredSemaphores[i]);
+        VkImageSubresourceRange ssr = {.baseArrayLayer = 0,
+                                       .layerCount     = 1,
+                                       .baseMipLevel   = 0,
+                                       .levelCount     = 1,
+                                       .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT};
+
+        VkImageViewCreateInfo imageViewInfo = {
+            .sType            = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .subresourceRange = ssr,
+            .format           = format,
+            .viewType         = VK_IMAGE_VIEW_TYPE_2D,
+            .image            = images[i]};
+
+        V_ASSERT(vkCreateImageView(device, &imageViewInfo, NULL, &views[i]));
+
+        VkExtent3D extent3d = {.width = width, .height = height, .depth = 1};
     }
+    DPRINT("Swapchain image views created successfully.\n");
 }
 
-static void recreateSwapchain(void)
+static void
+recreateSwapchain(const VkSurfaceKHR surface, const uint32_t widthHint,
+                  const uint32_t heightHint, const VkFormat swapFormat,
+                  const VkImageUsageFlags usageFlags, 
+                  const uint32_t                     recFnCount,
+                  const Obdn_R_SwapchainRecreationFn recreateFns[recFnCount],
+                  uint32_t* correctedWidth, uint32_t* correctedHeight,
+                  bool* dirtyFlag, VkSwapchainKHR* swapchain,
+                  uint32_t* imageCount,
+                  VkImage* images,
+                  VkImageView* views)
 {
     vkDeviceWaitIdle(device);
-    if (useOffscreenSwapchain)
+    for (int i = 0; i < *imageCount; i++)
     {
-        for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-        {
-            obdn_v_FreeImage(&frames[i]);
-        }
-        initSwapchainOffscreen();
+        vkDestroyImageView(device, views[i], NULL);
     }
-    else
+    vkDestroySwapchainKHR(device, *swapchain, NULL);
+    createSwapchainWithSurface(surface, widthHint, heightHint, swapFormat,
+                               usageFlags, swapFormat, correctedWidth, correctedHeight, swapchain);
+    createSwapchainImageViews(*swapchain, swapFormat, *correctedWidth, *correctedHeight, imageCount, images, views);
+    for (int i = 0; i < recFnCount; i++)
     {
-        for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
-        {
-            vkDestroyImageView(device, frames[i].view, NULL);   
-        }
-        vkDestroySwapchainKHR(device, swapchain, NULL);
-        initSwapchainWithSurface();
+        recreateFns[i]();
     }
-    for (int i = 0; i < swapRecreateFnCount; i++) 
-    {
-        swapchainRecreationFns[i]();   
-    }
-    swapchainDirty = true;
+    *dirtyFlag = true;
 }
 
-static uint32_t requestSwapchainFrame(Obdn_Mask* dirtyBits, Obdn_S_Window window)
-{
-    imageAcquiredSemaphoreIndex = frameCounter % OBDN_FRAME_COUNT;
-    VkResult r;
-retry:
-    r = vkAcquireNextImageKHR(device, 
-            swapchain, 
-            1000000, 
-            imageAcquiredSemaphores[imageAcquiredSemaphoreIndex], 
-            VK_NULL_HANDLE, 
-            &curFrameIndex);
-    if (VK_ERROR_OUT_OF_DATE_KHR == r || swapchainDirty) 
-    {
-        recreateSwapchain();
-        window[0] = swapWidth;
-        window[1] = swapHeight;
-        *dirtyBits |= OBDN_S_WINDOW_BIT;
-        swapchainDirty = false;
-        goto retry;
-    }
-    frameCounter++;
-    return curFrameIndex;
-}
+// this just sets the swapWidth and swapHeight and we rely on the call to
+// request frame to detect that the swapchain needs to be recreated. we do this
+// because we can get many resize events within a frame and we don't want to
+// call recreate for every one of them. also, we may eventually run iterations
+// of the main loop that dont render frames. this does mean that
+// obdn_v_RequestFrame MUST be called before rendering on a given frame.
+static Hell_I_ResizeData resizeEventData;
+static bool              resizeEventOccurred;
 
-static uint32_t requestOffscreenFrame(Obdn_Mask* dirtyBits, Obdn_S_Window window)
+static bool
+onWindowResizeEvent(const Hell_I_Event* ev)
 {
-    curFrameIndex = frameCounter % OBDN_FRAME_COUNT;
-    if (swapchainDirty)
-    {
-        recreateSwapchain();
-        window[0] = swapWidth;
-        window[1] = swapHeight;
-        *dirtyBits |= OBDN_S_WINDOW_BIT;
-        swapchainDirty = false;
-    }
-    frameCounter++;
-    return curFrameIndex;
-}
-
-_Static_assert(sizeof(Obdn_S_Window) == sizeof(uint16_t) * 2, "Obdn_S_Window must be a size 2 array of uint16_t");
-
-// must be called before making a call to render within the same frame.
-const uint32_t obdn_v_RequestFrame(Obdn_Mask* dirtyFlag, Obdn_S_Window window)
-{
-    if (!useOffscreenSwapchain)
-        return requestSwapchainFrame(dirtyFlag, window);
-    else
-        return requestOffscreenFrame(dirtyFlag, window);
-}
-
-// this just sets the swapWidth and swapHeight and we rely on the call to request frame to detect that
-// the swapchain needs to be recreated. we do this because we can get many resize events within a frame
-// and we don't want to call recreate for every one of them. also, we may eventually run iterations of 
-// the main loop that dont render frames. 
-// this does mean that obdn_v_RequestFrame MUST be called before rendering on a given frame.
-static bool onWindowResizeEvent(const Hell_I_Event* ev)
-{
-    swapWidth  = ev->data.resizeData.width;
-    swapHeight = ev->data.resizeData.height;
-    swapchainDirty = true;
-    //recreateSwapchain();
+    resizeEventData     = ev->data.resizeData;
+    resizeEventOccurred = true;
     return false;
 }
 
-void obdn_v_InitSwapchain(const VkImageUsageFlags swapImageUsageFlags_, const Hell_Window* hellWindow)
+Obdn_Swapchain* obdn_AllocSwapchain(void)
 {
-    curFrameIndex = 0;
-    frameCounter  = 0;
-    swapRecreateFnCount = 0;
-    imageAcquiredSemaphoreIndex = 0;
-    swapImageUsageFlags = swapImageUsageFlags_;
-    useOffscreenSwapchain = !hellWindow;
-    if (!hellWindow)
-    {
-        swapFormat = VK_FORMAT_R8G8B8A8_UNORM;
-        swapWidth  = 666; // arbitrary defaults
-        swapHeight = 666;
-        initSwapchainOffscreen();
-    }
-    else
-    {
-        initSurface(hellWindow);
-        initSwapchainWithSurface();
-    }
-    initSwapchainSemaphores();
+    return hell_Malloc(sizeof(Obdn_Swapchain));
+}
+
+void
+obdn_InitSwapchain(Obdn_Swapchain*         swapchain,
+                   const VkImageUsageFlags swapImageUsageFlags_,
+                   const Hell_Window*      hellWindow)
+{
+    memset(swapchain, 0, sizeof(Obdn_Swapchain));
+    swapchain->imageUsageFlags = swapImageUsageFlags_;
+    initSurface(hellWindow, &swapchain->surface);
+    swapchain->format = chooseFormat(obdn_v_GetPhysicalDevice(), swapchain->surface);
+    createSwapchainWithSurface(
+        swapchain->surface, hellWindow->width, hellWindow->height,
+        SWAPCHAIN_DEFAULT_FORMAT, swapImageUsageFlags_, swapchain->format,
+        &swapchain->width, &swapchain->height, &swapchain->swapchain);
+    createSwapchainImageViews(swapchain->swapchain, swapchain->format,
+                              swapchain->width, swapchain->height,
+                              &swapchain->imageCount, swapchain->images,
+                              swapchain->views);
     hell_i_Subscribe(onWindowResizeEvent, HELL_I_WINDOW_BIT);
     obdn_Announce("Swapchain initialized.\n");
 }
 
-void obdn_v_CreateSurface(const Hell_Window* hellWindow)
+void
+obdn_RegisterSwapchainRecreationFn(Obdn_Swapchain*              swapchain,
+                                   Obdn_R_SwapchainRecreationFn fn)
 {
-    useOffscreenSwapchain = false;
-    initSurface(hellWindow);
-    recreateSwapchain();
+    swapchain->recreationFns[swapchain->recreateFnCount] = fn;
+    swapchain->recreateFnCount++;
+    assert(swapchain->recreateFnCount < MAX_SWAP_RECREATE_FNS);
 }
 
-bool obdn_v_PresentFrame(VkSemaphore waitSemaphore)
+void
+obdn_UnregisterSwapchainRecreateFn(Obdn_Swapchain*              swapchain,
+                                   Obdn_R_SwapchainRecreationFn fn)
 {
-    VkResult r;
-    VkSemaphore waitSemaphores[2] = {waitSemaphore, imageAcquiredSemaphores[imageAcquiredSemaphoreIndex]};
-    const VkPresentInfoKHR info = {
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .swapchainCount = 1,
-        .pSwapchains = &swapchain,
-        .waitSemaphoreCount = 2,
-        .pWaitSemaphores = waitSemaphores,
-        .pResults = &r,
-        .pImageIndices = &curFrameIndex,
-    };
-
-    VkResult presentResult;
-    presentResult = vkQueuePresentKHR(obdn_v_GetPresentQueue(), &info);
-    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
-        return false;
-    assert( VK_SUCCESS == r );
-    return true;
-}
-
-void obdn_v_RegisterSwapchainRecreationFn(Obdn_R_SwapchainRecreationFn fn)
-{
-    swapchainRecreationFns[swapRecreateFnCount] = fn;
-    swapRecreateFnCount++;
-    assert(swapRecreateFnCount < MAX_SWAP_RECREATE_FNS);
-}
-
-void obdn_v_UnregisterSwapchainRecreateFn(Obdn_R_SwapchainRecreationFn fn)
-{
-    assert(swapRecreateFnCount > 0);
+    assert(swapchain->recreateFnCount > 0);
     DPRINT("R) Unregistering SCR fn...\n");
     int fnIndex = -1;
-    for (int i = 0; i < swapRecreateFnCount ; i++)
+    for (int i = 0; i < swapchain->recreateFnCount; i++)
     {
-        if (swapchainRecreationFns[i] == fn)
+        if (swapchain->recreationFns[i] == fn)
         {
             fnIndex = i;
             break;
         }
     }
     if (fnIndex != -1)
-        memmove(swapchainRecreationFns + fnIndex, 
-                swapchainRecreationFns + fnIndex + 1, 
-                (--swapRecreateFnCount - fnIndex) * sizeof(*swapchainRecreationFns)); // should only decrement the count if fnIndex is 0
+        memmove(
+            swapchain->recreationFns + fnIndex,
+            swapchain->recreationFns + fnIndex + 1,
+            (--swapchain->recreateFnCount - fnIndex) *
+                sizeof(*swapchain->recreationFns)); // should only decrement the
+                                                    // count if fnIndex is 0
 }
 
-const Obdn_R_Frame* obdn_v_GetFrame(const int8_t index)
+void
+obdn_ShutdownSwapchain(Obdn_Swapchain* swapchain)
 {
-    assert( index >= 0 );
-    assert( index < OBDN_FRAME_COUNT );
-    return &frames[index];
-}
-
-const uint32_t obdn_v_GetCurrentFrameIndex(void)
-{
-    return curFrameIndex;
-}
-
-void obdn_v_CleanUpSwapchain(void)
-{
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+    for (int i = 0; i < OBDN_FRAME_COUNT; i++)
     {
-        vkDestroySemaphore(device, imageAcquiredSemaphores[i], NULL);
-        if (useOffscreenSwapchain)
-            obdn_v_FreeImage(&frames[i]);
-        else
-            vkDestroyImageView(device, frames[i].view, NULL);
+        vkDestroyImageView(device, swapchain->views[i], NULL);
     }
-    if (!useOffscreenSwapchain)
-    {
-        vkDestroySwapchainKHR(device, swapchain, NULL);
-        vkDestroySurfaceKHR(*obdn_v_GetInstance(), surface, NULL);
-    }
-    swapRecreateFnCount = 0;
-    obdn_Announce("Swapchain cleaned up.\n");
+    vkDestroySwapchainKHR(device, swapchain->swapchain, NULL);
+    vkDestroySurfaceKHR(*obdn_v_GetInstance(), swapchain->surface, NULL);
+    memset(swapchain, 0, sizeof(*swapchain));
+    obdn_Announce("Swapchain shutdown.\n");
 }
 
-VkFormat obdn_v_GetSwapFormat(void) { return swapFormat; }
-
-VkExtent2D          obdn_v_GetSwapExtent(void)
+VkFormat
+obdn_GetSwapchainFormat(const Obdn_Swapchain* swapchain)
 {
-    VkExtent2D ex = {
-        .width = swapWidth,
-        .height = swapHeight
-    };
+    return swapchain->format;
+}
+
+VkExtent2D
+obdn_GetSwapchainExtent(const Obdn_Swapchain* swapchain)
+{
+    VkExtent2D ex = {.width = swapchain->width, .height = swapchain->height};
     return ex;
 }
 
 #define WAIT_TIME_NS 500000
 
-unsigned obdn_AcquireSwapchainImage(VkFence* fence, VkSemaphore* semaphore)
+unsigned
+obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
+                           VkSemaphore* semaphore)
 {
     VkResult r;
 retry:
-    r = vkAcquireNextImageKHR(device, 
-            swapchain, 
-            WAIT_TIME_NS, 
-            *semaphore,
-            *fence, 
-            &curFrameIndex);
-    if (VK_ERROR_OUT_OF_DATE_KHR == r) 
+    if (resizeEventOccurred)
     {
-        recreateSwapchain();
-        swapchainDirty = false;
-        //if (fence)
-        //{
-        //    // if we passed a fence we technically need to wait on it and reset it to use it again.
-        //    vkWaitForFences(device, 1, &fence, true, UINT64_MAX);
-        //    vkResetFences(device, 1, &fence); // may not be necesary
-        //}
+        recreateSwapchain(
+            swapchain->surface, resizeEventData.width, resizeEventData.height,
+            swapchain->format, swapchain->imageUsageFlags,
+            swapchain->recreateFnCount, swapchain->recreationFns,
+            &swapchain->width, &swapchain->height, &swapchain->dirty,
+            &swapchain->swapchain, &swapchain->imageCount, swapchain->images,
+            swapchain->views);
+        resizeEventOccurred = false;
+    }
+    r = vkAcquireNextImageKHR(device, swapchain->swapchain, WAIT_TIME_NS,
+                              *semaphore, *fence,
+                              &swapchain->acquiredImageIndex);
+    if (VK_ERROR_OUT_OF_DATE_KHR == r)
+    {
+        recreateSwapchain(
+            swapchain->surface, swapchain->width, swapchain->height,
+            swapchain->format, swapchain->imageUsageFlags,
+            swapchain->recreateFnCount, swapchain->recreationFns,
+            &swapchain->width, &swapchain->height, &swapchain->dirty,
+            &swapchain->swapchain, &swapchain->imageCount, swapchain->images,
+            swapchain->views);
         goto retry;
     }
     if (VK_SUBOPTIMAL_KHR == r)
@@ -464,27 +403,53 @@ retry:
     {
         hell_Error(HELL_ERR_FATAL, "Device lost\n");
     }
-    frameCounter++;
-    return curFrameIndex;
+    return swapchain->acquiredImageIndex;
 }
 
-bool obdn_PresentFrame(VkSemaphore waitSemaphore)
+bool
+obdn_PresentFrame(const Obdn_Swapchain* swapchain, VkSemaphore waitSemaphore)
 {
-    VkResult r;
-    const VkPresentInfoKHR info = {
-        .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
-        .swapchainCount = 1,
-        .pSwapchains = &swapchain,
-        .waitSemaphoreCount = 1,
-        .pWaitSemaphores = &waitSemaphore,
-        .pResults = &r,
-        .pImageIndices = &curFrameIndex,
-    };
+    VkResult               r;
+    const VkPresentInfoKHR info = {.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
+                                   .swapchainCount     = 1,
+                                   .pSwapchains        = &swapchain->swapchain,
+                                   .waitSemaphoreCount = 1,
+                                   .pWaitSemaphores    = &waitSemaphore,
+                                   .pResults           = &r,
+                                   .pImageIndices =
+                                       &swapchain->acquiredImageIndex};
 
     VkResult presentResult;
     presentResult = vkQueuePresentKHR(obdn_v_GetPresentQueue(), &info);
-    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR || presentResult == VK_SUBOPTIMAL_KHR)
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR ||
+        presentResult == VK_SUBOPTIMAL_KHR)
         return false;
-    assert( VK_SUCCESS == r );
+    assert(VK_SUCCESS == r);
     return true;
+}
+
+
+void obdn_FreeSwapchain(Obdn_Swapchain* swapchain)
+{
+    hell_Free(swapchain);
+}
+
+unsigned   obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain)
+{
+    return swapchain->width;
+}
+
+unsigned   obdn_GetSwapchainHeight(const Obdn_Swapchain* swapchain)
+{
+    return swapchain->height;
+}
+
+VkImageView obdn_GetSwapchainImageView(const Obdn_Swapchain* swapchain, int index)
+{
+    return swapchain->views[index];
+}
+
+size_t obdn_SizeOfSwapchain(void)
+{
+    return sizeof(Obdn_Swapchain);
 }

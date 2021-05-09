@@ -89,9 +89,9 @@ static void initRenderCommands(void)
     }
 }
 
-static void initRenderPass(const VkImageLayout initialLayout, const VkImageLayout finalLayout)
+static void initRenderPass(const VkFormat format, const VkImageLayout initialLayout, const VkImageLayout finalLayout)
 {
-    obdn_r_CreateRenderPass_Color(initialLayout, finalLayout, VK_ATTACHMENT_LOAD_OP_LOAD, obdn_v_GetSwapFormat(), &renderPass);
+    obdn_r_CreateRenderPass_Color(initialLayout, finalLayout, VK_ATTACHMENT_LOAD_OP_LOAD, format, &renderPass);
 }
 
 static void initDescriptionsAndPipelineLayouts(void)
@@ -409,14 +409,12 @@ static bool responder(const Hell_I_Event* event)
     return rootWidget->inputHandlerFn(event, rootWidget);
 }
 
-static void initFrameBuffers(uint32_t width, uint32_t height)
+static void initFrameBuffers(uint32_t width, uint32_t height, const uint32_t imageViewCount, const VkImageView views[imageViewCount])
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
     {
-        const Obdn_R_Frame* frame = obdn_v_GetFrame(i);
-
         const VkImageView attachments[] = {
-            frame->view
+            views[i]
         };
 
         const VkFramebufferCreateInfo fbi = {
@@ -443,21 +441,23 @@ static void destroyPipelines(void)
     }
 }
 
-static void destroyFramebuffers(void)
+static void destroyFramebuffers(const uint32_t imgCount)
 {
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++) 
+    for (int i = 0; i < imgCount; i++) 
     {
         vkDestroyFramebuffer(device, framebuffers[i], NULL);   
     }
 }
 
-static void onSwapchainRecreate(void)
+void
+obdn_recreateSwapchainDependentUI(const uint32_t width, const uint32_t height,
+                                  const uint32_t    imageViewCount,
+                                  const VkImageView views[imageViewCount])
 {
-    VkExtent2D ex = obdn_v_GetSwapExtent();
     destroyPipelines();
-    destroyFramebuffers();
-    initPipelines(ex.width, ex.height);
-    initFrameBuffers(ex.width, ex.height);
+    destroyFramebuffers(imageViewCount);
+    initPipelines(width, height);
+    initFrameBuffers(width, height, imageViewCount, views);
 }
 
 // does not modify parent
@@ -487,19 +487,19 @@ static int requestImageIndex(void)
     return -1;
 }
 
-void obdn_u_Init(const VkImageLayout inputLayout, const VkImageLayout finalLayout)
+void obdn_InitUI(const VkFormat imageFormat, const uint32_t width, const uint32_t height, const VkImageLayout inputLayout, const VkImageLayout finalLayout, 
+        const uint32_t imageViewCount, const VkImageView views[imageViewCount])
 {
-    VkExtent2D ex = obdn_v_GetSwapExtent();
+    VkExtent2D ex = {width, height};
     initRenderCommands();
-    initRenderPass(inputLayout, finalLayout);
+    initRenderPass(imageFormat, inputLayout, finalLayout);
     initDescriptionsAndPipelineLayouts();
     initPipelines(ex.width, ex.height);
-    initFrameBuffers(ex.width, ex.height);
+    initFrameBuffers(ex.width, ex.height, imageViewCount, views);
 
     rootWidget = addWidget(0, 0, ex.width, ex.height, rfnPassThrough, NULL, NULL, NULL);
 
     hell_i_Subscribe(responder, HELL_I_MOUSE_BIT | HELL_I_KEY_BIT);
-    obdn_v_RegisterSwapchainRecreationFn(onSwapchainRecreate);
     obdn_Announce("UI initialized.\n");
 }
 
@@ -585,10 +585,8 @@ static void drawWidget(const VkCommandBuffer cmdBuf, Widget* widget)
         widget->drawFn(cmdBuf, widget);
 }
 
-VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
+VkSemaphore obdn_RenderUI(const uint32_t frameIndex, const uint32_t width, const uint32_t height, const VkSemaphore waitSemephore)
 {
-    uint32_t frameIndex = obdn_v_GetCurrentFrameIndex();
-
     vkWaitForFences(device, 1, &renderCommands[frameIndex].fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, &renderCommands[frameIndex].fence);
 
@@ -602,13 +600,11 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
 
     VkClearValue clear = {0};
 
-    VkExtent2D ex = obdn_v_GetSwapExtent();
-    
     const VkRenderPassBeginInfo rpassInfoUi = {
         .sType           = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         .clearValueCount = 1,
         .pClearValues    = &clear,
-        .renderArea      = {{0, 0}, {ex.width, ex.height}},
+        .renderArea      = {{0, 0}, {width, height}},
         .renderPass      = renderPass,
         .framebuffer     = framebuffers[frameIndex],
     };
@@ -616,8 +612,8 @@ VkSemaphore obdn_u_Render(const VkSemaphore waitSemephore)
     vkCmdBeginRenderPass(cmdBuf, &rpassInfoUi, VK_SUBPASS_CONTENTS_INLINE);
 
     PushConstantVert pc = {
-        .i0 = ex.width,
-        .i1 = ex.height 
+        .i0 = width,
+        .i1 = height 
     };
 
     vkCmdPushConstants(cmdBuf, pipelineLayout, 
@@ -664,9 +660,9 @@ void obdn_u_DestroyWidget(Widget* widget)
     }
 }
 
-void obdn_u_CleanUp(void)
+void obdn_ShutdownUI(const uint32_t imgCount)
 {
-    destroyFramebuffers();
+    destroyFramebuffers(imgCount);
     vkDestroyPipelineLayout(device, pipelineLayout, NULL);
     destroyPipelines();
     vkDestroyRenderPass(device, renderPass, NULL);

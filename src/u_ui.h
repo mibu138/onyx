@@ -69,4 +69,9 @@ void           obdn_u_DestroyWidget(Obdn_U_Widget* widget);
 const VkSemaphore obdn_u_GetSemaphore(uint32_t frameIndex);
 const VkFence     obdn_u_GetFence(uint32_t frameIndex);
 
+void obdn_InitUI(const VkFormat imageFormat, const uint32_t width, const uint32_t height, const VkImageLayout inputLayout, const VkImageLayout finalLayout, 
+        const uint32_t imageViewCount, const VkImageView views[imageViewCount]);
+void obdn_ShutdownUI(const uint32_t imgCount);
+VkSemaphore obdn_RenderUI(const uint32_t frameIndex, const uint32_t width, const uint32_t height, const VkSemaphore waitSemephore);
+
 #endif /* end of include guard: OBDN_U_UI_H */
