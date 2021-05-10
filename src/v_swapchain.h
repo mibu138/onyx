@@ -26,6 +26,9 @@ VkFormat        obdn_GetSwapchainFormat(const Obdn_Swapchain* swapchain);
 VkImageView obdn_GetSwapchainImageView(const Obdn_Swapchain* swapchain,
                                        int                   index);
 
+unsigned obdn_GetSwapchainImageCount(const Obdn_Swapchain* swapchain);
+const VkImageView* obdn_GetSwapchainImageViews(const Obdn_Swapchain* swapchain);
+
 // one thing to be careful of here is if this function fails the waitSemaphores
 // will not be signalled.
 bool obdn_PresentFrame(Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,

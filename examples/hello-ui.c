@@ -11,6 +11,7 @@
 #include "r_geo.h"
 #include "r_renderpass.h"
 #include "s_scene.h"
+#include "u_ui.h"
 
 #define WIREFRAME 0
 
@@ -161,6 +162,11 @@ int main(int argc, char *argv[])
     obdn_Init();
     swapchain = hell_Malloc(obdn_SizeOfSwapchain());
     obdn_InitSwapchain(swapchain, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window);
+    obdn_InitUI(obdn_GetSwapchainFormat(swapchain), window->width,
+                window->height, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+                obdn_GetSwapchainImageCount(swapchain),
+                obdn_GetSwapchainImageViews(swapchain));
     init();
     hell_Loop();
     return 0;

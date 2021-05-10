@@ -423,3 +423,13 @@ obdn_SizeOfSwapchain(void)
 {
     return sizeof(Obdn_Swapchain);
 }
+
+unsigned obdn_GetSwapchainImageCount(const Obdn_Swapchain* swapchain)
+{
+    return swapchain->imageCount;
+}
+
+const VkImageView* obdn_GetSwapchainImageViews(const Obdn_Swapchain* swapchain)
+{
+    return swapchain->views;
+}
