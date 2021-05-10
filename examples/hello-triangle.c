@@ -16,7 +16,6 @@
 
 static Obdn_R_Primitive    triangle;
 
-static const Hell_Window*  window;
 static VkFramebuffer       framebuffer;
 static VkRenderPass        renderPass;
 static VkPipelineLayout    pipelineLayout;
@@ -24,20 +23,26 @@ static VkPipeline          pipeline;
 static VkFramebuffer       framebuffers[2];
 static Obdn_Image          depthImage;
 
+static VkFence      drawFence;
+static VkSemaphore  acquireSemaphore;
+static VkSemaphore  drawSemaphore;
+static Obdn_Command drawCommands[2];
+
 static Obdn_Swapchain* swapchain;
 
 static const VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
 static void createSurfaceDependent(void)
 {
-    depthImage = obdn_v_CreateImage(obdn_GetSwapchainWidth(swapchain), obdn_GetSwapchainHeight(swapchain),
+    VkExtent2D dim = obdn_GetSwapchainExtent(swapchain);
+    depthImage = obdn_v_CreateImage(dim.width, dim.height,
                        depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                        VK_IMAGE_ASPECT_DEPTH_BIT, VK_SAMPLE_COUNT_1_BIT, 1,
                        OBDN_V_MEMORY_DEVICE_TYPE);
     VkImageView attachments_0[2] = {obdn_GetSwapchainImageView(swapchain, 0), depthImage.view};
     VkImageView attachments_1[2] = {obdn_GetSwapchainImageView(swapchain, 1), depthImage.view};
-    obdn_CreateFramebuffer(2, attachments_0, window->width, window->height, renderPass, &framebuffers[0]);
-    obdn_CreateFramebuffer(2, attachments_1, window->width, window->height, renderPass, &framebuffers[1]);
+    obdn_CreateFramebuffer(2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
+    obdn_CreateFramebuffer(2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
 }
 
 static void destroySurfaceDependent(void)
@@ -90,8 +95,11 @@ void init(void)
         obdn_CreateGraphicsPipeline_Taurus(renderPass, pipelineLayout, VK_POLYGON_MODE_FILL, &pipeline);
 
     createSurfaceDependent();
-
-    obdn_RegisterSwapchainRecreationFn(swapchain, onSwapchainRecreate);
+    obdn_CreateFence(&drawFence);
+    obdn_CreateSemaphore(&drawSemaphore);
+    obdn_CreateSemaphore(&acquireSemaphore);
+    drawCommands[0] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
+    drawCommands[1] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
 }
 
 #define TARGET_RENDER_INTERVAL 10000 // render every 30 ms
@@ -100,33 +108,19 @@ void draw(void)
 {
     static Hell_Tick timeOfLastRender = 0;
     static Hell_Tick timeSinceLastRender = TARGET_RENDER_INTERVAL;
+    static uint64_t frameCounter = 0;
     timeSinceLastRender = hell_Time() - timeOfLastRender;
     if (timeSinceLastRender < TARGET_RENDER_INTERVAL)
         return;
     timeOfLastRender = hell_Time();
     timeSinceLastRender = 0;
 
-    static Obdn_Command drawCommands[2];
-    static uint64_t     frameCounter = 0;
-    static bool         initialized = false;
-
-    if (!initialized)
-    {
-        drawCommands[0] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
-        drawCommands[1] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
-        initialized = true;
-    }
-    
-    VkFence      drawFence;
-    VkSemaphore  drawSemaphore;
-    VkSemaphore  acquireSemaphore;
-    obdn_CreateFence(&drawFence);
-    obdn_CreateSemaphore(&drawSemaphore);
-    obdn_CreateSemaphore(&acquireSemaphore);
-
     VkFence fence = VK_NULL_HANDLE;
+    bool swapchainDirty;
+    unsigned frameId = obdn_AcquireSwapchainImage(swapchain, &fence, &acquireSemaphore, &swapchainDirty);
 
-    unsigned frameId = obdn_AcquireSwapchainImage(swapchain, &fence, &acquireSemaphore);
+    if (swapchainDirty)
+        onSwapchainRecreate();
 
     Obdn_Command cmd = drawCommands[frameCounter % 2];
 
@@ -151,15 +145,9 @@ void draw(void)
     obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
             acquireSemaphore, drawSemaphore, drawFence, cmd.buffer);
 
-    obdn_PresentFrame(swapchain, drawSemaphore);
+    bool result = obdn_PresentFrame(swapchain, 1, &drawSemaphore);
 
     obdn_v_WaitForFence(&drawFence);
-
-    obdn_PresentQueueWaitIdle();
-
-    obdn_DestroyFence(drawFence);
-    obdn_DestroySemaphore(acquireSemaphore);
-    obdn_DestroySemaphore(drawSemaphore);
 
     frameCounter++;
 }
@@ -169,7 +157,7 @@ int main(int argc, char *argv[])
     hell_Init(true, draw, 0);
     hell_c_SetVar("maxFps", "1000", 0);
     hell_Print("Starting hello triangle.\n");
-    window = hell_OpenWindow(500, 500, 0);
+    const Hell_Window* window = hell_OpenWindow(500, 500, 0);
     obdn_Init();
     swapchain = hell_Malloc(obdn_SizeOfSwapchain());
     obdn_InitSwapchain(swapchain, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window);

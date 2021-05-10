@@ -580,32 +580,34 @@ Obdn_V_Image obdn_v_CreateImage(
     assert(deviceProperties->limits.framebufferDepthSampleCounts >= sampleCount);
 
     void* pNext = NULL;
+
     VkExternalMemoryImageCreateInfo externalImageInfo;
     if (memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE)
     {
-        externalImageInfo.sType = VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
-        externalImageInfo.handleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
+        externalImageInfo.sType =
+            VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
+        externalImageInfo.handleTypes =
+            VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT;
         externalImageInfo.pNext = NULL;
-        pNext = &externalImageInfo;
+        pNext                   = &externalImageInfo;
     }
 
-    uint32_t queueFamilyIndex = obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE);
-    VkImageCreateInfo imageInfo = {
-        .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-        .pNext = pNext,
-        .imageType = VK_IMAGE_TYPE_2D,
-        .format = format,
-        .extent = {width, height, 1},
-        .mipLevels = mipLevels,
-        .arrayLayers = 1,
-        .samples = sampleCount,
-        .tiling = VK_IMAGE_TILING_OPTIMAL,
-        .usage = usageFlags,
-        .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
-        .queueFamilyIndexCount = 1,
-        .pQueueFamilyIndices = &queueFamilyIndex,
-        .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED
-    };
+    uint32_t queueFamilyIndex =
+        obdn_v_GetQueueFamilyIndex(OBDN_V_QUEUE_GRAPHICS_TYPE);
+    VkImageCreateInfo imageInfo = {.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+                                   .pNext = pNext,
+                                   .imageType   = VK_IMAGE_TYPE_2D,
+                                   .format      = format,
+                                   .extent      = {width, height, 1},
+                                   .mipLevels   = mipLevels,
+                                   .arrayLayers = 1,
+                                   .samples     = sampleCount,
+                                   .tiling      = VK_IMAGE_TILING_OPTIMAL,
+                                   .usage       = usageFlags,
+                                   .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+                                   .queueFamilyIndexCount = 1,
+                                   .pQueueFamilyIndices   = &queueFamilyIndex,
+                                   .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
     Obdn_V_Image image = {0};
 

@@ -36,9 +36,7 @@ typedef struct Obdn_Swapchain {
     // native windows are abstrated by surfaces. a swapchain can only be
     // associated with one window. 30.7 in spec.
     VkSurfaceKHR                 surface;
-    Obdn_R_SwapchainRecreationFn recreationFns[MAX_SWAP_RECREATE_FNS];
     uint32_t                     acquiredImageIndex;
-    uint8_t                      recreateFnCount;
     bool                         dirty;
     uint32_t                     width;
     uint32_t                     height;
@@ -107,7 +105,8 @@ initSurface(const Hell_Window* window, VkSurfaceKHR* surface)
     obdn_Announce("Vulkan Surface initialized.\n");
 }
 
-static VkFormat chooseFormat(const VkPhysicalDevice physicalDevice, const VkSurfaceKHR surface)
+static VkFormat
+chooseFormat(const VkPhysicalDevice physicalDevice, const VkSurfaceKHR surface)
 {
     uint32_t formatsCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount,
@@ -123,7 +122,8 @@ static VkFormat chooseFormat(const VkPhysicalDevice physicalDevice, const VkSurf
                surfaceFormats[i].colorSpace);
     }
 
-    return SWAPCHAIN_DEFAULT_FORMAT; //TODO: actually choose a format based on physical device;
+    return SWAPCHAIN_DEFAULT_FORMAT; // TODO: actually choose a format based on
+                                     // physical device;
 }
 
 static void
@@ -236,15 +236,12 @@ static void
 recreateSwapchain(const VkSurfaceKHR surface, const uint32_t widthHint,
                   const uint32_t heightHint, const VkFormat swapFormat,
                   const VkImageUsageFlags usageFlags, 
-                  const uint32_t                     recFnCount,
-                  const Obdn_R_SwapchainRecreationFn recreateFns[recFnCount],
                   uint32_t* correctedWidth, uint32_t* correctedHeight,
                   bool* dirtyFlag, VkSwapchainKHR* swapchain,
                   uint32_t* imageCount,
                   VkImage* images,
                   VkImageView* views)
 {
-    vkDeviceWaitIdle(device);
     for (int i = 0; i < *imageCount; i++)
     {
         vkDestroyImageView(device, views[i], NULL);
@@ -253,10 +250,6 @@ recreateSwapchain(const VkSurfaceKHR surface, const uint32_t widthHint,
     createSwapchainWithSurface(surface, widthHint, heightHint, swapFormat,
                                usageFlags, swapFormat, correctedWidth, correctedHeight, swapchain);
     createSwapchainImageViews(*swapchain, swapFormat, *correctedWidth, *correctedHeight, imageCount, images, views);
-    for (int i = 0; i < recFnCount; i++)
-    {
-        recreateFns[i]();
-    }
     *dirtyFlag = true;
 }
 
@@ -304,39 +297,6 @@ obdn_InitSwapchain(Obdn_Swapchain*         swapchain,
 }
 
 void
-obdn_RegisterSwapchainRecreationFn(Obdn_Swapchain*              swapchain,
-                                   Obdn_R_SwapchainRecreationFn fn)
-{
-    swapchain->recreationFns[swapchain->recreateFnCount] = fn;
-    swapchain->recreateFnCount++;
-    assert(swapchain->recreateFnCount < MAX_SWAP_RECREATE_FNS);
-}
-
-void
-obdn_UnregisterSwapchainRecreateFn(Obdn_Swapchain*              swapchain,
-                                   Obdn_R_SwapchainRecreationFn fn)
-{
-    assert(swapchain->recreateFnCount > 0);
-    DPRINT("R) Unregistering SCR fn...\n");
-    int fnIndex = -1;
-    for (int i = 0; i < swapchain->recreateFnCount; i++)
-    {
-        if (swapchain->recreationFns[i] == fn)
-        {
-            fnIndex = i;
-            break;
-        }
-    }
-    if (fnIndex != -1)
-        memmove(
-            swapchain->recreationFns + fnIndex,
-            swapchain->recreationFns + fnIndex + 1,
-            (--swapchain->recreateFnCount - fnIndex) *
-                sizeof(*swapchain->recreationFns)); // should only decrement the
-                                                    // count if fnIndex is 0
-}
-
-void
 obdn_ShutdownSwapchain(Obdn_Swapchain* swapchain)
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++)
@@ -366,38 +326,41 @@ obdn_GetSwapchainExtent(const Obdn_Swapchain* swapchain)
 
 unsigned
 obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
-                           VkSemaphore* semaphore)
+                           VkSemaphore* semaphore, bool* dirty)
 {
     VkResult r;
+    *dirty = false;
 retry:
     if (resizeEventOccurred)
     {
+        vkDeviceWaitIdle(device);
         recreateSwapchain(
             swapchain->surface, resizeEventData.width, resizeEventData.height,
             swapchain->format, swapchain->imageUsageFlags,
-            swapchain->recreateFnCount, swapchain->recreationFns,
             &swapchain->width, &swapchain->height, &swapchain->dirty,
             &swapchain->swapchain, &swapchain->imageCount, swapchain->images,
             swapchain->views);
         resizeEventOccurred = false;
+        *dirty = true;
     }
     r = vkAcquireNextImageKHR(device, swapchain->swapchain, WAIT_TIME_NS,
                               *semaphore, *fence,
                               &swapchain->acquiredImageIndex);
     if (VK_ERROR_OUT_OF_DATE_KHR == r)
     {
+        vkDeviceWaitIdle(device);
         recreateSwapchain(
             swapchain->surface, swapchain->width, swapchain->height,
             swapchain->format, swapchain->imageUsageFlags,
-            swapchain->recreateFnCount, swapchain->recreationFns,
             &swapchain->width, &swapchain->height, &swapchain->dirty,
             &swapchain->swapchain, &swapchain->imageCount, swapchain->images,
             swapchain->views);
+        *dirty = true;
         goto retry;
     }
     if (VK_SUBOPTIMAL_KHR == r)
     {
-        hell_DPrint("FOOOOOOOOOOOOOO\n");
+        DPRINT("Suboptimal swapchain\n");
     }
     if (VK_ERROR_DEVICE_LOST == r)
     {
@@ -407,49 +370,56 @@ retry:
 }
 
 bool
-obdn_PresentFrame(const Obdn_Swapchain* swapchain, VkSemaphore waitSemaphore)
+obdn_PresentFrame(Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,
+                  VkSemaphore* waitSemaphores)
 {
-    VkResult               r;
     const VkPresentInfoKHR info = {.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
                                    .swapchainCount     = 1,
                                    .pSwapchains        = &swapchain->swapchain,
-                                   .waitSemaphoreCount = 1,
-                                   .pWaitSemaphores    = &waitSemaphore,
-                                   .pResults           = &r,
+                                   .waitSemaphoreCount = semaphoreCount,
+                                   .pWaitSemaphores    = waitSemaphores,
+                                   // pResults is for per swapchain results
+                                   // we only use one so can put NULL
+                                   .pResults           = NULL,
                                    .pImageIndices =
                                        &swapchain->acquiredImageIndex};
 
     VkResult presentResult;
     presentResult = vkQueuePresentKHR(obdn_v_GetPresentQueue(), &info);
-    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR ||
-        presentResult == VK_SUBOPTIMAL_KHR)
+    if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
+    {
         return false;
-    assert(VK_SUCCESS == r);
+    }
+    assert(VK_SUCCESS == presentResult);
     return true;
 }
 
-
-void obdn_FreeSwapchain(Obdn_Swapchain* swapchain)
+void
+obdn_FreeSwapchain(Obdn_Swapchain* swapchain)
 {
     hell_Free(swapchain);
 }
 
-unsigned   obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain)
+unsigned
+obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain)
 {
     return swapchain->width;
 }
 
-unsigned   obdn_GetSwapchainHeight(const Obdn_Swapchain* swapchain)
+unsigned
+obdn_GetSwapchainHeight(const Obdn_Swapchain* swapchain)
 {
     return swapchain->height;
 }
 
-VkImageView obdn_GetSwapchainImageView(const Obdn_Swapchain* swapchain, int index)
+VkImageView
+obdn_GetSwapchainImageView(const Obdn_Swapchain* swapchain, int index)
 {
     return swapchain->views[index];
 }
 
-size_t obdn_SizeOfSwapchain(void)
+size_t
+obdn_SizeOfSwapchain(void)
 {
     return sizeof(Obdn_Swapchain);
 }
