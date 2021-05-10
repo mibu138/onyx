@@ -33,6 +33,9 @@ static Obdn_Swapchain* swapchain;
 
 static const VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
+static Obdn_U_Widget* uiBox;
+static Obdn_U_Widget* uiText;
+
 static void createSurfaceDependent(void)
 {
     VkExtent2D dim = obdn_GetSwapchainExtent(swapchain);
@@ -44,6 +47,9 @@ static void createSurfaceDependent(void)
     VkImageView attachments_1[2] = {obdn_GetSwapchainImageView(swapchain, 1), depthImage.view};
     obdn_CreateFramebuffer(2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
     obdn_CreateFramebuffer(2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
+
+    // ui recreation
+    obdn_RecreateSwapchainDependentUI(dim.width, dim.height, 2, obdn_GetSwapchainImageViews(swapchain));
 }
 
 static void destroySurfaceDependent(void)
@@ -83,7 +89,7 @@ void init(void)
 
     // call this render pass joe
     obdn_r_CreateRenderPass_ColorDepth(
-        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+        VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
@@ -146,7 +152,9 @@ void draw(void)
     obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
             acquireSemaphore, drawSemaphore, drawFence, cmd.buffer);
 
-    bool result = obdn_PresentFrame(swapchain, 1, &drawSemaphore);
+    VkSemaphore uiSemaphore = obdn_RenderUI(frameId, dim.width, dim.height, drawSemaphore);
+
+    bool result = obdn_PresentFrame(swapchain, 1, &uiSemaphore);
 
     obdn_v_WaitForFence(&drawFence);
 
@@ -167,6 +175,8 @@ int main(int argc, char *argv[])
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                 obdn_GetSwapchainImageCount(swapchain),
                 obdn_GetSwapchainImageViews(swapchain));
+    uiBox = obdn_u_CreateSimpleBox(10, 10, 200, 100, NULL);
+    uiText = obdn_u_CreateText(40, 40, "Blumpkin", uiBox);
     init();
     hell_Loop();
     return 0;

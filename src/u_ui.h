@@ -74,4 +74,9 @@ void obdn_InitUI(const VkFormat imageFormat, const uint32_t width, const uint32_
 void obdn_ShutdownUI(const uint32_t imgCount);
 VkSemaphore obdn_RenderUI(const uint32_t frameIndex, const uint32_t width, const uint32_t height, const VkSemaphore waitSemephore);
 
+void
+obdn_RecreateSwapchainDependentUI(const uint32_t width, const uint32_t height,
+                                  const uint32_t    imageViewCount,
+                                  const VkImageView views[imageViewCount]);
+
 #endif /* end of include guard: OBDN_U_UI_H */

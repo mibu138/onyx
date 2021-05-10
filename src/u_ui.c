@@ -450,7 +450,7 @@ static void destroyFramebuffers(const uint32_t imgCount)
 }
 
 void
-obdn_recreateSwapchainDependentUI(const uint32_t width, const uint32_t height,
+obdn_RecreateSwapchainDependentUI(const uint32_t width, const uint32_t height,
                                   const uint32_t    imageViewCount,
                                   const VkImageView views[imageViewCount])
 {
