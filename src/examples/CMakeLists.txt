@@ -1,8 +1,8 @@
 add_executable(hello-triangle hello-triangle.c)
 add_executable(hello-ui hello-ui.c)
 
-target_include_directories(hello-triangle PRIVATE "${CMAKE_SOURCE_DIR}/src")
-target_include_directories(hello-ui PRIVATE "${CMAKE_SOURCE_DIR}/src")
+target_include_directories(hello-triangle PRIVATE "${CMAKE_SOURCE_DIR}/src/lib")
+target_include_directories(hello-ui PRIVATE "${CMAKE_SOURCE_DIR}/src/lib")
 target_link_libraries(hello-triangle ${PROJECT_NAME}::obsidian)
 target_link_libraries(hello-ui ${PROJECT_NAME}::obsidian)
 

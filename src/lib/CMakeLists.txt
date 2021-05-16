@@ -51,6 +51,7 @@ target_include_directories(obsidian PUBLIC ${Vulkan_INCLUDE_DIRS})
 target_include_directories(obsidian PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty ${FREETYPE_INCLUDE_DIRS})
 target_link_libraries(obsidian PUBLIC hell ${Vulkan_LIBRARIES})
 target_link_libraries(obsidian PRIVATE coal ${FREETYPE_LIBRARIES})
+set_target_properties(obsidian PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 
 set(SHADER_TARGET_NAME obsidian-shaders)
 add_subdirectory(shaders)
@@ -58,11 +59,6 @@ add_dependencies(obsidian ${SHADER_TARGET_NAME})
 
 install(TARGETS obsidian EXPORT obsidianTargets
     LIBRARY DESTINATION lib
-    INCLUDES DESTINATION include)
-
-#install(EXPORT obsidianTargets
-#    FILE obsidianTargets.cmake 
-#    NAMESPACE obsidian::
-#    DESTINATION lib/cmake/obsidian)
+    PUBLIC_HEADER DESTINATION include/obsidian)
 
 add_library(${PROJECT_NAME}::obsidian ALIAS obsidian)
