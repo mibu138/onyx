@@ -21,7 +21,7 @@ typedef struct {
 } Obdn_R_DescriptorBinding;
 
 typedef struct {
-    size_t                    bindingCount;
+    size_t                   bindingCount;
     Obdn_R_DescriptorBinding bindings[OBDN_MAX_BINDINGS];
 } Obdn_R_DescriptorSetInfo;
 
@@ -85,6 +85,11 @@ typedef struct {
 
 void obdn_r_DestroyDescription(Obdn_R_Description*);
 
+void obdn_r_CreateDescriptorSetLayout(
+    const uint8_t                  bindingCount,
+    const Obdn_R_DescriptorBinding bindings[bindingCount],
+    VkDescriptorSetLayout*         layout);
+
 void obdn_r_CreateDescriptorSetLayouts(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
         VkDescriptorSetLayout layouts[count]);
 void obdn_r_CreateDescriptorSets(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count], 
@@ -106,6 +111,18 @@ void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass,
                                         const VkPipelineLayout layout,
                                         const VkPolygonMode mode,
                                         VkPipeline *pipeline);
+
+void obdn_CreateDescriptorPool(uint32_t uniformBufferCount,
+                          uint32_t combinedImageSamplerCount,
+                          uint32_t storageImageCount,
+                          uint32_t storageBufferCount,
+                          uint32_t inputAttachmentCount,
+                          uint32_t accelerationStructureCount,
+                          VkDescriptorPool* pool);
+
+void obdn_AllocateDescriptorSets(VkDescriptorPool pool, uint32_t descSetCount,
+                            const VkDescriptorSetLayout layouts[descSetCount],
+                            VkDescriptorSet*      sets);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

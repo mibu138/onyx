@@ -50,4 +50,9 @@ void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const 
 
 void obdn_v_ClearColorImage(Obdn_V_Image* image);
 
+void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, const VkImage image,
+                          VkOffset3D imageOffset, VkExtent3D imageExtent,
+                          VkImageAspectFlags aspectMask, uint32_t miplevel,
+                          VkBuffer buffer, VkDeviceSize bufferOffset);
+
 #endif /* end of include guard: OBDN_V_IMAGE_H */

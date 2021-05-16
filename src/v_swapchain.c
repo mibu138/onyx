@@ -322,12 +322,22 @@ obdn_GetSwapchainExtent(const Obdn_Swapchain* swapchain)
     return ex;
 }
 
+VkExtent3D      obdn_GetSwapchainExtent3D(const Obdn_Swapchain* swapchain)
+{
+    VkExtent3D ex = {swapchain->width, swapchain->height, 1};
+    return ex;
+}
+
 #define WAIT_TIME_NS 500000
 
 unsigned
 obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
                            VkSemaphore* semaphore, bool* dirty)
 {
+    assert(semaphore);
+    assert(fence);
+    assert(dirty);
+    assert(swapchain);
     VkResult r;
     *dirty = false;
 retry:
@@ -370,7 +380,7 @@ retry:
 }
 
 bool
-obdn_PresentFrame(Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,
+obdn_PresentFrame(const Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,
                   VkSemaphore* waitSemaphores)
 {
     const VkPresentInfoKHR info = {.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
@@ -433,3 +443,20 @@ const VkImageView* obdn_GetSwapchainImageViews(const Obdn_Swapchain* swapchain)
 {
     return swapchain->views;
 }
+
+VkImage obdn_GetSwapchainImage(const Obdn_Swapchain* swapchain, uint32_t index)
+{
+    assert(index < swapchain->imageCount);
+    return swapchain->images[index];
+}
+
+VkDeviceSize obdn_GetSwapchainImageSize(const Obdn_Swapchain *swapchain)
+{
+    return swapchain->width * swapchain->height * 4;
+}
+
+uint32_t obdn_GetSwapchainPixelByteCount(const Obdn_Swapchain* swapchain)
+{
+    return 4;
+}
+

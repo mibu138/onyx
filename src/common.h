@@ -10,6 +10,17 @@ struct Hell_Window;
 typedef Obdn_V_Image   Obdn_Image;
 typedef Obdn_V_Command Obdn_Command;
 
+#define OBDN_CVAR_NAME_HOST_GRAPHICS_BUFFER_MEMORY_SIZE                        \
+    "hstGraphicsBufferMemorySize"
+#define OBDN_CVAR_NAME_DEV_GRAPHICS_BUFFER_MEMORY_SIZE                         \
+    "devGraphicsBufferMemorySize"
+#define OBDN_CVAR_NAME_DEV_GRAPHICS_IMAGE_MEMORY_SIZE                          \
+    "devGraphicsImageMemorySize"
+#define OBDN_CVAR_NAME_HOST_TRANSFER_BUFFER_MEMORY_SIZE                        \
+    "hstTransferBufferMemorySize"
+#define OBDN_CVAR_NAME_EXTERNAL_GRAPHICS_IMAGE_MEMORY_SIZE                     \
+    "extGraphicsImageMemorySize"
+
 void obdn_Announce(const char *fmt, ...);
 void obdn_Init(void);
 

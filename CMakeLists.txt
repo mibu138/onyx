@@ -1,17 +1,11 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(obsidian)
+project(obsidian VERSION 1.0)
 
-if (NOT DEFINED GLOBAL_CMAKE_PATH)
-    include(/home/michaelb/dev/cmake/global.cmake)
-else()
-    include({GLOBAL_CMAKE_PATH})
-endif()
-
-include_directories(thirdparty /usr/include/freetype2)
-
-set(LIBRARY_NAME ${CMAKE_PROJECT_NAME})
-
+add_subdirectory(cmake)
 add_subdirectory(src)
+# Add an empty OpenEXRTargets.cmake file for the config to use. 
+# Can be empty since we already defined the targets in add_subdirectory
+#file(WRITE "${CMAKE_CURRENT_BINARY_DIR}/cmake/OpenEXRTargets.cmake" "# Dummy file")
 add_subdirectory(examples)
 

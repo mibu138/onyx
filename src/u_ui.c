@@ -632,7 +632,7 @@ VkSemaphore obdn_RenderUI(const uint32_t frameIndex, const uint32_t width, const
     V_ASSERT( vkEndCommandBuffer(renderCommands[frameIndex].buffer) );
     
     obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
-            waitSemephore, renderCommands[frameIndex].semaphore,
+            1, &waitSemephore, 1, &renderCommands[frameIndex].semaphore,
             renderCommands[frameIndex].fence, renderCommands[frameIndex].buffer);
 
     return renderCommands[frameIndex].semaphore;

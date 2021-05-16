@@ -612,22 +612,25 @@ void obdn_v_SubmitGraphicsCommands(const uint32_t queueIndex, const uint32_t sub
     V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], submitInfoCount, submitInfos, fence) );
 }
 
-void obdn_v_SubmitGraphicsCommand(const uint32_t queueIndex, 
-        const VkPipelineStageFlags waitDstStageMask, const VkSemaphore waitSemephore, 
-        const VkSemaphore signalSemphore, VkFence fence, const VkCommandBuffer cmdBuf)
+void
+obdn_v_SubmitGraphicsCommand(const uint32_t             queueIndex,
+                             const VkPipelineStageFlags waitDstStageMask,
+                             uint32_t                   waitCount,
+                             const VkSemaphore waitSemephores[waitCount],
+                             uint32_t          signalCount,
+                             const VkSemaphore signalSemphores[signalCount],
+                             VkFence fence, const VkCommandBuffer cmdBuf)
 {
-    VkSubmitInfo si = {
-        .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-        .pWaitDstStageMask = &waitDstStageMask,
-        .waitSemaphoreCount = waitSemephore == VK_NULL_HANDLE ? 0 : 1,
-        .pWaitSemaphores = &waitSemephore,
-        .signalSemaphoreCount = signalSemphore == VK_NULL_HANDLE ? 0 : 1,
-        .pSignalSemaphores = &signalSemphore,
-        .commandBufferCount = 1,
-        .pCommandBuffers = &cmdBuf
-    };
+    VkSubmitInfo si = {.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+                       .pWaitDstStageMask    = &waitDstStageMask,
+                       .waitSemaphoreCount   = waitCount,
+                       .pWaitSemaphores      = waitSemephores,
+                       .signalSemaphoreCount = signalCount,
+                       .pSignalSemaphores    = signalSemphores,
+                       .commandBufferCount   = 1,
+                       .pCommandBuffers      = &cmdBuf};
 
-    V_ASSERT( vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, fence) );
+    V_ASSERT(vkQueueSubmit(graphicsQueues[queueIndex], 1, &si, fence));
 }
 
 void obdn_v_SubmitTransferCommand(const uint32_t queueIndex, 

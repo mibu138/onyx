@@ -143,7 +143,7 @@ void draw(void)
     obdn_v_EndCommandBuffer(cmd.buffer);
 
     obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
-            acquireSemaphore, drawSemaphore, drawFence, cmd.buffer);
+            1, &acquireSemaphore, 1, &drawSemaphore, drawFence, cmd.buffer);
 
     bool result = obdn_PresentFrame(swapchain, 1, &drawSemaphore);
 

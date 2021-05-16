@@ -694,3 +694,97 @@ void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass, const VkP
     };
     obdn_r_CreateGraphicsPipelines(1, &gpi, pipeline);
 }
+
+#define MAX_BINDING_COUNT 8 //arbitrary... we should check if there is a device limit on this
+
+void
+obdn_r_CreateDescriptorSetLayout(
+    const uint8_t                  bindingCount,
+    const Obdn_R_DescriptorBinding bindings[bindingCount],
+    VkDescriptorSetLayout*         layout)
+{
+    assert(bindingCount <= MAX_BINDING_COUNT);
+    VkDescriptorBindingFlags     vkbindFlags[MAX_BINDING_COUNT];
+    VkDescriptorSetLayoutBinding vkbindings[MAX_BINDING_COUNT];
+    for (int b = 0; b < bindingCount; b++)
+    {
+        vkbindings[b].binding            = b;
+        vkbindings[b].descriptorCount    = bindings[b].descriptorCount;
+        vkbindings[b].descriptorType     = bindings[b].type;
+        vkbindings[b].stageFlags         = bindings[b].stageFlags;
+        vkbindings[b].pImmutableSamplers = NULL;
+        vkbindFlags[b]                   = bindings[b].bindingFlags;
+    }
+
+    // this is only useful for texture arrays really. not sure what the
+    // performance implications are for enabling it for all descriptor sets. may
+    // want to make it an optional parameter.
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfo flagsInfo = {
+        .sType =
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
+        .bindingCount  = bindingCount,
+        .pBindingFlags = vkbindFlags};
+
+    const VkDescriptorSetLayoutCreateInfo layoutInfo = {
+        .sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        .pNext        = &flagsInfo,
+        .bindingCount = bindingCount,
+        .pBindings    = vkbindings};
+
+    V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, layout));
+}
+
+void
+obdn_CreateDescriptorPool(uint32_t uniformBufferCount,
+                          uint32_t combinedImageSamplerCount,
+                          uint32_t storageImageCount,
+                          uint32_t storageBufferCount,
+                          uint32_t inputAttachmentCount,
+                          uint32_t accelerationStructureCount,
+                          VkDescriptorPool* pool)
+{
+    VkDescriptorPoolSize poolSizes[] = {{
+            .descriptorCount = uniformBufferCount,
+            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+        },{
+            .descriptorCount = accelerationStructureCount,
+            .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
+        },{
+            .descriptorCount = storageImageCount,
+            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
+        },{
+            .descriptorCount = storageBufferCount,
+            .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
+        },{
+            .descriptorCount = combinedImageSamplerCount,
+            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+        },{
+            .descriptorCount = inputAttachmentCount,
+            .type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+    }};
+
+    VkDescriptorPoolCreateInfo poolInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
+        .maxSets = OBDN_MAX_DESCRIPTOR_SETS,
+        .poolSizeCount = LEN(poolSizes),
+        .pPoolSizes = poolSizes
+    };
+
+    V_ASSERT(vkCreateDescriptorPool(device, &poolInfo, NULL, pool));
+}
+
+void
+obdn_AllocateDescriptorSets(VkDescriptorPool pool, uint32_t descSetCount,
+                            const VkDescriptorSetLayout layouts[descSetCount],
+                            VkDescriptorSet*      sets)
+{
+    VkDescriptorSetAllocateInfo allocInfo = {
+        .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO,
+        .descriptorPool = pool,
+        .descriptorSetCount = descSetCount,
+        .pSetLayouts = layouts
+    };
+
+    V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, sets));
+}

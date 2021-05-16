@@ -231,6 +231,28 @@ void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Imag
     vkCmdCopyImageToBuffer(cmdbuf, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region->buffer, 1, &imgCopy);
 }
 
+void
+obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, const VkImage image,
+                          VkOffset3D imageOffset, VkExtent3D imageExtent,
+                          VkImageAspectFlags aspectMask, uint32_t miplevel,
+                          VkBuffer buffer, VkDeviceSize bufferOffset)
+{
+    const VkImageSubresourceLayers subRes = {.aspectMask     = aspectMask,
+                                             .baseArrayLayer = 0,
+                                             .layerCount     = 1,
+                                             .mipLevel       = miplevel};
+
+    const VkBufferImageCopy imgCopy = {.imageOffset       = imageOffset,
+                                       .imageExtent       = imageExtent,
+                                       .imageSubresource  = subRes,
+                                       .bufferOffset      = bufferOffset,
+                                       .bufferImageHeight = 0,
+                                       .bufferRowLength   = 0};
+
+    vkCmdCopyImageToBuffer(cmdbuf, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           buffer, 1, &imgCopy);
+}
+
 void obdn_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image)
 {
     Command cmd = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);

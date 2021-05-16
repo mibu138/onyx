@@ -29,7 +29,7 @@ void obdn_Init(void)
     Obdn_V_Config cfg = {0};
     cfg.memorySizes.hostGraphicsBufferMemorySize   = hell_c_GetVar("hstGraphicsBufferMemorySize", STR_100_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
     cfg.memorySizes.deviceGraphicsBufferMemorySize = hell_c_GetVar("devGraphicsBufferMemorySize", STR_100_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
-    cfg.memorySizes.deviceGraphicsImageMemorySize  =  hell_c_GetVar("devGraphicsImageSize", STR_256_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
+    cfg.memorySizes.deviceGraphicsImageMemorySize  =  hell_c_GetVar("devGraphicsImageMemorySize", STR_256_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
 #ifdef NDEBUG
     cfg.validationEnabled = false;
 #else

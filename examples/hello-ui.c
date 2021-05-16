@@ -149,8 +149,8 @@ void draw(void)
 
     obdn_v_EndCommandBuffer(cmd.buffer);
 
-    obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
-            acquireSemaphore, drawSemaphore, drawFence, cmd.buffer);
+    obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 1,
+            &acquireSemaphore, 1, &drawSemaphore, drawFence, cmd.buffer);
 
     VkSemaphore uiSemaphore = obdn_RenderUI(frameId, dim.width, dim.height, drawSemaphore);
 
