@@ -3,8 +3,8 @@ add_executable(hello-ui hello-ui.c)
 
 target_include_directories(hello-triangle PRIVATE "${CMAKE_SOURCE_DIR}/src/lib")
 target_include_directories(hello-ui PRIVATE "${CMAKE_SOURCE_DIR}/src/lib")
-target_link_libraries(hello-triangle ${PROJECT_NAME}::obsidian)
-target_link_libraries(hello-ui ${PROJECT_NAME}::obsidian)
+target_link_libraries(hello-triangle Hell::Hell Vulkan::Vulkan ${PROJECT_NAME}::Obsidian)
+target_link_libraries(hello-ui Hell::Hell Vulkan::Vulkan ${PROJECT_NAME}::Obsidian)
 
 set(SHADER_TARGET_NAME example-shaders)
 add_subdirectory(shaders)

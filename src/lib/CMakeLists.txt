@@ -1,4 +1,3 @@
-find_package(Vulkan 1.2.162 REQUIRED FATAL_ERROR)
 find_package(Freetype REQUIRED FATAL_ERROR)
 
 set(SRCS 
@@ -47,18 +46,18 @@ set(PUBLIC_HEADERS
     v_vulkan.h)
 
 add_library(obsidian SHARED ${SRCS})
-target_include_directories(obsidian PUBLIC ${Vulkan_INCLUDE_DIRS})
-target_include_directories(obsidian PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty ${FREETYPE_INCLUDE_DIRS})
-target_link_libraries(obsidian PUBLIC hell ${Vulkan_LIBRARIES})
-target_link_libraries(obsidian PRIVATE coal ${FREETYPE_LIBRARIES})
+target_include_directories(obsidian PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty ${FREETYPE_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
+target_link_libraries(obsidian PRIVATE coal Hell::Hell Vulkan::Vulkan Freetype::Freetype)
+
 set_target_properties(obsidian PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
+set_target_properties(obsidian PROPERTIES EXPORT_NAME Obsidian)
 
 set(SHADER_TARGET_NAME obsidian-shaders)
 add_subdirectory(shaders)
 add_dependencies(obsidian ${SHADER_TARGET_NAME})
 
-install(TARGETS obsidian EXPORT obsidianTargets
+install(TARGETS obsidian EXPORT ${PROJECT_NAME}Targets
     LIBRARY DESTINATION lib
     PUBLIC_HEADER DESTINATION include/obsidian)
 
-add_library(${PROJECT_NAME}::obsidian ALIAS obsidian)
+add_library(${PROJECT_NAME}::Obsidian ALIAS obsidian)
