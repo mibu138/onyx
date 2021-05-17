@@ -46,18 +46,30 @@ set(PUBLIC_HEADERS
     v_vulkan.h)
 
 add_library(obsidian SHARED ${SRCS})
-target_include_directories(obsidian PRIVATE ${CMAKE_SOURCE_DIR}/thirdparty ${FREETYPE_INCLUDE_DIRS} ${Vulkan_INCLUDE_DIRS})
-target_link_libraries(obsidian PRIVATE coal Hell::Hell Vulkan::Vulkan Freetype::Freetype)
+
+set(CURDIR ${CMAKE_CURRENT_SOURCE_DIR})
+
+target_include_directories(obsidian INTERFACE 
+    $<BUILD_INTERFACE:${CURDIR}>)
+target_include_directories(obsidian PRIVATE 
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/thirdparty>)
+target_link_libraries(obsidian PUBLIC ${PROJECT_NAME}::Config coal Hell::Hell Vulkan::Vulkan Freetype::Freetype)
 
 set_target_properties(obsidian PROPERTIES PUBLIC_HEADER "${PUBLIC_HEADERS}")
 set_target_properties(obsidian PROPERTIES EXPORT_NAME Obsidian)
+set_target_properties(obsidian PROPERTIES
+      OUTPUT_NAME obsidian
+      RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
+
+add_library(${PROJECT_NAME}::Obsidian ALIAS obsidian)
+
+install(TARGETS obsidian EXPORT ${PROJECT_NAME}Targets
+    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
+    ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
+    PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/obsidian)
 
 set(SHADER_TARGET_NAME obsidian-shaders)
 add_subdirectory(shaders)
 add_dependencies(obsidian ${SHADER_TARGET_NAME})
 
-install(TARGETS obsidian EXPORT ${PROJECT_NAME}Targets
-    LIBRARY DESTINATION lib
-    PUBLIC_HEADER DESTINATION include/obsidian)
-
-add_library(${PROJECT_NAME}::Obsidian ALIAS obsidian)
