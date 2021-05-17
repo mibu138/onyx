@@ -2,8 +2,6 @@ cmake_minimum_required(VERSION 3.17)
 
 project(Obsidian VERSION 1.0.0)
 
-#set(CMAKE_VERBOSE_MAKEFILE ON)
-
 include(/home/michaelb/dev/cmake/shaders.cmake)
 include(GNUInstallDirs)
 
