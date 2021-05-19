@@ -1,3 +1,5 @@
+include(shaders)
+
 set(SRCS
     default.frag
     default.vert
