@@ -90,7 +90,7 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
         strcpy(pathBuffer, shaderName);
         return;
     }
-    const char* unixShaderDir = "/usr/local/shaders/";
+    const char* unixShaderDir = "/usr/local/share/shaders/";
     strcpy(pathBuffer, unixShaderDir);
     strcat(pathBuffer, shaderName);
     hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
@@ -689,8 +689,8 @@ void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass, const VkP
         .dynamicStateCount = 2,
         .pDynamicStates = dynamicStates,
         .vertexDescription = obdn_r_GetVertexDescription(1, &attrSize),
-        .vertShader = "build/example-shaders/simple.vert.spv",
-        .fragShader = "build/example-shaders/simple.frag.spv"
+        .vertShader = "simple.vert.spv",
+        .fragShader = "simple.frag.spv"
     };
     obdn_r_CreateGraphicsPipelines(1, &gpi, pipeline);
 }
