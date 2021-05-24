@@ -171,8 +171,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
         .viewportDim       = {width, height},
-        .vertShader        = "ui.vert.spv",
-        .fragShader        = "ui-box.frag.spv"
+        .vertShader        = "obsidian/ui.vert.spv",
+        .fragShader        = "obsidian/ui-box.frag.spv"
     },{ 
         // slider
         .renderPass        = renderPass,
@@ -182,8 +182,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader        = "ui.vert.spv",
-        .fragShader        = "ui-slider.frag.spv"
+        .vertShader        = "obsidian/ui.vert.spv",
+        .fragShader        = "obsidian/ui-slider.frag.spv"
     },{ 
         // texture
         .renderPass        = renderPass,
@@ -193,8 +193,8 @@ static void initPipelines(uint32_t width, uint32_t height)
         .blendMode         = OBDN_R_BLEND_MODE_OVER,
         .viewportDim       = {width, height},
         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
-        .vertShader        = "ui.vert.spv",
-        .fragShader        = "ui-texture.frag.spv"
+        .vertShader        = "obsidian/ui.vert.spv",
+        .fragShader        = "obsidian/ui-texture.frag.spv"
     }};
 
     obdn_r_CreateGraphicsPipelines(LEN(pipeInfos), pipeInfos, pipelines);
@@ -248,8 +248,8 @@ static void updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
         Vec3* pos = obdn_r_GetPrimAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++) 
         {
-            pos[i].i += dx;
-            pos[i].j += dy;
+            pos[i].x += dx;
+            pos[i].y += dy;
         }
     }
 

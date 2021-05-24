@@ -1,8 +1,10 @@
-include(shaders)
-
-set(SRCS
+include(author_shaders)
+author_shaders(obsidian_shaders obsidian
+    SOURCES
     default.frag
     default.vert
+    simple.vert
+    simple.frag
     full-screen.vert
     post.frag
     post.vert
@@ -15,6 +17,3 @@ set(SRCS
     ui-slider.frag
     ui-texture.frag
     ui.vert)
-
-build_shaders()
-install_shaders()

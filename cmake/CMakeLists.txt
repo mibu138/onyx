@@ -1,2 +1,2 @@
 include(configure)
-setup_config(ObsidianConfig.cmake.in)
+configure(ObsidianConfig.cmake.in)

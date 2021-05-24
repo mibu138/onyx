@@ -1,7 +1,5 @@
 #include "s_scene.h"
-#include "coal/m.h"
 #include "f_file.h"
-#include "coal/m_math.h"
 #include "coal/util.h"
 #include "hell/common.h"
 #include "dtags.h"
@@ -122,8 +120,8 @@ static LightId addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 
         .type = OBDN_S_LIGHT_TYPE_DIRECTION,
         .intensity = intensity,
     };
-    coal_Copy_Vec3(dir, light.structure.directionLight.dir.x);
-    coal_Copy_Vec3(color, light.color.x);
+    light.structure.directionLight.dir = dir;
+    light.color = color;
     return addLight(s, light);
 }
 
@@ -133,8 +131,8 @@ static LightId addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 colo
         .type = OBDN_S_LIGHT_TYPE_POINT,
         .intensity = intensity
     };
-    coal_Copy_Vec3(pos, light.structure.pointLight.pos.x);
-    coal_Copy_Vec3(color, light.color.x);
+    light.structure.pointLight.pos = pos;
+    light.color = color;
     return addLight(s, light);
 }
 
@@ -158,12 +156,12 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
     memset(scene, 0, sizeof(Scene));
     scene->window[0] = windowWidth;
     scene->window[1] = windowHeight;
-    scene->camera.xform = m_Ident_Mat4();
-    scene->camera.view = m_Ident_Mat4();
-    Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
+    scene->camera.xform = coal_Ident_Mat4();
+    scene->camera.view = coal_Ident_Mat4();
+    Mat4 m = coal_LookAt((Vec3){1, 1, 2}, (Vec3){0, 0, 0}, (Vec3){0, 1, 0});
     scene->camera.xform = m;
-    scene->camera.view = m_Invert4x4(&m);
-    scene->camera.proj = m_BuildPerspective(nearClip, farClip);
+    scene->camera.view = coal_Invert4x4(m);
+    scene->camera.proj = coal_BuildPerspective(nearClip, farClip);
     // set all xforms to identity
     obdn_s_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
     for (int i = 0; i < OBDN_S_MAX_LIGHTS; i++)
@@ -181,10 +179,10 @@ void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, floa
 void obdn_s_CreateEmptyScene(Scene* scene)
 {
     memset(scene, 0, sizeof(Scene));
-    Mat4 m = m_LookAt(&(Vec3){1, 1, 2}, &(Vec3){0, 0, 0}, &(Vec3){0, 1, 0});
+    Mat4 m = coal_LookAt((Vec3){1, 1, 2}, (Vec3){0, 0, 0}, (Vec3){0, 1, 0});
     scene->camera.xform = m;
-    scene->camera.view = m_Invert4x4(&m);
-    scene->camera.proj = m_BuildPerspective(0.01, 100);
+    scene->camera.view = coal_Invert4x4(m);
+    scene->camera.proj = coal_BuildPerspective(0.01, 100);
     obdn_s_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
 
     scene->dirt |= -1;
@@ -205,8 +203,7 @@ Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive rprim, const 
         .xform = COAL_MAT4_IDENT,
         .materialId = 0
     };
-    if (xform)
-        coal_Copy_Mat4(xform, prim.xform);
+    prim.xform = xform;
     return addPrim(scene, prim);
 }
 
@@ -269,12 +266,12 @@ Obdn_S_MaterialId obdn_s_CreateMaterial(Obdn_S_Scene* scene, Vec3 color, float r
 
 Obdn_S_LightId obdn_s_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
 {
-    return addDirectionLight(scene, direction.x, color.x, 1.0);
+    return addDirectionLight(scene, direction, color, 1.0);
 }
 
 Obdn_S_LightId obdn_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
 {
-    return addPointLight(scene, position.x, color.x, 1.0);
+    return addPointLight(scene, position, color, 1.0);
 }
 
 #define HOME_POS    {0.0, 0.0, 1.0}
@@ -286,8 +283,8 @@ Obdn_S_LightId obdn_s_CreatePointLight(Scene* scene, const Vec3 color, const Vec
 
 void obdn_s_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
 {
-    scene->camera.xform = m_LookAt(&pos, &target, &up);
-    scene->camera.view  = m_Invert4x4(&scene->camera.xform);
+    scene->camera.xform = coal_LookAt(pos, target, up);
+    scene->camera.view  = coal_Invert4x4(scene->camera.xform);
     scene->dirt |= OBDN_S_CAMERA_VIEW_BIT;
 }
 
@@ -309,12 +306,12 @@ void obdn_s_UpdateCamera_ArcBall(Scene* scene, float dt, int16_t mx, int16_t my,
         up =     (Vec3)HOME_UP;
     }
     //pos = m_RotateY_Vec3(dt, &pos);
-    arcball_camera_update(pos.x, target.x, up.x, NULL, dt, 
+    arcball_camera_update(pos.e, target.e, up.e, NULL, dt, 
             ZOOM_RATE, PAN_RATE, TUMBLE_RATE, scene->window[0], scene->window[1], xPrev, mx, yPrev, my, 
             panning, tumbling, zoom_ticks, 0);
-    Mat4 m = m_LookAt(&pos, &target, &up);
+    Mat4 m = coal_LookAt(pos, target, up);
     scene->camera.xform = m;
-    scene->camera.view  = m_Invert4x4(&scene->camera.xform);
+    scene->camera.view  = coal_Invert4x4(scene->camera.xform);
     xPrev = mx;
     yPrev = my;
     scene->dirt |= OBDN_S_CAMERA_VIEW_BIT;
@@ -326,12 +323,11 @@ void obdn_s_UpdateLight(Scene* scene, uint32_t id, float intensity)
     scene->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
-void obdn_s_UpdatePrimXform(Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta)
+void obdn_s_UpdatePrimXform(Scene* scene, const Obdn_S_PrimId primId, const Mat4 delta)
 {
     assert(primId < scene->primCount);
-    Coal_Mat4 M;
-    coal_Mult_Mat4(scene->prims[primMap.indices[primId]].xform, delta->x, M);
-    coal_Copy_Mat4(M, scene->prims[primMap.indices[primId]].xform);
+    Coal_Mat4 M = coal_Mult_Mat4(scene->prims[primMap.indices[primId]].xform, delta);
+    scene->prims[primMap.indices[primId]].xform = M;
     scene->dirt |= OBDN_S_XFORMS_BIT;
 }
 
@@ -404,9 +400,9 @@ void obdn_s_PrintLightInfo(const Scene* s)
     for (int i = 0; i < s->lightCount; i++)
     {
         hell_Print("Light index %d P ", i);
-        hell_Print_Vec3(s->lights[i].structure.pointLight.pos.x);
+        hell_Print_Vec3(s->lights[i].structure.pointLight.pos.e);
         hell_Print(" C ");
-        hell_Print_Vec3(s->lights[i].color.x);
+        hell_Print_Vec3(s->lights[i].color.e);
         hell_Print(" I  %f\n", s->lights[i].intensity);
     }
     hell_Print("Light map: ");
@@ -425,7 +421,7 @@ void obdn_s_PrintPrimInfo(const Scene* s)
     {
         hell_Print("Prim %d material id %d\n", i, s->prims[i].materialId); 
         hell_Print("Material: id %d roughness %f\n", s->prims[i].materialId, s->materials[s->prims[i].materialId].roughness);
-        hell_Print_Mat4(s->prims[i].xform);
+        hell_Print_Mat4(s->prims[i].xform.e);
         hell_Print("\n");
     }
     hell_Print("Prim map: ");
@@ -438,17 +434,17 @@ void obdn_s_PrintPrimInfo(const Scene* s)
 
 void obdn_s_UpdateLightColor(Obdn_S_Scene* scene, Obdn_S_LightId id, float r, float g, float b)
 {
-    scene->lights[lightMap.indices[id]].color.x[0] = r;
-    scene->lights[lightMap.indices[id]].color.x[1] = g;
-    scene->lights[lightMap.indices[id]].color.x[2] = b;
+    scene->lights[lightMap.indices[id]].color.r = r;
+    scene->lights[lightMap.indices[id]].color.g = g;
+    scene->lights[lightMap.indices[id]].color.b = b;
     scene->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
 void obdn_s_UpdateLightPos(Obdn_S_Scene* scene, Obdn_S_LightId id, float x, float y, float z)
 {
-    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x[0] = x;
-    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x[1] = y;
-    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x[2] = z;
+    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x = x;
+    scene->lights[lightMap.indices[id]].structure.pointLight.pos.y = y;
+    scene->lights[lightMap.indices[id]].structure.pointLight.pos.z = z;
     scene->dirt |= OBDN_S_LIGHTS_BIT;
 }
 

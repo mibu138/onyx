@@ -2,7 +2,7 @@
 #include <hell/debug.h>
 #include <hell/window.h>
 #include <hell/cmd.h>
-#include <coal/m.h>
+#include <coal/coal.h>
 #include "common.h"
 #include "v_swapchain.h"
 #include "s_scene.h"
@@ -63,15 +63,15 @@ void init(void)
     uint8_t attrSize = 3 * sizeof(float);
     triangle = obdn_r_CreatePrimitive(3, 4, 1, &attrSize);
     Coal_Vec3* verts = (Coal_Vec3*)triangle.vertexRegion.hostData;
-    verts[0][0] =  0.0;
-    verts[0][1] = -1.0;
-    verts[0][2] =  0.0;
-    verts[1][0] = -1.0;
-    verts[1][1] =  1.0;
-    verts[1][2] =  0.0;
-    verts[2][0] =  1.0;
-    verts[2][1] =  1.0;
-    verts[2][2] =  0.0;
+    verts[0].x =  0.0;
+    verts[0].y = -1.0;
+    verts[0].z =  0.0;
+    verts[1].x = -1.0;
+    verts[1].y =  1.0;
+    verts[1].z =  0.0;
+    verts[2].x =  1.0;
+    verts[2].y =  1.0;
+    verts[2].z =  0.0;
     Obdn_AttrIndex* indices = (Obdn_AttrIndex*)triangle.indexRegion.hostData;
     indices[0] = 0;
     indices[1] = 1;

@@ -1,6 +1,5 @@
 #include "r_raytrace.h"
-#include "coal/m.h"
-#include "coal/m_math.h"
+#include "coal/linalg.h"
 #include "v_video.h"
 #include "r_render.h"
 #include "v_memory.h"
@@ -243,16 +242,15 @@ void obdn_r_BuildTlasNew(const uint32_t count, const AccelerationStructure blass
     memset(instances, 0, sizeof(instances));
     for (int i = 0; i < count; i++)
     {
-        Mat4 xformT;
-        coal_Copy_Mat4(xforms[i], xformT.x);
-        xformT = m_Transpose_Mat4(&xformT);
+        Mat4 xformT = xforms[i];
+        xformT = coal_Transpose_Mat4(xformT);
         VkTransformMatrixKHR transform;
         assert(sizeof(transform) == 12 * sizeof(float));
         for (int i = 0; i < 3; i++)
         {
             for (int j = 0; j < 4; j++)
             {
-                transform.matrix[i][j] = xformT.x[i][j]; 
+                transform.matrix[i][j] = xformT.e[i][j]; 
             }
         }
         instances[i].accelerationStructureReference = obdn_v_GetBufferRegionAddress(&blasses[i].bufferRegion);

@@ -1,6 +1,5 @@
-set(SRCS
-    simple.vert
-    simple.frag)
-
-build_shaders()
-install_shaders()
+include(author_shaders)
+#author_shaders(example_shaders example
+#    SOURCES
+#    simple.vert
+#    simple.frag)

@@ -3,7 +3,7 @@
 
 #include "r_geo.h"
 #include "types.h"
-#include <coal/m.h>
+#include <coal/coal.h>
 
 //#define OBDN_S_MAX_PRIMS     256
 #define OBDN_S_MAX_PRIMS     32
@@ -109,7 +109,6 @@ void obdn_s_Init(Obdn_S_Scene* scene, uint16_t windowWidth, uint16_t windowHeigh
 void obdn_s_CreateEmptyScene(Obdn_S_Scene* scene);
 void obdn_s_UpdateLight(Obdn_S_Scene* scene, uint32_t id, float intensity);
 void obdn_s_BindPrimToMaterial(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId);
-void obdn_s_UpdatePrimXform(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Mat4* delta);
 
 void  obdn_s_AddPrimToList(const Obdn_S_PrimId, Obdn_S_PrimitiveList*);
 void obdn_s_AddDirectionLight(Obdn_S_Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity);
@@ -140,5 +139,6 @@ Obdn_R_Primitive obdn_s_SwapRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive* n
 void obdn_s_UpdateLightColor(Obdn_S_Scene* scene, Obdn_S_LightId id, float r, float g, float b);
 void obdn_s_UpdateLightIntensity(Obdn_S_Scene* scene, Obdn_S_LightId id, float i);
 void obdn_s_UpdateLightPos(Obdn_S_Scene* scene, Obdn_S_LightId id, float x, float y, float z);
+void obdn_s_UpdatePrimXform(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Mat4 delta);
 
 #endif /* end of include guard: OBDN_S_SCENE_H */
