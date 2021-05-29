@@ -5,6 +5,7 @@
 #include <coal/coal.h>
 #include "common.h"
 #include "v_swapchain.h"
+#include "v_video.h"
 #include "s_scene.h"
 #include "r_pipeline.h"
 #include "r_pipeline.h"
@@ -28,28 +29,31 @@ static VkSemaphore  acquireSemaphore;
 static VkSemaphore  drawSemaphore;
 static Obdn_Command drawCommands[2];
 
+static Obdn_Instance*  oInstance;
+static Obdn_Memory*    oMemory;
 static Obdn_Swapchain* swapchain;
+static VkDevice        device;
 
 static const VkFormat depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 
 static void createSurfaceDependent(void)
 {
     VkExtent2D dim = obdn_GetSwapchainExtent(swapchain);
-    depthImage = obdn_v_CreateImage(dim.width, dim.height,
+    depthImage = obdn_CreateImage(oMemory, dim.width, dim.height,
                        depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                        VK_IMAGE_ASPECT_DEPTH_BIT, VK_SAMPLE_COUNT_1_BIT, 1,
                        OBDN_V_MEMORY_DEVICE_TYPE);
     VkImageView attachments_0[2] = {obdn_GetSwapchainImageView(swapchain, 0), depthImage.view};
     VkImageView attachments_1[2] = {obdn_GetSwapchainImageView(swapchain, 1), depthImage.view};
-    obdn_CreateFramebuffer(2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
-    obdn_CreateFramebuffer(2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
+    obdn_CreateFramebuffer(oInstance, 2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
+    obdn_CreateFramebuffer(oInstance, 2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
 }
 
 static void destroySurfaceDependent(void)
 {
-    obdn_v_FreeImage(&depthImage);
-    obdn_DestroyFramebuffer(framebuffers[0]);
-    obdn_DestroyFramebuffer(framebuffers[1]);
+    obdn_FreeImage(&depthImage);
+    obdn_DestroyFramebuffer(oInstance, framebuffers[0]);
+    obdn_DestroyFramebuffer(oInstance, framebuffers[1]);
 }
 
 static void onSwapchainRecreate(void)
@@ -58,10 +62,10 @@ static void onSwapchainRecreate(void)
     createSurfaceDependent();
 }
 
-void init(void)
+void initApp(void)
 {
     uint8_t attrSize = 3 * sizeof(float);
-    triangle = obdn_r_CreatePrimitive(3, 4, 1, &attrSize);
+    triangle = obdn_CreatePrimitive(oMemory, 3, 4, 1, &attrSize);
     Coal_Vec3* verts = (Coal_Vec3*)triangle.vertexRegion.hostData;
     verts[0].x =  0.0;
     verts[0].y = -1.0;
@@ -81,25 +85,25 @@ void init(void)
     obdn_r_PrintPrim(&triangle);
 
     // call this render pass joe
-    obdn_r_CreateRenderPass_ColorDepth(
+    obdn_CreateRenderPass_ColorDepth(device, 
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
         obdn_GetSwapchainFormat(swapchain), depthFormat, &renderPass);
     Obdn_R_PipelineLayoutInfo pli = {0}; //nothin
-    obdn_r_CreatePipelineLayouts(1, &pli, &pipelineLayout);
+    obdn_CreatePipelineLayouts(device, 1, &pli, &pipelineLayout);
     if (WIREFRAME)
-        obdn_CreateGraphicsPipeline_Taurus(renderPass, pipelineLayout, VK_POLYGON_MODE_LINE, &pipeline);
+        obdn_CreateGraphicsPipeline_Taurus(device, renderPass, pipelineLayout, VK_POLYGON_MODE_LINE, &pipeline);
     else
-        obdn_CreateGraphicsPipeline_Taurus(renderPass, pipelineLayout, VK_POLYGON_MODE_FILL, &pipeline);
+        obdn_CreateGraphicsPipeline_Taurus(device, renderPass, pipelineLayout, VK_POLYGON_MODE_FILL, &pipeline);
 
     createSurfaceDependent();
-    obdn_CreateFence(&drawFence);
-    obdn_CreateSemaphore(&drawSemaphore);
-    obdn_CreateSemaphore(&acquireSemaphore);
-    drawCommands[0] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
-    drawCommands[1] = obdn_v_CreateCommand(OBDN_V_QUEUE_GRAPHICS_TYPE);
+    obdn_CreateFence(device, &drawFence);
+    obdn_CreateSemaphore(device, &drawSemaphore);
+    obdn_CreateSemaphore(device, &acquireSemaphore);
+    drawCommands[0] = obdn_CreateCommand(oInstance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    drawCommands[1] = obdn_CreateCommand(oInstance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 }
 
 #define TARGET_RENDER_INTERVAL 10000 // render every 30 ms
@@ -124,9 +128,9 @@ void draw(void)
 
     Obdn_Command cmd = drawCommands[frameCounter % 2];
 
-    obdn_v_ResetCommand(&cmd);
+    obdn_ResetCommand(&cmd);
     
-    obdn_v_BeginCommandBuffer(cmd.buffer);
+    obdn_BeginCommandBuffer(cmd.buffer);
 
     const VkExtent2D dim = obdn_GetSwapchainExtent(swapchain);
     obdn_CmdSetViewportScissorFull(cmd.buffer, dim.width, dim.height);
@@ -140,14 +144,14 @@ void draw(void)
 
     obdn_CmdEndRenderPass(cmd.buffer);
 
-    obdn_v_EndCommandBuffer(cmd.buffer);
+    obdn_EndCommandBuffer(cmd.buffer);
 
-    obdn_v_SubmitGraphicsCommand(0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
+    obdn_SubmitGraphicsCommand(oInstance, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 
             1, &acquireSemaphore, 1, &drawSemaphore, drawFence, cmd.buffer);
 
     bool result = obdn_PresentFrame(swapchain, 1, &drawSemaphore);
 
-    obdn_v_WaitForFence(&drawFence);
+    obdn_WaitForFence(device, &drawFence);
 
     frameCounter++;
 }
@@ -158,10 +162,21 @@ int main(int argc, char *argv[])
     hell_c_SetVar("maxFps", "1000", 0);
     hell_Print("Starting hello triangle.\n");
     const Hell_Window* window = hell_OpenWindow(500, 500, 0);
-    obdn_Init();
+
+    Obdn_V_MemorySizes memSizes = {
+        .deviceGraphicsImageMemorySize = OBDN_100_MiB,
+        .deviceGraphicsBufferMemorySize = OBDN_100_MiB,
+        .hostGraphicsBufferMemorySize = OBDN_100_MiB,
+    };
+
+    oInstance = hell_Malloc(obdn_SizeOfInstance());
+    oMemory   = hell_Malloc(obdn_SizeOfMemory());
     swapchain = hell_Malloc(obdn_SizeOfSwapchain());
-    obdn_InitSwapchain(swapchain, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window);
-    init();
+    obdn_Init(oInstance);
+    device = obdn_GetDevice(oInstance);
+    obdn_InitSwapchain(oInstance, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window, swapchain);
+    obdn_InitMemory(oInstance, &memSizes, oMemory);
+    initApp();
     hell_Loop();
     return 0;
 }

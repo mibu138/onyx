@@ -46,7 +46,7 @@ static void setBlendModeErase(VkPipelineColorBlendAttachmentState* state)
     state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
-static void initShaderModule(const char* filepath, VkShaderModule* module)
+static void initShaderModule(const VkDevice device, const char* filepath, VkShaderModule* module)
 {
     int fr;
     FILE* fp;
@@ -131,7 +131,7 @@ static const char* getResolvedSprivPath(const char* shaderName)
 #define MAX_GP_SHADER_STAGES 4
 #define MAX_ATTACHMENT_STATES 8
 
-void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPipelineInfo pipelineInfos[count], 
+void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, const Obdn_R_GraphicsPipelineInfo pipelineInfos[count], 
         VkPipeline pipelines[count])
 {
     VkPipelineShaderStageCreateInfo           shaderStages[count][MAX_GP_SHADER_STAGES];
@@ -162,8 +162,8 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         VkShaderModule tessCtrlModule;
         VkShaderModule tessEvalModule;
 
-        initShaderModule(getResolvedSprivPath(rasterInfo->vertShader), &vertModule);
-        initShaderModule(getResolvedSprivPath(rasterInfo->fragShader), &fragModule);
+        initShaderModule(device, getResolvedSprivPath(rasterInfo->vertShader), &vertModule);
+        initShaderModule(device, getResolvedSprivPath(rasterInfo->fragShader), &fragModule);
 
         uint8_t shaderStageCount = 2;
         for (int j = 0; j < MAX_GP_SHADER_STAGES; j++) 
@@ -184,8 +184,8 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
         if (rasterInfo->tessCtrlShader)
         {
             assert(rasterInfo->tessEvalShader);
-            initShaderModule(getResolvedSprivPath(rasterInfo->tessCtrlShader), &tessCtrlModule);
-            initShaderModule(getResolvedSprivPath(rasterInfo->tessEvalShader), &tessEvalModule);
+            initShaderModule(device, getResolvedSprivPath(rasterInfo->tessCtrlShader), &tessCtrlModule);
+            initShaderModule(device, getResolvedSprivPath(rasterInfo->tessEvalShader), &tessEvalModule);
             shaderStages[i][2].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             shaderStages[i][2].stage = VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
             shaderStages[i][2].module = tessCtrlModule;
@@ -376,7 +376,7 @@ void obdn_r_CreateGraphicsPipelines(const uint8_t count, const Obdn_R_GraphicsPi
 
 #define MAX_RT_SHADER_COUNT 10
 
-void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePipelineInfo pipelineInfos[count], 
+void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_R_RayTracePipelineInfo pipelineInfos[count], 
         VkPipeline pipelines[count], Obdn_R_ShaderBindingTable shaderBindingTables[count])
 {
     assert(count > 0);
@@ -422,11 +422,11 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePi
         char* const* const chitShaders =   rayTraceInfo->chitShaders;
 
         for (int i = 0; i < raygenCount; i++) 
-            initShaderModule(getResolvedSprivPath(raygenShaders[i]), &raygenSM[i]);
+            initShaderModule(device, getResolvedSprivPath(raygenShaders[i]), &raygenSM[i]);
         for (int i = 0; i < missCount; i++) 
-            initShaderModule(getResolvedSprivPath(missShaders[i]), &missSM[i]);
+            initShaderModule(device, getResolvedSprivPath(missShaders[i]), &missSM[i]);
         for (int i = 0; i < chitCount; i++) 
-            initShaderModule(getResolvedSprivPath(chitShaders[i]), &chitSM[i]);
+            initShaderModule(device, getResolvedSprivPath(chitShaders[i]), &chitSM[i]);
 
         const int shaderCount = raygenCount + missCount + chitCount;
 
@@ -496,7 +496,7 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePi
 
     for (int i = 0; i < count; i++) 
     {
-        obdn_r_CreateShaderBindingTable(createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
+        obdn_CreateShaderBindingTable(memory, createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
     }
 
     for (int i = 0; i < count; i++) 
@@ -509,7 +509,7 @@ void obdn_r_CreateRayTracePipelines(const uint8_t count, const Obdn_R_RayTracePi
     }
 }
 
-void obdn_r_CreateDescriptorSetLayouts(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
+void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
         VkDescriptorSetLayout layouts[count])
 {
     // counters for different descriptors
@@ -554,7 +554,7 @@ void obdn_r_CreateDescriptorSetLayouts(const uint8_t count, const Obdn_R_Descrip
     }
 }
 
-void obdn_r_CreateDescriptorSets(const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count], 
+void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count], 
         const VkDescriptorSetLayout layouts[count],
         Obdn_R_Description* out)
 {
@@ -634,7 +634,7 @@ void obdn_r_CreateDescriptorSets(const uint8_t count, const Obdn_R_DescriptorSet
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, out->descriptorSets));
 }
 
-void obdn_r_CreatePipelineLayouts(const uint8_t count, const Obdn_R_PipelineLayoutInfo layoutInfos[static count], 
+void obdn_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Obdn_R_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count])
 {
     assert(count < OBDN_MAX_PIPELINES);
@@ -665,24 +665,24 @@ void obdn_r_CleanUpPipelines()
     hell_DebugPrint(OBDN_DEBUG_TAG_PIPE, "%s called. no longer does anything\n", __PRETTY_FUNCTION__);
 }
 
-void obdn_r_DestroyDescription(Obdn_R_Description* d)
+void obdn_DestroyDescription(const VkDevice device, Obdn_R_Description* d)
 {
     vkDestroyDescriptorPool(device, d->descriptorPool, NULL);
     memset(d, 0, sizeof(*d));
 }
 
-void obdn_r_CreateDescriptionsAndLayouts(const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
+void obdn_CreateDescriptionsAndLayouts(VkDevice device, const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
         VkDescriptorSetLayout layouts[descSetCount], 
         const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount])
 {
-    obdn_r_CreateDescriptorSetLayouts(descSetCount, sets, layouts);
+    obdn_CreateDescriptorSetLayouts(device, descSetCount, sets, layouts);
     for (int i = 0; i < descriptionCount; i++)
     {
-        obdn_r_CreateDescriptorSets(descSetCount, sets, layouts, &descriptions[i]);
+        obdn_CreateDescriptorSets(device, descSetCount, sets, layouts, &descriptions[i]);
     }
 }
 
-void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass, const VkPipelineLayout layout, const VkPolygonMode mode, VkPipeline* pipeline)
+void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass renderPass, const VkPipelineLayout layout, const VkPolygonMode mode, VkPipeline* pipeline)
 {
     uint8_t attrSize = 3 * sizeof(float);
     VkDynamicState dynamicStates[2] = {VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT};
@@ -698,13 +698,14 @@ void obdn_CreateGraphicsPipeline_Taurus(const VkRenderPass renderPass, const VkP
         .vertShader = "obsidian/simple.vert.spv",
         .fragShader = "obsidian/simple.frag.spv"
     };
-    obdn_r_CreateGraphicsPipelines(1, &gpi, pipeline);
+    obdn_CreateGraphicsPipelines(device, 1, &gpi, pipeline);
 }
 
 #define MAX_BINDING_COUNT 8 //arbitrary... we should check if there is a device limit on this
 
 void
-obdn_r_CreateDescriptorSetLayout(
+obdn_CreateDescriptorSetLayout(
+    VkDevice device,
     const uint8_t                  bindingCount,
     const Obdn_R_DescriptorBinding bindings[bindingCount],
     VkDescriptorSetLayout*         layout)
@@ -742,7 +743,8 @@ obdn_r_CreateDescriptorSetLayout(
 }
 
 void
-obdn_CreateDescriptorPool(uint32_t uniformBufferCount,
+obdn_CreateDescriptorPool(VkDevice device,
+        uint32_t uniformBufferCount,
                           uint32_t combinedImageSamplerCount,
                           uint32_t storageImageCount,
                           uint32_t storageBufferCount,
@@ -781,7 +783,7 @@ obdn_CreateDescriptorPool(uint32_t uniformBufferCount,
 }
 
 void
-obdn_AllocateDescriptorSets(VkDescriptorPool pool, uint32_t descSetCount,
+obdn_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32_t descSetCount,
                             const VkDescriptorSetLayout layouts[descSetCount],
                             VkDescriptorSet*      sets)
 {

@@ -2,15 +2,16 @@
 #include "v_video.h"
 #include "v_private.h"
 
-void obdn_v_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
+void obdn_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
 {
-    obdn_v_SubmitToQueueWait(&cmd->buffer, cmd->queueFamily, queueIndex);
+    obdn_SubmitToQueueWait(cmd->instance, &cmd->buffer, cmd->queueFamily, queueIndex);
 }
 
-Obdn_V_Command obdn_v_CreateCommand(const Obdn_V_QueueType queueFamilyType)
+Obdn_V_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_QueueType queueFamilyType)
 {
     Obdn_V_Command cmd = {
-        .queueFamily = obdn_v_GetQueueFamilyIndex(queueFamilyType),
+        .queueFamily = obdn_GetQueueFamilyIndex(instance, queueFamilyType),
+        .instance = instance
     };
 
     const VkCommandPoolCreateInfo cmdPoolCi = {
@@ -18,7 +19,7 @@ Obdn_V_Command obdn_v_CreateCommand(const Obdn_V_QueueType queueFamilyType)
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
     };
 
-    V_ASSERT( vkCreateCommandPool(device, &cmdPoolCi, NULL, &cmd.pool) );
+    V_ASSERT( vkCreateCommandPool(instance->device, &cmdPoolCi, NULL, &cmd.pool) );
 
     const VkCommandBufferAllocateInfo allocInfo = {
         .commandBufferCount = 1,
@@ -27,25 +28,25 @@ Obdn_V_Command obdn_v_CreateCommand(const Obdn_V_QueueType queueFamilyType)
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
     };
 
-    V_ASSERT( vkAllocateCommandBuffers(device, &allocInfo, &cmd.buffer) );
+    V_ASSERT( vkAllocateCommandBuffers(instance->device, &allocInfo, &cmd.buffer) );
 
     const VkSemaphoreCreateInfo semaCi = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
     };
 
-    V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &cmd.semaphore) );
+    V_ASSERT( vkCreateSemaphore(instance->device, &semaCi, NULL, &cmd.semaphore) );
 
     const VkFenceCreateInfo fenceCi = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
         .flags = VK_FENCE_CREATE_SIGNALED_BIT
     };
 
-    V_ASSERT( vkCreateFence(device, &fenceCi, NULL, &cmd.fence) );
+    V_ASSERT( vkCreateFence(instance->device, &fenceCi, NULL, &cmd.fence) );
 
     return cmd;
 }
 
-void obdn_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
+void obdn_BeginCommandBuffer(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -54,7 +55,7 @@ void obdn_v_BeginCommandBuffer(VkCommandBuffer cmdBuf)
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
-void obdn_v_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
+void obdn_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -64,43 +65,43 @@ void obdn_v_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
-void obdn_v_EndCommandBuffer(VkCommandBuffer cmdBuf)
+void obdn_EndCommandBuffer(VkCommandBuffer cmdBuf)
 {
     vkEndCommandBuffer(cmdBuf);
 }
 
 
-void obdn_v_WaitForFence(VkFence* fence)
+void obdn_WaitForFence(VkDevice device, VkFence* fence)
 {
     vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
     vkResetFences(device, 1, fence);
 }
 
-void obdn_DestroyFence(VkFence fence)
+void obdn_DestroyFence(VkDevice device, VkFence fence)
 {
     vkDestroyFence(device, fence, NULL);
 }
 
-void obdn_DestroySemaphore(VkSemaphore semaphore)
+void obdn_DestroySemaphore(VkDevice device, VkSemaphore semaphore)
 {
     vkDestroySemaphore(device, semaphore, NULL);
 }
 
-void obdn_v_WaitForFenceNoReset(VkFence* fence)
+void obdn_WaitForFenceNoReset(VkDevice device, VkFence* fence)
 {
     vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
 }
 
-void obdn_v_DestroyCommand(Obdn_V_Command cmd)
+void obdn_DestroyCommand(Obdn_V_Command cmd)
 {
-    vkDestroyCommandPool(device, cmd.pool, NULL);
-    vkDestroyFence(device, cmd.fence, NULL);
-    vkDestroySemaphore(device, cmd.semaphore, NULL);
+    vkDestroyCommandPool(cmd.instance->device, cmd.pool, NULL);
+    vkDestroyFence(cmd.instance->device, cmd.fence, NULL);
+    vkDestroySemaphore(cmd.instance->device, cmd.semaphore, NULL);
 }
 
-void obdn_v_ResetCommand(Obdn_V_Command* cmd)
+void obdn_ResetCommand(Obdn_V_Command* cmd)
 {
-    vkResetCommandPool(device, cmd->pool, 0);
+    vkResetCommandPool(cmd->instance->device, cmd->pool, 0);
 }
 
 void obdn_v_MemoryBarrier(
@@ -123,7 +124,7 @@ void obdn_v_MemoryBarrier(
             1, &barrier, 0, NULL, 0, NULL);
 }
 
-void obdn_CreateFence(VkFence* fence)
+void obdn_CreateFence(VkDevice device, VkFence* fence)
 {
     VkFenceCreateInfo ci = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -132,7 +133,7 @@ void obdn_CreateFence(VkFence* fence)
     V_ASSERT( vkCreateFence(device, &ci, NULL, fence) );
 }
 
-void obdn_CreateSemaphore(VkSemaphore* semaphore)
+void obdn_CreateSemaphore(VkDevice device, VkSemaphore* semaphore)
 {
     const VkSemaphoreCreateInfo semaCi = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO

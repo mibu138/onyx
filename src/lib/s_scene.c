@@ -207,18 +207,18 @@ Obdn_S_PrimId obdn_s_AddRPrim(Scene* scene, const Obdn_R_Primitive rprim, const 
     return addPrim(scene, prim);
 }
 
-Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform)
+Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, Obdn_Memory* memory, const char* filePath, const Coal_Mat4 xform)
 {
     Obdn_F_Primitive fprim;
     int r = obdn_f_ReadPrimitive(filePath, &fprim);
     assert(r);
-    Obdn_R_Primitive prim = obdn_f_CreateRPrimFromFPrim(&fprim);
-    obdn_r_TransferPrimToDevice(&prim);
+    Obdn_R_Primitive prim = obdn_f_CreateRPrimFromFPrim(memory, &fprim);
+    obdn_TransferPrimToDevice(memory, &prim);
     obdn_f_FreePrimitive(&fprim);
     return obdn_s_AddRPrim(scene, prim, xform);
 }
 
-Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount)
+Obdn_S_TextureId obdn_LoadTexture(Obdn_S_Scene* scene, Obdn_Memory* memory, const char* filePath, const uint8_t channelCount)
 {
     Texture texture = {0};
 
@@ -232,7 +232,7 @@ Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, c
         default: DPRINT("ChannelCount %d not support.\n", channelCount); return OBDN_S_NONE;
     }
 
-    obdn_v_LoadImage(filePath, channelCount, format,
+    obdn_LoadImage(memory, filePath, channelCount, format,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             1, VK_FILTER_LINEAR, OBDN_V_MEMORY_DEVICE_TYPE, 
@@ -352,9 +352,9 @@ void obdn_s_CleanUpScene(Obdn_S_Scene* scene)
     }
     for (int i = 1; i <= scene->textureCount; i++) // remember 1 is the first valid texture index
     {
-        obdn_v_FreeImage(&scene->textures[i].devImage);   
+        obdn_FreeImage(&scene->textures[i].devImage);   
         if (scene->textures[i].hostBuffer.hostData)
-            obdn_v_FreeBufferRegion(&scene->textures[i].hostBuffer);
+            obdn_FreeBufferRegion(&scene->textures[i].hostBuffer);
     }
     memset(scene, 0, sizeof(*scene));
 }

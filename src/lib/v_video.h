@@ -13,47 +13,56 @@ typedef enum {
 } Obdn_V_QueueType;
 
 struct Obdn_V_Command;
+typedef struct Obdn_Instance Obdn_Instance;
 
-const VkInstance* obdn_v_Init(const Obdn_V_Config* config, const int extcount,
-                              const char* extensions[]);
-const VkInstance* obdn_v_GetInstance(void);
-void obdn_v_SubmitToQueue(const VkCommandBuffer* buffer, const Obdn_V_QueueType,
-                          const uint32_t         queueIndex);
-void obdn_v_SubmitToQueueWait(const VkCommandBuffer* buffer,
-                              const Obdn_V_QueueType,
-                              const uint32_t queueIndex);
-void obdn_v_CleanUp(void);
-void obdn_v_SubmitGraphicsCommands(const uint32_t      queueIndex,
-                                   const uint32_t      submitInfoCount,
-                                   const VkSubmitInfo* submitInfos,
-                                   VkFence             fence);
-void obdn_v_SubmitTransferCommand(const uint32_t               queueIndex,
-                                  const VkPipelineStageFlags   waitDstStageMask,
-                                  const VkSemaphore*           pWaitSemephore,
-                                  VkFence                      fence,
-                                  const struct Obdn_V_Command* cmd);
+uint64_t obdn_SizeOfInstance(void);
 
-void obdn_v_SubmitGraphicsCommand(
-    const uint32_t queueIndex, const VkPipelineStageFlags waitDstStageMask,
-    uint32_t waitCount, const VkSemaphore waitSemephores[waitCount],
-    uint32_t signalCount, const VkSemaphore signalSemphores[signalCount],
-    VkFence fence, const VkCommandBuffer cmdBuf);
+void obdn_InitInstance(const Obdn_V_Config* config, int extcount,
+                       const char* extensions[], Obdn_Instance*);
+const VkInstance* obdn_GetVkInstance(const Obdn_Instance*);
+void obdn_SubmitToQueue(const Obdn_Instance*, const VkCommandBuffer* buffer,
+                        Obdn_V_QueueType, uint32_t queueIndex);
+void obdn_SubmitToQueueWait(const Obdn_Instance*, const VkCommandBuffer* buffer,
+                            Obdn_V_QueueType, uint32_t queueIndex);
+void obdn_Shutdown(Obdn_Instance*);
+void obdn_SubmitGraphicsCommands(const Obdn_Instance*,
+                                 uint32_t      queueIndex,
+                                 uint32_t      submitInfoCount,
+                                 const VkSubmitInfo* submitInfos,
+                                 VkFence             fence);
+void obdn_SubmitTransferCommand(const Obdn_Instance*, uint32_t queueIndex,
+                                VkPipelineStageFlags   waitDstStageMask,
+                                const VkSemaphore*           pWaitSemephore,
+                                VkFence                      fence,
+                                const struct Obdn_V_Command* cmd);
 
-uint32_t         obdn_v_GetQueueFamilyIndex(Obdn_V_QueueType type);
-VkDevice         obdn_v_GetDevice(void);
-VkQueue          obdn_v_GetPresentQueue(void);
-VkPhysicalDevice obdn_v_GetPhysicalDevice(void);
+void obdn_SubmitGraphicsCommand(const Obdn_Instance*, uint32_t queueIndex,
+                                VkPipelineStageFlags waitDstStageMask,
+                                uint32_t                   waitCount,
+                                VkSemaphore waitSemephores[waitCount],
+                                uint32_t          signalCount,
+                                VkSemaphore signalSemphores[signalCount],
+                                VkFence fence, VkCommandBuffer cmdBuf);
 
-void obdn_PresentQueueWaitIdle();
+uint32_t obdn_GetQueueFamilyIndex(const Obdn_Instance*, Obdn_V_QueueType type);
+VkDevice obdn_GetDevice(const Obdn_Instance*);
+VkQueue  obdn_GetPresentQueue(const Obdn_Instance*);
+VkPhysicalDevice obdn_GetPhysicalDevice(const Obdn_Instance*);
 
-void obdn_DeviceWaitIdle(void);
+void obdn_PresentQueueWaitIdle(const Obdn_Instance*);
 
-const VkPhysicalDeviceProperties* obdn_v_GetPhysicalDeviceProperties(void);
+void obdn_DeviceWaitIdle(const Obdn_Instance*);
+
+const VkPhysicalDeviceProperties*
+obdn_GetPhysicalDeviceProperties(const Obdn_Instance*);
+
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR
-obdn_v_GetPhysicalDeviceRayTracingProperties(void);
+obdn_GetPhysicalDeviceRayTracingProperties(const Obdn_Instance*);
+
 VkPhysicalDeviceAccelerationStructurePropertiesKHR
-obdn_v_GetPhysicalDeviceAccelerationStructureProperties(void);
+obdn_GetPhysicalDeviceAccelerationStructureProperties(const Obdn_Instance*);
 
 Obdn_V_Config obdn_v_CreateBasicConfig(void);
+
 
 #endif /* end of include guard: V_VIDEO_H */

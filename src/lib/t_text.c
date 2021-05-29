@@ -95,7 +95,7 @@ static void initFT(const size_t fontSize)
     initialized = true;
 }
 
-Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height, 
+Obdn_V_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text)
 {
@@ -104,7 +104,7 @@ Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height,
         initFT(fontSize);
     }
 
-    Obdn_V_Image image = obdn_v_CreateImageAndSampler(width, height, VK_FORMAT_R8_UINT, 
+    Obdn_V_Image image = obdn_CreateImageAndSampler(memory, width, height, VK_FORMAT_R8_UINT, 
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
@@ -112,33 +112,33 @@ Obdn_V_Image obdn_t_CreateTextImage(const size_t width, const size_t height,
             VK_FILTER_NEAREST,
             OBDN_V_MEMORY_DEVICE_TYPE);
 
-    obdn_v_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
+    obdn_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 
-    Obdn_V_BufferRegion region = obdn_v_RequestBufferRegion(width * height, 
+    Obdn_V_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
             OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 
-    obdn_v_CopyBufferToImage(&region, &image);
+    obdn_CopyBufferToImage(&region, &image);
 
-    obdn_v_FreeBufferRegion(&region);
+    obdn_FreeBufferRegion(&region);
 
     return image;
 }
 
-void obdn_t_UpdateTextImage(const size_t x, const size_t y, const char* text, Obdn_V_Image* image)
+void obdn_t_UpdateTextImage(Obdn_Memory* memory, const size_t x, const size_t y, const char* text, Obdn_V_Image* image)
 {
     const size_t width  = image->extent.width;
     const size_t height = image->extent.height;
 
-    Obdn_V_BufferRegion region = obdn_v_RequestBufferRegion(width * height, 
+    Obdn_V_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
             OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 
-    obdn_v_CopyBufferToImage(&region, image);
+    obdn_CopyBufferToImage(&region, image);
 
-    obdn_v_FreeBufferRegion(&region);
+    obdn_FreeBufferRegion(&region);
 }

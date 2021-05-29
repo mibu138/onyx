@@ -13,7 +13,8 @@ typedef enum {
     OBDN_V_IMAGE_FILE_TYPE_JPG
 } Obdn_V_ImageFileType;
 
-Obdn_V_Image obdn_v_CreateImageAndSampler(
+Obdn_V_Image obdn_CreateImageAndSampler(
+    Obdn_Memory* memory,
     const uint32_t width, 
     const uint32_t height,
     const VkFormat format,
@@ -24,26 +25,25 @@ Obdn_V_Image obdn_v_CreateImageAndSampler(
     const VkFilter filter,
     const Obdn_V_MemoryType memType);
 
-void obdn_v_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image);
+void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image);
 
-void obdn_v_CopyBufferToImage(const Obdn_V_BufferRegion* region,
+void obdn_CopyBufferToImage(const Obdn_V_BufferRegion* region,
         Obdn_V_Image* image);
 
-void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_BufferRegion* region,
+void obdn_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_BufferRegion* region,
         Obdn_V_Image* image);
 
-void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, const VkImageAspectFlags aspectMask, Obdn_V_BufferRegion* region);
-void obdn_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Obdn_V_Barrier barrier, 
+void obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Obdn_V_Barrier barrier, 
         const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t mipLevels, VkImage image);
 
-void obdn_v_LoadImage(const char* filename, const uint8_t channelCount, const VkFormat format,
+void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t channelCount, const VkFormat format,
     const VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
     const VkFilter filter,
     const uint32_t queueFamilyIndex, 
-    const VkImageLayout, 
-    const bool createMipMaps,
+    const VkImageLayout layout,
+    const bool createMips,
     Obdn_V_Image* image);
 
 void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const char* name);

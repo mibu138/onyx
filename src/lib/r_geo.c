@@ -2,6 +2,7 @@
 #include "r_render.h"
 #include "v_memory.h"
 #include "r_attribute.h"
+#include "v_private.h"
 #include "dtags.h"
 #include <hell/debug.h>
 #include <string.h>
@@ -19,7 +20,7 @@ typedef enum {
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
-static void initPrimBuffers(Obdn_R_Primitive* prim)
+static void initPrimBuffers(Obdn_Memory* memory, Obdn_R_Primitive* prim)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
@@ -36,14 +37,14 @@ static void initPrimBuffers(Obdn_R_Primitive* prim)
         vertexBufferSize += attrRegionSize;
     }
 
-    prim->vertexRegion = obdn_v_RequestBufferRegion(vertexBufferSize, 
+    prim->vertexRegion = obdn_RequestBufferRegion(memory, vertexBufferSize, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    prim->indexRegion = obdn_v_RequestBufferRegion(sizeof(Obdn_R_Index) * prim->indexCount, 
+    prim->indexRegion = obdn_RequestBufferRegion(memory, sizeof(Obdn_R_Index) * prim->indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
-static void initPrimBuffersAligned(Obdn_R_Primitive* prim, const uint32_t offsetAlignment)
+static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_R_Primitive* prim, const uint32_t offsetAlignment)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
@@ -61,10 +62,10 @@ static void initPrimBuffersAligned(Obdn_R_Primitive* prim, const uint32_t offset
         vertexBufferSize += attrRegionSize;
     }
 
-    prim->vertexRegion = obdn_v_RequestBufferRegionAligned(vertexBufferSize, 
+    prim->vertexRegion = obdn_RequestBufferRegionAligned(memory, vertexBufferSize, 
             offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    prim->indexRegion = obdn_v_RequestBufferRegionAligned(sizeof(Obdn_R_Index) * prim->indexCount, 
+    prim->indexRegion = obdn_RequestBufferRegionAligned(memory, sizeof(Obdn_R_Index) * prim->indexCount, 
             offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
@@ -121,13 +122,13 @@ void obdn_r_PrintPrim(const Obdn_R_Primitive* prim)
     printPrim(prim);
 }
 
-void obdn_r_TransferPrimToDevice(Obdn_R_Primitive* prim)
+void obdn_TransferPrimToDevice(Obdn_Memory* memory, Obdn_R_Primitive* prim)
 {
-    obdn_v_TransferToDevice(&prim->vertexRegion);
-    obdn_v_TransferToDevice(&prim->indexRegion);
+    obdn_TransferToDevice(memory, &prim->vertexRegion);
+    obdn_TransferToDevice(memory, &prim->indexRegion);
 }
 
-Obdn_R_Primitive obdn_r_CreateTriangle(void)
+Obdn_R_Primitive obdn_CreateTriangle(Obdn_Memory* memory)
 {
     Obdn_R_Primitive prim = {
         .indexCount = 3, 
@@ -136,7 +137,7 @@ Obdn_R_Primitive obdn_r_CreateTriangle(void)
         .attrSizes = {12, 12}
     };
 
-    initPrimBuffers(&prim);
+    initPrimBuffers(memory, &prim);
 
     Vec3 positions[] = {
         {0.0, 0.5, 0.0},
@@ -163,7 +164,7 @@ Obdn_R_Primitive obdn_r_CreateTriangle(void)
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreateCubePrim(const bool isClockWise)
+Obdn_R_Primitive obdn_CreateCubePrim(Obdn_Memory* memory, const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
@@ -176,7 +177,7 @@ Obdn_R_Primitive obdn_r_CreateCubePrim(const bool isClockWise)
         .attrSizes = {12, 12, 12}
     };
 
-    initPrimBuffers(&prim);
+    initPrimBuffers(memory, &prim);
 
     const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME, UVW_NAME};
     for (int i = 0; i < attrCount; i++) 
@@ -313,7 +314,7 @@ Obdn_R_Primitive obdn_r_CreateCubePrim(const bool isClockWise)
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreateCubePrimUV(const bool isClockWise)
+Obdn_R_Primitive obdn_CreateCubePrimUV(Obdn_Memory* memory, const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
@@ -326,7 +327,7 @@ Obdn_R_Primitive obdn_r_CreateCubePrimUV(const bool isClockWise)
         .attrSizes = {12, 12, 8}
     };
 
-    initPrimBuffers(&prim);
+    initPrimBuffers(memory, &prim);
 
     const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME, UV_NAME};
     for (int i = 0; i < attrCount; i++) 
@@ -463,7 +464,7 @@ Obdn_R_Primitive obdn_r_CreateCubePrimUV(const bool isClockWise)
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreatePoints(const uint32_t count)
+Obdn_R_Primitive obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
 {
     Obdn_R_Primitive prim = {
         .attrCount = 2,
@@ -472,7 +473,7 @@ Obdn_R_Primitive obdn_r_CreatePoints(const uint32_t count)
         .vertexCount = count,
     };
 
-    prim.vertexRegion = obdn_v_RequestBufferRegion(
+    prim.vertexRegion = obdn_RequestBufferRegion(memory,
             12 * prim.attrCount * prim.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
             OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
@@ -495,7 +496,7 @@ Obdn_R_Primitive obdn_r_CreatePoints(const uint32_t count)
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
+Obdn_R_Primitive obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
 {
     assert(patchSize < vertCount);
     assert(restartOffset < patchSize);
@@ -507,7 +508,7 @@ Obdn_R_Primitive obdn_r_CreateCurve(const uint32_t vertCount, const uint32_t pat
         .vertexCount = vertCount,
     };
 
-    initPrimBuffers(&prim);
+    initPrimBuffers(memory, &prim);
 
     Vec3* positions = obdn_r_GetPrimAttribute(&prim, 0);
     Vec3* colors    = obdn_r_GetPrimAttribute(&prim, 1);
@@ -534,7 +535,7 @@ Obdn_R_Primitive obdn_r_CreateCurve(const uint32_t vertCount, const uint32_t pat
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreateQuad(const float width, const float height, Obdn_R_AttributeBits attribBits)
+Obdn_R_Primitive obdn_CreateQuad(Obdn_Memory* memory, const float width, const float height, Obdn_R_AttributeBits attribBits)
 {
     const int attrCount = __builtin_popcount(attribBits) + 1;
 
@@ -549,7 +550,7 @@ Obdn_R_Primitive obdn_r_CreateQuad(const float width, const float height, Obdn_R
         prim.attrSizes[i] = 12;
     }
 
-    initPrimBuffers(&prim);
+    initPrimBuffers(memory, &prim);
 
     Vec3* pos = obdn_r_GetPrimAttribute(&prim, 0);
 
@@ -592,13 +593,13 @@ Obdn_R_Primitive obdn_r_CreateQuad(const float width, const float height, Obdn_R
     index[4] = 1;
     index[5] = 3;
 
-    obdn_v_TransferToDevice(&prim.vertexRegion);
-    obdn_v_TransferToDevice(&prim.indexRegion);
+    obdn_TransferToDevice(memory, &prim.vertexRegion);
+    obdn_TransferToDevice(memory, &prim.indexRegion);
 
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreateQuadNDC(const float x, const float y, const float width, const float height)
+Obdn_R_Primitive obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float y, const float width, const float height)
 {
     Obdn_R_Primitive prim = {
         .attrCount = 2,
@@ -607,7 +608,7 @@ Obdn_R_Primitive obdn_r_CreateQuadNDC(const float x, const float y, const float 
         .attrSizes = {12, 12}
     };
 
-    initPrimBuffers(&prim);
+    initPrimBuffers(memory, &prim);
 
     Vec3* pos = obdn_r_GetPrimAttribute(&prim, 0);
     // upper left. x, y
@@ -633,7 +634,7 @@ Obdn_R_Primitive obdn_r_CreateQuadNDC(const float x, const float y, const float 
     return prim;
 }
 
-Obdn_R_Primitive obdn_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
+Obdn_R_Primitive obdn_CreatePrimitive(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t indexCount, 
         const uint8_t attrCount, const uint8_t attrSizes[attrCount])
 {
     Obdn_R_Primitive prim = {
@@ -649,7 +650,7 @@ Obdn_R_Primitive obdn_r_CreatePrimitive(const uint32_t vertCount, const uint32_t
         prim.attrSizes[i] = attrSizes[i];
     }
 
-    initPrimBuffersAligned(&prim, obdn_v_GetPhysicalDeviceProperties()->limits.minStorageBufferOffsetAlignment); // for use in compute / rt shaders
+    initPrimBuffersAligned(memory, &prim, obdn_GetPhysicalDeviceProperties(memory->instance)->limits.minStorageBufferOffsetAlignment); // for use in compute / rt shaders
 
     return prim;
 }
@@ -717,8 +718,8 @@ void obdn_r_DrawPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
 
 void obdn_r_FreePrim(Obdn_R_Primitive *prim)
 {
-    obdn_v_FreeBufferRegion(&prim->vertexRegion);
-    obdn_v_FreeBufferRegion(&prim->indexRegion);
+    obdn_FreeBufferRegion(&prim->vertexRegion);
+    obdn_FreeBufferRegion(&prim->indexRegion);
 }
 
 VkDeviceSize obdn_r_GetAttrOffset(const Obdn_R_Primitive* prim, const char* attrname)

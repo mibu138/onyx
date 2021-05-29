@@ -22,17 +22,16 @@ typedef Obdn_V_Command Obdn_Command;
     "extGraphicsImageMemorySize"
 
 void obdn_Announce(const char *fmt, ...);
-void obdn_Init(void);
+void obdn_Init(Obdn_Instance* instance);
 
 // if null is passed it will be an offscreen swapchain.
 // returns the swapchain id. currently not used for anything.
 
-void obdn_CreateFramebuffer(const unsigned attachmentCount,
-                            const VkImageView *attachments,
-                            const unsigned width, const unsigned height,
-                            const VkRenderPass renderpass,
-                            VkFramebuffer *framebuffer);
+void obdn_CreateFramebuffer(const Obdn_Instance* instance, const unsigned attachmentCount, const VkImageView* attachments, 
+        const unsigned width, const unsigned height, 
+        const VkRenderPass renderpass,
+        VkFramebuffer* framebuffer);
 
-void obdn_DestroyFramebuffer(VkFramebuffer fb);
+void obdn_DestroyFramebuffer(const Obdn_Instance* instance, VkFramebuffer fb);
 
 #endif /* end of include guard: OBSIDIAN_COMMON_H */

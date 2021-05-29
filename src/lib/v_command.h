@@ -5,11 +5,12 @@
 #include "v_video.h"
 
 typedef struct Obdn_V_Command{
-    VkCommandPool       pool;
-    VkCommandBuffer     buffer;
-    VkSemaphore         semaphore;
-    VkFence             fence;
-    uint32_t            queueFamily;
+    VkCommandPool        pool;
+    VkCommandBuffer      buffer;
+    VkSemaphore          semaphore;
+    VkFence              fence;
+    uint32_t             queueFamily;
+    const Obdn_Instance* instance;
 } Obdn_V_Command;
 
 typedef struct {
@@ -19,18 +20,18 @@ typedef struct {
     VkAccessFlags dstAccessMask;
 } Obdn_V_Barrier;
 
-Obdn_V_Command obdn_v_CreateCommand(const Obdn_V_QueueType);
+Obdn_V_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_QueueType);
 
-void obdn_v_BeginCommandBuffer(VkCommandBuffer cmdBuf);
-void obdn_v_EndCommandBuffer(VkCommandBuffer cmdBuf);
+void obdn_BeginCommandBuffer(VkCommandBuffer cmdBuf);
+void obdn_EndCommandBuffer(VkCommandBuffer cmdBuf);
 
-void obdn_v_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex);
+void obdn_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex);
 
-void obdn_v_DestroyCommand(Obdn_V_Command);
+void obdn_DestroyCommand(Obdn_V_Command);
 
-void obdn_v_WaitForFence(VkFence* fence);
-void obdn_v_ResetCommand(Obdn_V_Command* cmd);
-void obdn_v_WaitForFenceNoReset(VkFence* fence);
+void obdn_WaitForFence(VkDevice device, VkFence* fence);
+void obdn_ResetCommand(Obdn_V_Command* cmd);
+void obdn_WaitForFenceNoReset(VkDevice device, VkFence* fence);
 void obdn_v_MemoryBarrier(
     VkCommandBuffer      commandBuffer,
     VkPipelineStageFlags srcStageMask,
@@ -39,8 +40,8 @@ void obdn_v_MemoryBarrier(
     VkAccessFlags        srcAccessMask,
     VkAccessFlags        dstAccessMask);
 
-void obdn_CreateFence(VkFence* fence);
-void obdn_CreateSemaphore(VkSemaphore* semaphore);
+void obdn_CreateFence(VkDevice, VkFence* fence);
+void obdn_CreateSemaphore(VkDevice, VkSemaphore* semaphore);
 
 void obdn_SubmitCommand(Obdn_V_Command* cmd, VkSemaphore semaphore, VkFence fence);
 
@@ -53,10 +54,7 @@ void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf,
 
 void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf);
 
-void obdn_DestroyFence(VkFence fence);
-
-void obdn_DestroySemaphore(VkSemaphore semaphore);
-
-void obdn_DeviceWaitIdle(void);
+void obdn_DestroyFence(VkDevice device, VkFence fence);
+void obdn_DestroySemaphore(VkDevice device, VkSemaphore semaphore);
 
 #endif /* end of include guard: OBDN_V_COMMAND_H */

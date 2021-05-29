@@ -121,7 +121,7 @@ void obdn_s_RemoveLight(Obdn_S_Scene* s, Obdn_S_LightId id);
 
 bool obdn_s_PrimExists(const Obdn_S_Scene* s, Obdn_S_PrimId id);
 
-Obdn_S_PrimId    obdn_s_LoadPrim(Obdn_S_Scene* scene, const char* filePath, const Coal_Mat4 xform);
+Obdn_S_PrimId obdn_s_LoadPrim(Obdn_S_Scene* scene, Obdn_Memory* memory, const char* filePath, const Coal_Mat4 xform);
 void             obdn_s_RemovePrim(Obdn_S_Scene* s, Obdn_S_PrimId id);
 Obdn_S_PrimId    obdn_s_AddRPrim(Obdn_S_Scene* scene, const Obdn_R_Primitive prim, const Coal_Mat4 xform);
 Obdn_S_TextureId obdn_s_LoadTexture(Obdn_S_Scene* scene, const char* filePath, const uint8_t channelCount);

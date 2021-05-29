@@ -42,27 +42,27 @@ typedef enum {
 } Obdn_R_AttributeBits;
 
 // pos and color. clockwise for now.
-Obdn_R_Primitive  obdn_r_CreateTriangle(void);
-Obdn_R_Primitive  obdn_r_CreateCubePrim(const bool isClockWise);
-Obdn_R_Primitive  obdn_r_CreateCubePrimUV(const bool isClockWise);
-Obdn_R_Primitive  obdn_r_CreatePoints(const uint32_t count);
-Obdn_R_Primitive  obdn_r_CreateCurve(const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
-Obdn_R_Primitive  obdn_r_CreateQuad(const float width, const float height, const Obdn_R_AttributeBits attribBits);
-Obdn_R_Primitive  obdn_r_CreateQuadNDC(const float x, const float y, const float width, const float height);
+Obdn_R_Primitive  obdn_CreateTriangle(Obdn_Memory*);
+Obdn_R_Primitive  obdn_CreateCubePrim(Obdn_Memory*, const bool isClockWise);
+Obdn_R_Primitive  obdn_CreateCubePrimUV(Obdn_Memory*, const bool isClockWise);
+Obdn_R_Primitive  obdn_CreatePoints(Obdn_Memory*, const uint32_t count);
+Obdn_R_Primitive  obdn_CreateCurve(Obdn_Memory*, const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
+Obdn_R_Primitive  obdn_CreateQuad(Obdn_Memory*, const float width, const float height, const Obdn_R_AttributeBits attribBits);
+Obdn_R_Primitive  obdn_CreateQuadNDC(Obdn_Memory*, const float x, const float y, const float width, const float height);
 #ifdef __cplusplus // no real reason to be doing this... other than documentation
-Obdn_R_Primitive  obdn_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
+Obdn_R_Primitive  obdn_CreatePrimitive(Obdn_Memory*, const uint32_t vertCount, const uint32_t indexCount, 
                                            const uint8_t attrCount, const uint8_t* attrSizes);
 Obdn_R_VertexDescription obdn_r_GetVertexDescription(const uint32_t attrCount, const Obdn_R_AttributeSize* attrSizes);
 #else
-Obdn_R_Primitive  obdn_r_CreatePrimitive(const uint32_t vertCount, const uint32_t indexCount, 
-                                           const uint8_t attrCount, const uint8_t attrSizes[attrCount]);
+Obdn_R_Primitive  obdn_CreatePrimitive(Obdn_Memory*, const uint32_t vertCount, const uint32_t indexCount, 
+                                           const uint8_t attrCount, const uint8_t* attrSizes);
 Obdn_R_VertexDescription obdn_r_GetVertexDescription(const uint32_t attrCount, const Obdn_R_AttributeSize attrSizes[attrCount]);
 #endif
 void*              obdn_r_GetPrimAttribute(const Obdn_R_Primitive* prim, const uint32_t index);
 Obdn_R_Index*     obdn_r_GetPrimIndices(const Obdn_R_Primitive* prim);
 void obdn_r_BindPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim);
 void obdn_r_DrawPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim);
-void obdn_r_TransferPrimToDevice(Obdn_R_Primitive* prim);
+void obdn_TransferPrimToDevice(Obdn_Memory* memory, Obdn_R_Primitive* prim);
 void obdn_r_FreePrim(Obdn_R_Primitive* prim);
 void obdn_r_PrintPrim(const Obdn_R_Primitive* prim);
 

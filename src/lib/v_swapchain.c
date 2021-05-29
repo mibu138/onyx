@@ -27,6 +27,8 @@
 #define SWAPCHAIN_DEFAULT_FORMAT VK_FORMAT_B8G8R8A8_SRGB
 
 typedef struct Obdn_Swapchain {
+    VkDevice                     device;
+    VkQueue                      presentQueue;
     VkImage                      images[SWAPCHAIN_IMAGE_COUNT];
     VkImageView                  views[SWAPCHAIN_IMAGE_COUNT];
     uint32_t                     imageCount;
@@ -40,6 +42,8 @@ typedef struct Obdn_Swapchain {
     bool                         dirty;
     uint32_t                     width;
     uint32_t                     height;
+    VkPhysicalDevice             physicalDevice;
+    VkPresentModeKHR             presentMode;
 } Obdn_Swapchain;
 
 static VkExtent2D
@@ -64,7 +68,7 @@ getCorrectedSwapchainDimensions(const VkSurfaceCapabilitiesKHR capabilities,
 
 #ifdef UNIX
 static void
-initSurfaceXcb(const Hell_Window* window, VkSurfaceKHR* surface)
+initSurfaceXcb(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* surface)
 {
     const XcbWindow*                w  = window->typeSpecificData;
     const VkXcbSurfaceCreateInfoKHR ci = {
@@ -73,13 +77,13 @@ initSurfaceXcb(const Hell_Window* window, VkSurfaceKHR* surface)
         .window     = w->window,
     };
 
-    V_ASSERT(vkCreateXcbSurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, surface));
+    V_ASSERT(vkCreateXcbSurfaceKHR(instance, &ci, NULL, surface));
 }
 #endif
 
 #ifdef WINDOWS
 static void
-initSurfaceWin32(const Hell_Window* window, VkSurfaceKHR* surface)
+initSurfaceWin32(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* surface)
 {
     const Win32Window*          w  = window->typeSpecificData;
     VkWin32SurfaceCreateInfoKHR ci = {
@@ -88,19 +92,19 @@ initSurfaceWin32(const Hell_Window* window, VkSurfaceKHR* surface)
         .hwnd      = w->hwnd};
 
     V_ASSERT(
-        vkCreateWin32SurfaceKHR(*obdn_v_GetInstance(), &ci, NULL, &surface));
+        vkCreateWin32SurfaceKHR(instance, &ci, NULL, &surface));
 }
 #endif
 
 static void
-initSurface(const Hell_Window* window, VkSurfaceKHR* surface)
+initSurface(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* surface)
 {
     assert(window);
     assert(window->typeSpecificData);
 #ifdef UNIX
-    initSurfaceXcb(window, surface);
+    initSurfaceXcb(instance, window, surface);
 #elif defined(WINDOWS)
-    initSurfaceWin32(window, surface);
+    initSurfaceWin32(instance, window, surface);
 #endif
     obdn_Announce("Vulkan Surface initialized.\n");
 }
@@ -126,16 +130,12 @@ chooseFormat(const VkPhysicalDevice physicalDevice, const VkSurfaceKHR surface)
                                      // physical device;
 }
 
-static void
-createSwapchainWithSurface(const VkSurfaceKHR surface, const uint32_t widthHint,
-                           const uint32_t heightHint, const VkFormat swapFormat,
-                           const VkImageUsageFlags usageFlags, const VkFormat format,
-                           uint32_t* correctedWidth, uint32_t* correctedHeight,
-                           VkSwapchainKHR* swapchain)
+static void initSwapchainPresentMode(const VkPhysicalDevice physicalDevice,
+        const VkSurfaceKHR surface,
+        Obdn_Swapchain* swapchain)
 {
     assert(surface);
     VkBool32               supported;
-    const VkPhysicalDevice physicalDevice = obdn_v_GetPhysicalDevice();
     vkGetPhysicalDeviceSurfaceSupportKHR(physicalDevice, 0, surface,
                                          &supported);
 
@@ -150,11 +150,18 @@ createSwapchainWithSurface(const VkSurfaceKHR surface, const uint32_t widthHint,
 
     // const VkPresentModeKHR presentMode = VK_PRESENT_MODE_FIFO_KHR; // i
     // already know its supported
-    const VkPresentModeKHR presentMode =
+    swapchain->presentMode =
         VK_PRESENT_MODE_IMMEDIATE_KHR; // I get less input lag with this mode
 
+}
+
+static void
+createSwapchainWithSurface(Obdn_Swapchain* swapchain,
+                           const uint32_t widthHint,
+                           const uint32_t heightHint)
+{
     VkSurfaceCapabilitiesKHR capabilities;
-    V_ASSERT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice, surface,
+    V_ASSERT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(swapchain->physicalDevice, swapchain->surface,
                                                        &capabilities));
 
     assert(capabilities.supportedUsageFlags &
@@ -165,19 +172,19 @@ createSwapchainWithSurface(const VkSurfaceKHR surface, const uint32_t widthHint,
     VkExtent2D swapDim = getCorrectedSwapchainDimensions(
         capabilities, (VkExtent2D){widthHint, heightHint});
 
-    *correctedWidth = swapDim.width;
-    *correctedHeight = swapDim.height;
+    swapchain->width  = swapDim.width;
+    swapchain->height = swapDim.height;
 
     const VkSwapchainCreateInfoKHR ci = {
         .sType                 = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
-        .surface               = surface,
+        .surface               = swapchain->surface,
         .minImageCount         = 2,
-        .imageFormat           = format,
+        .imageFormat           = swapchain->format,
         .imageColorSpace       = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR,
         .imageExtent           = swapDim,
         // number of views in a multiview / stereo surface
         .imageArrayLayers      = 1,
-        .imageUsage            = usageFlags,
+        .imageUsage            = swapchain->imageUsageFlags,
         // queue sharing. see
         // vkspec section 11.7.
         .imageSharingMode      = VK_SHARING_MODE_EXCLUSIVE,
@@ -188,20 +195,20 @@ createSwapchainWithSurface(const VkSurfaceKHR surface, const uint32_t widthHint,
         .preTransform          = capabilities.currentTransform,
         // dunno. may affect blending
         .compositeAlpha        = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
-        .presentMode           = presentMode,
+        .presentMode           = swapchain->presentMode,
         // allows pixels convered by another window to be
         // clipped. but will mess up saving the swap image.        .clipped =
         // VK_FALSE,
 
         .oldSwapchain = VK_NULL_HANDLE};
 
-    V_ASSERT(vkCreateSwapchainKHR(device, &ci, NULL, swapchain));
+    V_ASSERT(vkCreateSwapchainKHR(swapchain->device, &ci, NULL, &swapchain->swapchain));
 
     DPRINT("Swapchain created successfully.\n");
 }
 
 static void
-createSwapchainImageViews(const VkSwapchainKHR swapchain, const VkFormat format,
+createSwapchainImageViews(const VkDevice device, const VkSwapchainKHR swapchain, const VkFormat format,
                           const uint32_t width, const uint32_t height,
                           uint32_t* imageCount, VkImage* images,
                           VkImageView* views)
@@ -233,24 +240,19 @@ createSwapchainImageViews(const VkSwapchainKHR swapchain, const VkFormat format,
 }
 
 static void
-recreateSwapchain(const VkSurfaceKHR surface, const uint32_t widthHint,
-                  const uint32_t heightHint, const VkFormat swapFormat,
-                  const VkImageUsageFlags usageFlags, 
-                  uint32_t* correctedWidth, uint32_t* correctedHeight,
-                  bool* dirtyFlag, VkSwapchainKHR* swapchain,
-                  uint32_t* imageCount,
-                  VkImage* images,
-                  VkImageView* views)
+recreateSwapchain(Obdn_Swapchain* swapchain, const uint32_t widthHint,
+                  const uint32_t heightHint)
 {
-    for (int i = 0; i < *imageCount; i++)
+    for (int i = 0; i < swapchain->imageCount; i++)
     {
-        vkDestroyImageView(device, views[i], NULL);
+        vkDestroyImageView(swapchain->device, swapchain->views[i], NULL);
     }
-    vkDestroySwapchainKHR(device, *swapchain, NULL);
-    createSwapchainWithSurface(surface, widthHint, heightHint, swapFormat,
-                               usageFlags, swapFormat, correctedWidth, correctedHeight, swapchain);
-    createSwapchainImageViews(*swapchain, swapFormat, *correctedWidth, *correctedHeight, imageCount, images, views);
-    *dirtyFlag = true;
+    vkDestroySwapchainKHR(swapchain->device, swapchain->swapchain, NULL);
+    createSwapchainWithSurface(
+        swapchain, widthHint, heightHint);
+    createSwapchainImageViews(swapchain->device, swapchain->swapchain,
+                              swapchain->format, swapchain->width,
+                              swapchain->height, &swapchain->imageCount, swapchain->images, swapchain->views);
 }
 
 // this just sets the swapWidth and swapHeight and we rely on the call to
@@ -276,19 +278,21 @@ Obdn_Swapchain* obdn_AllocSwapchain(void)
 }
 
 void
-obdn_InitSwapchain(Obdn_Swapchain*         swapchain,
+obdn_InitSwapchain(const Obdn_Instance* instance,
                    const VkImageUsageFlags swapImageUsageFlags_,
-                   const Hell_Window*      hellWindow)
+                   const Hell_Window*      hellWindow,
+                   Obdn_Swapchain* swapchain)
 {
     memset(swapchain, 0, sizeof(Obdn_Swapchain));
+    swapchain->device = instance->device;
+    swapchain->presentQueue = instance->presentQueue;
     swapchain->imageUsageFlags = swapImageUsageFlags_;
-    initSurface(hellWindow, &swapchain->surface);
-    swapchain->format = chooseFormat(obdn_v_GetPhysicalDevice(), swapchain->surface);
-    createSwapchainWithSurface(
-        swapchain->surface, hellWindow->width, hellWindow->height,
-        SWAPCHAIN_DEFAULT_FORMAT, swapImageUsageFlags_, swapchain->format,
-        &swapchain->width, &swapchain->height, &swapchain->swapchain);
-    createSwapchainImageViews(swapchain->swapchain, swapchain->format,
+    swapchain->physicalDevice = instance->physicalDevice;
+    initSurface(instance->vkinstance, hellWindow, &swapchain->surface);
+    swapchain->format = chooseFormat(instance->physicalDevice, swapchain->surface);
+    initSwapchainPresentMode(instance->physicalDevice, swapchain->surface, swapchain);
+    createSwapchainWithSurface(swapchain, hellWindow->width, hellWindow->height);
+    createSwapchainImageViews(swapchain->device, swapchain->swapchain, swapchain->format,
                               swapchain->width, swapchain->height,
                               &swapchain->imageCount, swapchain->images,
                               swapchain->views);
@@ -297,14 +301,14 @@ obdn_InitSwapchain(Obdn_Swapchain*         swapchain,
 }
 
 void
-obdn_ShutdownSwapchain(Obdn_Swapchain* swapchain)
+obdn_ShutdownSwapchain(const Obdn_Instance* instance, Obdn_Swapchain* swapchain)
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++)
     {
-        vkDestroyImageView(device, swapchain->views[i], NULL);
+        vkDestroyImageView(swapchain->device, swapchain->views[i], NULL);
     }
-    vkDestroySwapchainKHR(device, swapchain->swapchain, NULL);
-    vkDestroySurfaceKHR(*obdn_v_GetInstance(), swapchain->surface, NULL);
+    vkDestroySwapchainKHR(swapchain->device, swapchain->swapchain, NULL);
+    vkDestroySurfaceKHR(instance->vkinstance, swapchain->surface, NULL);
     memset(swapchain, 0, sizeof(*swapchain));
     obdn_Announce("Swapchain shutdown.\n");
 }
@@ -343,28 +347,19 @@ obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
 retry:
     if (resizeEventOccurred)
     {
-        vkDeviceWaitIdle(device);
-        recreateSwapchain(
-            swapchain->surface, resizeEventData.width, resizeEventData.height,
-            swapchain->format, swapchain->imageUsageFlags,
-            &swapchain->width, &swapchain->height, &swapchain->dirty,
-            &swapchain->swapchain, &swapchain->imageCount, swapchain->images,
-            swapchain->views);
+        vkDeviceWaitIdle(swapchain->device);
+        recreateSwapchain(swapchain,
+            resizeEventData.width, resizeEventData.height);
         resizeEventOccurred = false;
         *dirty = true;
     }
-    r = vkAcquireNextImageKHR(device, swapchain->swapchain, WAIT_TIME_NS,
+    r = vkAcquireNextImageKHR(swapchain->device, swapchain->swapchain, WAIT_TIME_NS,
                               *semaphore, *fence,
                               &swapchain->acquiredImageIndex);
     if (VK_ERROR_OUT_OF_DATE_KHR == r)
     {
-        vkDeviceWaitIdle(device);
-        recreateSwapchain(
-            swapchain->surface, swapchain->width, swapchain->height,
-            swapchain->format, swapchain->imageUsageFlags,
-            &swapchain->width, &swapchain->height, &swapchain->dirty,
-            &swapchain->swapchain, &swapchain->imageCount, swapchain->images,
-            swapchain->views);
+        vkDeviceWaitIdle(swapchain->device);
+        recreateSwapchain(swapchain, swapchain->width, swapchain->height);
         *dirty = true;
         goto retry;
     }
@@ -395,7 +390,7 @@ obdn_PresentFrame(const Obdn_Swapchain* swapchain, const uint32_t semaphoreCount
                                        &swapchain->acquiredImageIndex};
 
     VkResult presentResult;
-    presentResult = vkQueuePresentKHR(obdn_v_GetPresentQueue(), &info);
+    presentResult = vkQueuePresentKHR(swapchain->presentQueue, &info);
     if (presentResult == VK_ERROR_OUT_OF_DATE_KHR)
     {
         return false;

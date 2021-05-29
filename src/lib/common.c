@@ -24,7 +24,7 @@ void obdn_Announce(const char* fmt, ...)
     hell_Print("%s%s", HEADER, msg);
 }
 
-void obdn_Init(void)
+void obdn_Init(Obdn_Instance* instance)
 {
     Obdn_V_Config cfg = {0};
     cfg.memorySizes.hostGraphicsBufferMemorySize   = hell_c_GetVar("hstGraphicsBufferMemorySize", STR_100_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
@@ -35,10 +35,10 @@ void obdn_Init(void)
 #else
     cfg.validationEnabled = true;
 #endif
-    obdn_v_Init(&cfg, 0, NULL);
+    obdn_InitInstance(&cfg, 0, NULL, instance);
 }
 
-void obdn_CreateFramebuffer(const unsigned attachmentCount, const VkImageView* attachments, 
+void obdn_CreateFramebuffer(const Obdn_Instance* instance, const unsigned attachmentCount, const VkImageView* attachments, 
         const unsigned width, const unsigned height, 
         const VkRenderPass renderpass,
         VkFramebuffer* framebuffer)
@@ -52,11 +52,11 @@ void obdn_CreateFramebuffer(const unsigned attachmentCount, const VkImageView* a
         .height = height,
         .layers = 1
     };
-    vkCreateFramebuffer(device, &ci, NULL, framebuffer);
+    vkCreateFramebuffer(instance->device, &ci, NULL, framebuffer);
 }
 
-void obdn_DestroyFramebuffer(VkFramebuffer fb)
+void obdn_DestroyFramebuffer(const Obdn_Instance* instance, VkFramebuffer fb)
 {
-    vkDestroyFramebuffer(device, fb, NULL);
+    vkDestroyFramebuffer(instance->device, fb, NULL);
 }
 

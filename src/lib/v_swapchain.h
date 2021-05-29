@@ -15,10 +15,11 @@ typedef struct Obdn_Swapchain Obdn_Swapchain;
 Obdn_Swapchain* obdn_AllocSwapchain(void);
 size_t          obdn_SizeOfSwapchain(void);
 void            obdn_FreeSwapchain(Obdn_Swapchain* swapchain);
-void            obdn_InitSwapchain(Obdn_Swapchain*         swapchain,
+void            obdn_InitSwapchain(const Obdn_Instance* instance,
                                    const VkImageUsageFlags swapImageUsageFlags_,
-                                   const Hell_Window*      hellWindow);
-void            obdn_ShutdownSwapchain(Obdn_Swapchain* swapchain);
+                                   const Hell_Window*      hellWindow,
+                                   Obdn_Swapchain*         swapchain);
+void            obdn_ShutdownSwapchain(const Obdn_Instance* instance, Obdn_Swapchain* swapchain);
 unsigned        obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain);
 unsigned        obdn_GetSwapchainHeight(const Obdn_Swapchain* swapchain);
 VkExtent2D      obdn_GetSwapchainExtent(const Obdn_Swapchain* swapchain);
