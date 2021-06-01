@@ -681,6 +681,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
     image.extent.width  = width;
     image.extent.height = height;
     image.mipLevels     = mipLevels;
+    image.aspectMask    = aspectMask;
 
     switch (memType)
     {

@@ -30,7 +30,10 @@ void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayo
 void obdn_CopyBufferToImage(const Obdn_V_BufferRegion* region,
         Obdn_V_Image* image);
 
-void obdn_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_BufferRegion* region,
+void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
+        const Obdn_V_Image* image, Obdn_V_BufferRegion* region);
+
+void obdn_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, uint32_t mipLevel, const Obdn_V_BufferRegion* region,
         Obdn_V_Image* image);
 
 void obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Obdn_V_Barrier barrier, 
@@ -49,10 +52,5 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
 void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const char* name);
 
 void obdn_v_ClearColorImage(Obdn_V_Image* image);
-
-void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, const VkImage image,
-                          VkOffset3D imageOffset, VkExtent3D imageExtent,
-                          VkImageAspectFlags aspectMask, uint32_t miplevel,
-                          VkBuffer buffer, VkDeviceSize bufferOffset);
 
 #endif /* end of include guard: OBDN_V_IMAGE_H */

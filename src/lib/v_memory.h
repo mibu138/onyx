@@ -33,8 +33,9 @@ typedef struct {
     VkImage            handle;
     VkImageView        view;
     VkSampler          sampler;
+    VkImageAspectFlags aspectMask;
     VkDeviceSize       size; // size in bytes. taken from GetMemReqs
-    VkDeviceSize       offset;
+    VkDeviceSize       offset;//TODO: delete this and see if its even necessary... should probably be a VkOffset3D object
     VkExtent3D         extent;
     VkImageLayout      layout;
     uint32_t           mipLevels;

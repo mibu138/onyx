@@ -175,14 +175,14 @@ void obdn_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrier
             barrier.dstStageFlags, 0, 0, NULL, 0, NULL, 1, &imgBarrier);
 }
 
-void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_BufferRegion* region,
+void obdn_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel, const Obdn_V_BufferRegion* region,
         Obdn_V_Image* image)
 {
     const VkImageSubresourceLayers subRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
         .baseArrayLayer = 0,
         .layerCount = 1, 
-        .mipLevel = 0,
+        .mipLevel = mipLevel,
     };
 
     const VkOffset3D imgOffset = {
@@ -205,53 +205,24 @@ void obdn_v_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, const Obdn_V_Buff
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &imgCopy);
 }
 
-void obdn_v_CmdCopyImageToBuffer(const VkCommandBuffer cmdbuf, const Obdn_V_Image* image, const VkImageAspectFlags aspectMask, Obdn_V_BufferRegion* region)
+void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
+        const Obdn_V_Image* image, Obdn_V_BufferRegion* region)
 {
-    const VkImageSubresourceLayers subRes = {
-        .aspectMask = aspectMask,
-        .baseArrayLayer = 0,
-        .layerCount = 1, 
-        .mipLevel = 0,
-    };
-
-    const VkOffset3D imgOffset = {
-        .x = 0,
-        .y = 0,
-        .z = 0
-    };
-
-    const VkBufferImageCopy imgCopy = {
-        .imageOffset = imgOffset,
-        .imageExtent = image->extent,
-        .imageSubresource = subRes,
-        .bufferOffset = region->offset,
-        .bufferImageHeight = 0,
-        .bufferRowLength = 0
-    };
-
-    vkCmdCopyImageToBuffer(cmdbuf, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region->buffer, 1, &imgCopy);
-}
-
-void
-obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, const VkImage image,
-                          VkOffset3D imageOffset, VkExtent3D imageExtent,
-                          VkImageAspectFlags aspectMask, uint32_t miplevel,
-                          VkBuffer buffer, VkDeviceSize bufferOffset)
-{
-    const VkImageSubresourceLayers subRes = {.aspectMask     = aspectMask,
+    assert( miplevel < image->mipLevels);
+    const VkImageSubresourceLayers subRes = {.aspectMask     = image->aspectMask,
                                              .baseArrayLayer = 0,
                                              .layerCount     = 1,
                                              .mipLevel       = miplevel};
 
-    const VkBufferImageCopy imgCopy = {.imageOffset       = imageOffset,
-                                       .imageExtent       = imageExtent,
+    const VkBufferImageCopy imgCopy = {.imageOffset       = {0, 0, 0},
+                                       .imageExtent       = image->extent,
                                        .imageSubresource  = subRes,
-                                       .bufferOffset      = bufferOffset,
+                                       .bufferOffset      = region->offset,
                                        .bufferImageHeight = 0,
                                        .bufferRowLength   = 0};
 
-    vkCmdCopyImageToBuffer(cmdbuf, image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-                           buffer, 1, &imgCopy);
+    vkCmdCopyImageToBuffer(cmdbuf, image->handle, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                           region->buffer, 1, &imgCopy);
 }
 
 void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image)
@@ -298,7 +269,7 @@ void obdn_CopyBufferToImage(const Obdn_V_BufferRegion* region,
         obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout, 
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image->mipLevels, image->handle);
 
-    obdn_v_CmdCopyBufferToImage(cmd.buffer, region, image);
+    obdn_CmdCopyBufferToImage(cmd.buffer, 0, region, image);
 
     barrier.srcStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -360,7 +331,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
 
     obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, image->handle);
 
-    obdn_v_CmdCopyBufferToImage(cmd.buffer, &stagingBuffer, image);
+    obdn_CmdCopyBufferToImage(cmd.buffer, 0, &stagingBuffer, image);
 
 
     if (!createMips)
