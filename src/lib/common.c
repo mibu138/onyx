@@ -24,20 +24,6 @@ void obdn_Announce(const char* fmt, ...)
     hell_Print("%s%s", HEADER, msg);
 }
 
-void obdn_Init(Obdn_Instance* instance)
-{
-    Obdn_V_Config cfg = {0};
-    cfg.memorySizes.hostGraphicsBufferMemorySize   = hell_c_GetVar("hstGraphicsBufferMemorySize", STR_100_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
-    cfg.memorySizes.deviceGraphicsBufferMemorySize = hell_c_GetVar("devGraphicsBufferMemorySize", STR_100_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
-    cfg.memorySizes.deviceGraphicsImageMemorySize  =  hell_c_GetVar("devGraphicsImageMemorySize", STR_256_MB, HELL_C_VAR_ARCHIVE_BIT)->value;
-#ifdef NDEBUG
-    cfg.validationEnabled = false;
-#else
-    cfg.validationEnabled = true;
-#endif
-    obdn_InitInstance(&cfg, 0, NULL, instance);
-}
-
 void obdn_CreateFramebuffer(const Obdn_Instance* instance, const unsigned attachmentCount, const VkImageView* attachments, 
         const unsigned width, const unsigned height, 
         const VkRenderPass renderpass,

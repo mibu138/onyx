@@ -70,11 +70,10 @@ getCorrectedSwapchainDimensions(const VkSurfaceCapabilitiesKHR capabilities,
 static void
 initSurfaceXcb(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* surface)
 {
-    const XcbWindow*                w  = window->typeSpecificData;
     const VkXcbSurfaceCreateInfoKHR ci = {
         .sType      = VK_STRUCTURE_TYPE_XCB_SURFACE_CREATE_INFO_KHR,
-        .connection = w->connection,
-        .window     = w->window,
+        .connection = (xcb_connection_t*)hell_GetXcbConnection(window),
+        .window     = *(xcb_window_t*)hell_GetXcbWindowPtr(window)
     };
 
     V_ASSERT(vkCreateXcbSurfaceKHR(instance, &ci, NULL, surface));
@@ -100,7 +99,6 @@ static void
 initSurface(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* surface)
 {
     assert(window);
-    assert(window->typeSpecificData);
 #ifdef UNIX
     initSurfaceXcb(instance, window, surface);
 #elif defined(WINDOWS)
@@ -255,20 +253,13 @@ recreateSwapchain(Obdn_Swapchain* swapchain, const uint32_t widthHint,
                               swapchain->height, &swapchain->imageCount, swapchain->images, swapchain->views);
 }
 
-// this just sets the swapWidth and swapHeight and we rely on the call to
-// request frame to detect that the swapchain needs to be recreated. we do this
-// because we can get many resize events within a frame and we don't want to
-// call recreate for every one of them. also, we may eventually run iterations
-// of the main loop that dont render frames. this does mean that
-// obdn_v_RequestFrame MUST be called before rendering on a given frame.
-static Hell_I_ResizeData resizeEventData;
-static bool              resizeEventOccurred;
-
 static bool
-onWindowResizeEvent(const Hell_I_Event* ev)
+onWindowResizeEvent(const Hell_Event* ev, void* swapchainPtr)
 {
-    resizeEventData     = ev->data.resizeData;
-    resizeEventOccurred = true;
+    Obdn_Swapchain* swapchain = (Obdn_Swapchain*)swapchainPtr;
+    swapchain->dirty = true;
+    swapchain->width = hell_GetWindowResizeWidth(ev);
+    swapchain->height = hell_GetWindowResizeHeight(ev);
     return false;
 }
 
@@ -278,9 +269,10 @@ Obdn_Swapchain* obdn_AllocSwapchain(void)
 }
 
 void
-obdn_InitSwapchain(const Obdn_Instance* instance,
-                   const VkImageUsageFlags swapImageUsageFlags_,
+obdn_CreateSwapchain(const Obdn_Instance* instance,
+                   Hell_EventQueue*        eventQueue,
                    const Hell_Window*      hellWindow,
+                   const VkImageUsageFlags swapImageUsageFlags_,
                    Obdn_Swapchain* swapchain)
 {
     memset(swapchain, 0, sizeof(Obdn_Swapchain));
@@ -291,17 +283,17 @@ obdn_InitSwapchain(const Obdn_Instance* instance,
     initSurface(instance->vkinstance, hellWindow, &swapchain->surface);
     swapchain->format = chooseFormat(instance->physicalDevice, swapchain->surface);
     initSwapchainPresentMode(instance->physicalDevice, swapchain->surface, swapchain);
-    createSwapchainWithSurface(swapchain, hellWindow->width, hellWindow->height);
+    createSwapchainWithSurface(swapchain, hell_GetWindowWidth(hellWindow), hell_GetWindowHeight(hellWindow));
     createSwapchainImageViews(swapchain->device, swapchain->swapchain, swapchain->format,
                               swapchain->width, swapchain->height,
                               &swapchain->imageCount, swapchain->images,
                               swapchain->views);
-    hell_i_Subscribe(onWindowResizeEvent, HELL_I_WINDOW_BIT);
+    hell_Subscribe(eventQueue, HELL_EVENT_MASK_WINDOW_BIT, hell_GetWindowID(hellWindow), onWindowResizeEvent, swapchain);
     obdn_Announce("Swapchain initialized.\n");
 }
 
 void
-obdn_ShutdownSwapchain(const Obdn_Instance* instance, Obdn_Swapchain* swapchain)
+obdn_DestroySwapchain(const Obdn_Instance* instance, Obdn_Swapchain* swapchain)
 {
     for (int i = 0; i < OBDN_FRAME_COUNT; i++)
     {
@@ -345,12 +337,12 @@ obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
     VkResult r;
     *dirty = false;
 retry:
-    if (resizeEventOccurred)
+    if (swapchain->dirty)
     {
         vkDeviceWaitIdle(swapchain->device);
         recreateSwapchain(swapchain,
-            resizeEventData.width, resizeEventData.height);
-        resizeEventOccurred = false;
+            swapchain->width, swapchain->height);
+        swapchain->dirty = false;
         *dirty = true;
     }
     r = vkAcquireNextImageKHR(swapchain->device, swapchain->swapchain, WAIT_TIME_NS,
@@ -360,6 +352,7 @@ retry:
     {
         vkDeviceWaitIdle(swapchain->device);
         recreateSwapchain(swapchain, swapchain->width, swapchain->height);
+        swapchain->dirty = false;
         *dirty = true;
         goto retry;
     }

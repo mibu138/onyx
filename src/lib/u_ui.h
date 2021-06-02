@@ -25,9 +25,10 @@ void           obdn_u_DestroyWidget(Obdn_U_Widget* widget);
 const VkSemaphore obdn_u_GetSemaphore(Obdn_UI* ui, uint32_t frameIndex);
 const VkFence     obdn_u_GetFence(Obdn_UI* ui, uint32_t frameIndex);
 
-void obdn_CreateUI(Obdn_Memory* memory, const VkFormat imageFormat, const uint32_t width, const uint32_t height, const VkImageLayout inputLayout, const VkImageLayout finalLayout, 
-        const uint32_t imageViewCount, const VkImageView views[imageViewCount],
-        Obdn_UI* ui);
+void obdn_CreateUI(Obdn_Memory* memory, Hell_EventQueue* queue, Hell_Window* window,
+              const VkFormat imageFormat, const VkImageLayout inputLayout,
+              const VkImageLayout finalLayout, const uint32_t imageViewCount,
+              const VkImageView views[imageViewCount], Obdn_UI* ui);
 void obdn_DestroyUI(Obdn_UI*, const uint32_t imgCount);
 VkSemaphore obdn_RenderUI(Obdn_UI*, const uint32_t frameIndex, const uint32_t width, const uint32_t height, const VkSemaphore waitSemephore);
 

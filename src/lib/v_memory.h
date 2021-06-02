@@ -51,7 +51,7 @@ typedef struct {
 #define OBDN_1_GiB (VkDeviceSize)0x40000000
 
 uint64_t obdn_SizeOfMemory(void);
-void     obdn_InitMemory(const Obdn_Instance*, const Obdn_V_MemorySizes*, Obdn_Memory*);
+void     obdn_CreateMemory(const Obdn_Instance*, const Obdn_V_MemorySizes*, Obdn_Memory*);
 
 Obdn_V_BufferRegion obdn_RequestBufferRegion(Obdn_Memory*, size_t size,
                                              const VkBufferUsageFlags,
@@ -84,9 +84,9 @@ void obdn_FreeImage(Obdn_V_Image* image);
 
 void obdn_FreeBufferRegion(Obdn_V_BufferRegion* pRegion);
 
-VkDeviceAddress obdn_GetBufferRegionAddress(const Obdn_V_BufferRegion* region);
+void obdn_DestroyMemory(Obdn_Memory* memory);
 
-void obdn_CleanUpMemory(void);
+VkDeviceAddress obdn_GetBufferRegionAddress(const Obdn_V_BufferRegion* region);
 
 // application's job to destroy this buffer and free the memory
 void obdn_CreateUnmanagedBuffer(Obdn_Memory* memory, const VkBufferUsageFlags bufferUsageFlags,

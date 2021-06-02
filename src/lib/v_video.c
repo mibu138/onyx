@@ -92,7 +92,7 @@ getVkVersionAvailable(void)
 }
 
 static void
-initVkInstance(const Obdn_V_Config* config, VkInstance* instance)
+initVkInstance(const bool enableValidation, VkInstance* instance)
 {
     uint32_t vulkver = getVkVersionAvailable();
     // uint32_t vulkver = VK_MAKE_VERSION(1, 2, 0);
@@ -156,7 +156,7 @@ initVkInstance(const Obdn_V_Config* config, VkInstance* instance)
         .pNext                   = &extraValidation,
     };
 
-    if (!config->validationEnabled)
+    if (!enableValidation)
     {
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
@@ -225,7 +225,7 @@ retrievePhysicalDevice(const VkInstance            instance,
 
 static void
 initDevice(
-    const Obdn_V_Config* config, const uint32_t userExtCount,
+    const bool enableRayTracing, const uint32_t userExtCount,
     const char*            userExtensions[userExtCount],
     const VkPhysicalDevice physicalDevice, QueueFamily* graphicsQueueFamily,
     QueueFamily* computeQueueFamily, QueueFamily* transferQueueFamily,
@@ -357,14 +357,14 @@ initDevice(
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
     };
 
-    if (config->rayTraceEnabled)
+    if (enableRayTracing)
         phsicalDeviceProperties2.pNext = &rayTracingProps;
     else
         phsicalDeviceProperties2.pNext = NULL;
 
     vkGetPhysicalDeviceProperties2(physicalDevice, &phsicalDeviceProperties2);
 
-    if (config->rayTraceEnabled)
+    if (enableRayTracing)
     {
         *rtProperties          = rayTracingProps;
         *accelStructProperties = asProps;
@@ -422,7 +422,7 @@ initDevice(
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
         .pNext = &descIndexingFeatures};
 
-    if (config->rayTraceEnabled)
+    if (enableRayTracing)
         devAddressFeatures.pNext = &rtFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
@@ -474,7 +474,7 @@ initDevice(
 
     int          defExtCount = 0;
     const char** defaultExtNames;
-    if (config->rayTraceEnabled)
+    if (enableRayTracing)
     {
         defExtCount += LEN(extensionsRT);
         defaultExtNames = extensionsRT;
@@ -547,21 +547,20 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
 }
 
 void
-obdn_InitInstance(const Obdn_V_Config* config, const int extcount,
+obdn_CreateInstance(bool enableValidation, bool enableRayTracing, const int extcount,
                   const char* extensions[], Obdn_Instance* instance)
 {
     memset(instance, 0, sizeof(Obdn_Instance));
-    initVkInstance(config, &instance->vkinstance);
-    if (config->validationEnabled)
+    initVkInstance(enableValidation, &instance->vkinstance);
+    if (enableValidation)
         initDebugMessenger(instance->vkinstance, &instance->debugMessenger);
     instance->physicalDevice = retrievePhysicalDevice(
         instance->vkinstance, &instance->deviceProperties);
-    initDevice(config, extcount, extensions, instance->physicalDevice,
+    initDevice(enableRayTracing, extcount, extensions, instance->physicalDevice,
                &instance->graphicsQueueFamily, &instance->computeQueueFamily,
                &instance->transferQueueFamily, &instance->rtProperties,
                &instance->accelStructProperties, &instance->device);
-    if (config->rayTraceEnabled) // TODO not all functions have to do with
-                                 // raytracing
+    if (enableRayTracing) // TODO not all functions have to do with
         obdn_v_LoadFunctions(instance->device);
     initQueues(instance->device, &instance->graphicsQueueFamily,
                &instance->computeQueueFamily, &instance->transferQueueFamily,

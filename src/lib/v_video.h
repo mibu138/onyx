@@ -17,14 +17,14 @@ typedef struct Obdn_Instance Obdn_Instance;
 
 uint64_t obdn_SizeOfInstance(void);
 
-void obdn_InitInstance(const Obdn_V_Config* config, int extcount,
-                       const char* extensions[], Obdn_Instance*);
+void obdn_CreateInstance(bool enableValidation, bool enableRayTracing, const int extcount,
+                  const char* extensions[], Obdn_Instance* instance);
 const VkInstance* obdn_GetVkInstance(const Obdn_Instance*);
 void obdn_SubmitToQueue(const Obdn_Instance*, const VkCommandBuffer* buffer,
                         Obdn_V_QueueType, uint32_t queueIndex);
 void obdn_SubmitToQueueWait(const Obdn_Instance*, const VkCommandBuffer* buffer,
                             Obdn_V_QueueType, uint32_t queueIndex);
-void obdn_Shutdown(Obdn_Instance*);
+void obdn_DestroyInstance(Obdn_Instance*);
 void obdn_SubmitGraphicsCommands(const Obdn_Instance*,
                                  uint32_t      queueIndex,
                                  uint32_t      submitInfoCount,

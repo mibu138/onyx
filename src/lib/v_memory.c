@@ -403,7 +403,7 @@ freeBlock(struct BlockChain* chain, const uint32_t id)
 }
 
 void
-obdn_InitMemory(const Obdn_Instance*      instance,
+obdn_CreateMemory(const Obdn_Instance*      instance,
                 const Obdn_V_MemorySizes* memSizes, Obdn_Memory* memory)
 {
     memset(memory, 0, sizeof(Obdn_Memory));
@@ -795,7 +795,7 @@ obdn_TransferToDevice(Obdn_Memory* memory, Obdn_V_BufferRegion* pRegion)
 }
 
 void
-obdn_FreeMemory(Obdn_Memory* memory)
+obdn_DestroyMemory(Obdn_Memory* memory)
 {
     freeBlockChain(memory, &memory->blockChainHostGraphicsBuffer);
     freeBlockChain(memory, &memory->blockChainHostTransferBuffer);

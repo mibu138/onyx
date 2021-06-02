@@ -16,6 +16,12 @@
 
 #define WIREFRAME 0
 
+static Hell_EventQueue* eventQueue;
+static Hell_Grimoire*   grimoire;
+static Hell_Hellmouth*  hellmouth;
+static Hell_Console*    console;
+static Hell_Window*     window;
+
 static Obdn_R_Primitive    triangle;
 
 static VkFramebuffer       framebuffer;
@@ -170,10 +176,18 @@ void draw(void)
 
 int main(int argc, char *argv[])
 {
-    hell_Init(true, draw, 0);
-    hell_c_SetVar("maxFps", "10000", 0);
+    eventQueue = hell_AllocEventQueue();
+    grimoire   = hell_AllocGrimoire();
+    console    = hell_AllocConsole();
+    window     = hell_AllocWindow();
+    hellmouth  = hell_AllocHellmouth();
+    hell_CreateConsole(console);
+    hell_CreateEventQueue(eventQueue);
+    hell_CreateGrimoire(eventQueue, grimoire);
+    hell_CreateWindow(eventQueue, 666, 666, 0, window);
+    hell_CreateHellmouth(grimoire, eventQueue, console, 1, &window, draw, NULL, hellmouth);
+    hell_SetVar(grimoire, "maxFps", "1000", 0);
     hell_Print("Starting hello triangle.\n");
-    const Hell_Window* window = hell_OpenWindow(500, 500, 0);
 
     Obdn_V_MemorySizes memSizes = {
         .deviceGraphicsImageMemorySize = OBDN_100_MiB,
@@ -181,24 +195,23 @@ int main(int argc, char *argv[])
         .hostGraphicsBufferMemorySize = OBDN_100_MiB,
     };
 
-    oInstance = alloca(obdn_SizeOfInstance());
-    oMemory   = alloca(obdn_SizeOfMemory());
-    swapchain = alloca(obdn_SizeOfSwapchain());
-    ui        = alloca(obdn_SizeOfUI());
-
-    obdn_Init(oInstance);
+    oInstance = hell_Malloc(obdn_SizeOfInstance());
+    oMemory   = hell_Malloc(obdn_SizeOfMemory());
+    swapchain = hell_Malloc(obdn_SizeOfSwapchain());
+    ui        = hell_Malloc(obdn_SizeOfUI());
+    obdn_CreateInstance(true, false, 0, NULL, oInstance);
+    obdn_CreateSwapchain(oInstance, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, swapchain);
+    obdn_CreateMemory(oInstance, &memSizes, oMemory);
     device = obdn_GetDevice(oInstance);
-    obdn_InitSwapchain(oInstance, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, window, swapchain);
-    obdn_InitMemory(oInstance, &memSizes, oMemory);
 
-    obdn_CreateUI(oMemory, obdn_GetSwapchainFormat(swapchain), window->width,
-                window->height, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+    obdn_CreateUI(oMemory, eventQueue, window, obdn_GetSwapchainFormat(swapchain), 
+            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                 obdn_GetSwapchainImageCount(swapchain),
                 obdn_GetSwapchainImageViews(swapchain), ui);
     uiBox = obdn_CreateSimpleBoxWidget(ui, 10, 10, 200, 100, NULL);
     uiText = obdn_CreateTextWidget(ui, 40, 40, "Blumpkin", uiBox);
     init();
-    hell_Loop();
+    hell_Loop(hellmouth);
     return 0;
 }

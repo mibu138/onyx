@@ -22,7 +22,6 @@ typedef Obdn_V_Command Obdn_Command;
     "extGraphicsImageMemorySize"
 
 void obdn_Announce(const char *fmt, ...);
-void obdn_Init(Obdn_Instance* instance);
 
 // if null is passed it will be an offscreen swapchain.
 // returns the swapchain id. currently not used for anything.
