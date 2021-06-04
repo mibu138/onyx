@@ -18,6 +18,7 @@ set(SRCS
 	locations.c)
 
 set(PUBLIC_HEADERS
+    obsidian.h
     common.h
     dtags.h
     f_file.h

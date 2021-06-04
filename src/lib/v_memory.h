@@ -44,15 +44,12 @@ typedef struct {
     struct BlockChain* pChain;
 } Obdn_V_Image;
 
-#define OBDN_1_MiB (VkDeviceSize)0x100000
-#define OBDN_100_MiB (VkDeviceSize)0x6400000
-#define OBDN_256_MiB (VkDeviceSize)0x10000000
-#define OBDN_512_MiB (VkDeviceSize)0x20000000
-#define OBDN_1_GiB (VkDeviceSize)0x40000000
-
 uint64_t obdn_SizeOfMemory(void);
-void     obdn_CreateMemory(const Obdn_Instance*, const Obdn_V_MemorySizes*, Obdn_Memory*);
-
+Obdn_Memory* obdn_AllocMemory(void);
+void obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphicsBufferMB,
+                  const uint32_t deviceGraphicsBufferMB,
+                  const uint32_t deviceGraphicsImageMB, const uint32_t hostTransferBufferMB,
+                  const uint32_t deviceExternalGraphicsImageMB, Obdn_Memory* memory);
 Obdn_V_BufferRegion obdn_RequestBufferRegion(Obdn_Memory*, size_t size,
                                              const VkBufferUsageFlags,
                                              const Obdn_V_MemoryType);

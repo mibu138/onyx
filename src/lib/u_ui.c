@@ -149,13 +149,15 @@ initRenderPass(Obdn_UI* ui, const VkFormat format,
 static void
 initDescriptionsAndPipelineLayouts(Obdn_UI* ui)
 {
-    const Obdn_R_DescriptorSetInfo dsInfo = {
-        .bindingCount = 1,
-        .bindings     = {
-            {.descriptorCount = MAX_IMAGE_COUNT,
+    Obdn_DescriptorBinding binding = {
+             .descriptorCount = MAX_IMAGE_COUNT,
              .type            = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER,
              .stageFlags      = VK_SHADER_STAGE_FRAGMENT_BIT,
-             .bindingFlags    = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT}}};
+             .bindingFlags    = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT};
+
+    const Obdn_DescriptorSetInfo dsInfo = {
+        .bindingCount = 1,
+        .bindings     = &binding};
 
     obdn_CreateDescriptorSetLayouts(ui->memory->instance->device, 1, &dsInfo,
                                     &ui->descriptorSetLayout);
@@ -175,7 +177,7 @@ initDescriptionsAndPipelineLayouts(Obdn_UI* ui)
          .size       = sizeof(PushConstantVert),
          .stageFlags = VK_SHADER_STAGE_VERTEX_BIT}};
 
-    const Obdn_R_PipelineLayoutInfo pipelayoutInfos[] = {
+    const Obdn_PipelineLayoutInfo pipelayoutInfos[] = {
         {.descriptorSetCount   = 1,
          .descriptorSetLayouts = &ui->descriptorSetLayout,
          .pushConstantCount    = LEN(pcRanges),
@@ -215,7 +217,7 @@ static void
 initPipelines(Obdn_UI* ui, uint32_t width, uint32_t height)
 {
     Obdn_R_AttributeSize        attrSizes[2] = {12, 12};
-    Obdn_R_GraphicsPipelineInfo pipeInfos[]  = {
+    Obdn_GraphicsPipelineInfo pipeInfos[]  = {
         {// simple box
          .renderPass        = ui->renderPass,
          .layout            = ui->pipelineLayout,
@@ -806,4 +808,9 @@ uint64_t
 obdn_SizeOfUI(void)
 {
     return sizeof(Obdn_UI);
+}
+
+Obdn_UI* obdn_AllocUI(void)
+{
+    return hell_Malloc(sizeof(Obdn_UI));
 }

@@ -717,21 +717,6 @@ obdn_GetPhysicalDeviceAccelerationStructureProperties(
     return instance->accelStructProperties;
 }
 
-Obdn_V_Config
-obdn_CreateBasicConfig(void)
-{
-    Obdn_V_Config config = {
-        .rayTraceEnabled                            = true,
-        .validationEnabled                          = true,
-        .memorySizes.hostGraphicsBufferMemorySize   = OBDN_512_MiB,
-        .memorySizes.deviceGraphicsBufferMemorySize = OBDN_100_MiB,
-        .memorySizes.deviceGraphicsImageMemorySize  = OBDN_1_GiB,
-    };
-#ifdef NDEBUG
-    config.validationEnabled = false;
-#endif
-    return config;
-}
 
 const VkInstance*
 obdn_GetVkInstance(const Obdn_Instance* instance)
@@ -757,3 +742,7 @@ obdn_SizeOfInstance(void)
     return sizeof(Obdn_Instance);
 }
 
+Obdn_Instance* obdn_AllocInstance(void)
+{
+    return hell_Malloc(sizeof(Obdn_Instance));
+}

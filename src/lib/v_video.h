@@ -16,6 +16,7 @@ struct Obdn_V_Command;
 typedef struct Obdn_Instance Obdn_Instance;
 
 uint64_t obdn_SizeOfInstance(void);
+Obdn_Instance* obdn_AllocInstance(void);
 
 void obdn_CreateInstance(bool enableValidation, bool enableRayTracing, const int extcount,
                   const char* extensions[], Obdn_Instance* instance);
@@ -61,8 +62,6 @@ obdn_GetPhysicalDeviceRayTracingProperties(const Obdn_Instance*);
 
 VkPhysicalDeviceAccelerationStructurePropertiesKHR
 obdn_GetPhysicalDeviceAccelerationStructureProperties(const Obdn_Instance*);
-
-Obdn_V_Config obdn_v_CreateBasicConfig(void);
 
 
 #endif /* end of include guard: V_VIDEO_H */

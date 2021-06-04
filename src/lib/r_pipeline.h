@@ -18,12 +18,12 @@ typedef struct {
     VkDescriptorType         type;
     VkShaderStageFlags       stageFlags;
     VkDescriptorBindingFlags bindingFlags; //optional
-} Obdn_R_DescriptorBinding;
+} Obdn_DescriptorBinding;
 
 typedef struct {
-    size_t                   bindingCount;
-    Obdn_R_DescriptorBinding bindings[OBDN_MAX_BINDINGS];
-} Obdn_R_DescriptorSetInfo;
+    size_t                  bindingCount;
+    Obdn_DescriptorBinding* bindings;
+} Obdn_DescriptorSetInfo;
 
 typedef struct {
     VkDescriptorPool      descriptorPool;
@@ -36,7 +36,7 @@ typedef struct {
     const VkDescriptorSetLayout* descriptorSetLayouts;
     size_t pushConstantCount;
     const VkPushConstantRange* pushConstantsRanges;
-} Obdn_R_PipelineLayoutInfo;
+} Obdn_PipelineLayoutInfo;
 
 typedef enum {
     OBDN_R_PIPELINE_RASTER_TYPE,
@@ -71,7 +71,7 @@ typedef struct {
     char*                     tessEvalShader;
     uint32_t                  dynamicStateCount;
     VkDynamicState*           pDynamicStates;
-} Obdn_R_GraphicsPipelineInfo;
+} Obdn_GraphicsPipelineInfo;
 
 typedef struct {
     VkPipelineLayout layout;
@@ -81,28 +81,29 @@ typedef struct {
     char**           missShaders;
     uint8_t          chitCount;
     char**           chitShaders;
-} Obdn_R_RayTracePipelineInfo;
+} Obdn_RayTracePipelineInfo;
 
 void obdn_DestroyDescription(VkDevice device, Obdn_R_Description*);
 
-void obdn_r_CreateDescriptorSetLayout(
+void obdn_CreateDescriptorSetLayout(
+    VkDevice device,
     const uint8_t                  bindingCount,
-    const Obdn_R_DescriptorBinding bindings[bindingCount],
+    const Obdn_DescriptorBinding   bindings[bindingCount],
     VkDescriptorSetLayout*         layout);
 
-void obdn_CreateDescriptorSetLayouts(VkDevice, const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count],
+void obdn_CreateDescriptorSetLayouts(VkDevice, const uint8_t count, const Obdn_DescriptorSetInfo sets[count],
         VkDescriptorSetLayout layouts[count]);
-void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_R_DescriptorSetInfo sets[count], 
+void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[count], 
         const VkDescriptorSetLayout layouts[count],
         Obdn_R_Description* out);
-void obdn_CreatePipelineLayouts(VkDevice, const uint8_t count, const Obdn_R_PipelineLayoutInfo layoutInfos[static count], 
+void obdn_CreatePipelineLayouts(VkDevice, const uint8_t count, const Obdn_PipelineLayoutInfo layoutInfos[static count], 
         VkPipelineLayout pipelineLayouts[count]);
-void obdn_CreateGraphicsPipelines(VkDevice device, const uint8_t count, const Obdn_R_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
+void obdn_CreateGraphicsPipelines(VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
 void obdn_CleanUpPipelines(void);
-void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_R_RayTracePipelineInfo pipelineInfos[count], 
+void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[count], 
         VkPipeline pipelines[count], Obdn_R_ShaderBindingTable shaderBindingTables[count]);
 
-void obdn_CreateDescriptionsAndLayouts(VkDevice, const uint32_t descSetCount, const Obdn_R_DescriptorSetInfo sets[descSetCount], 
+void obdn_CreateDescriptionsAndLayouts(VkDevice, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[descSetCount], 
         VkDescriptorSetLayout layouts[descSetCount], 
         const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount]);
 

@@ -7,23 +7,23 @@
 #include "r_geo.h"
 
 typedef struct Obdn_U_Widget Obdn_U_Widget;
+typedef Obdn_U_Widget Obdn_Widget;
 typedef struct Obdn_UI Obdn_UI;
 
 uint64_t       obdn_SizeOfUI(void);
+Obdn_UI* obdn_AllocUI(void);
 void           obdn_u_DebugReport(const Obdn_UI*);
 Obdn_U_Widget* obdn_CreateSimpleBoxWidget(Obdn_UI* ui, const int16_t x, const int16_t y, 
-                        const int16_t width, const int16_t height, Obdn_U_Widget* parent);
+                        const int16_t width, const int16_t height, Obdn_Widget* parent);
 Obdn_U_Widget* obdn_CreateSliderWidget(Obdn_UI* ui, const int16_t x, const int16_t y, 
-                        Obdn_U_Widget* parent);
+                        Obdn_Widget* parent);
 Obdn_U_Widget* obdn_CreateTextWidget(Obdn_UI* ui, const int16_t x, const int16_t y, const char* text,
-                        Obdn_U_Widget* parent);
-void           obdn_u_UpdateText(const char* text, Obdn_U_Widget* widget);
-VkSemaphore    obdn_u_Render(const VkSemaphore waitSemephore);
-void           obdn_u_CleanUp(void);
-void           obdn_u_DestroyWidget(Obdn_U_Widget* widget);
+                        Obdn_Widget* parent);
+void           obdn_UpdateWidgetText(Obdn_Widget* widget, const char* text);
+void obdn_DestroyWidget(Obdn_UI* ui, Obdn_Widget* widget);
 
-const VkSemaphore obdn_u_GetSemaphore(Obdn_UI* ui, uint32_t frameIndex);
-const VkFence     obdn_u_GetFence(Obdn_UI* ui, uint32_t frameIndex);
+const VkSemaphore obdn_GetUISemaphore(Obdn_UI* ui, uint32_t frameIndex);
+const VkFence     obdn_GetUIFence(Obdn_UI* ui, uint32_t frameIndex);
 
 void obdn_CreateUI(Obdn_Memory* memory, Hell_EventQueue* queue, Hell_Window* window,
               const VkFormat imageFormat, const VkImageLayout inputLayout,

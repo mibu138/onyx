@@ -83,7 +83,7 @@ typedef struct {
     Obdn_S_TextureId padding;
 } Obdn_S_Material;
 
-typedef struct {
+typedef struct Obdn_Scene {
     Obdn_S_PrimId     primCount;
     Obdn_S_LightId    lightCount;
     Obdn_S_MaterialId materialCount;
@@ -95,7 +95,9 @@ typedef struct {
     Obdn_S_Camera     camera;
     Obdn_S_Window     window;
     Obdn_S_DirtyMask  dirt;
-} Obdn_S_Scene;
+} Obdn_Scene;
+
+typedef Obdn_Scene Obdn_S_Scene;
 
 // container to associate prim ids with pipelines
 typedef struct {
@@ -103,9 +105,12 @@ typedef struct {
     Obdn_S_PrimId primIds[OBDN_S_MAX_PRIMS];
 } Obdn_S_PrimitiveList;
 
+Obdn_Scene* obdn_AllocScene(void);
+
+void obdn_CreateScene(uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip, Obdn_Scene* scene);
+
 void obdn_s_UpdateCamera_ArcBall(Obdn_S_Scene* scene, float dt, int16_t mx, int16_t my, bool panning, bool tumbling, bool zooming, bool home);
 void obdn_s_UpdateCamera_LookAt(Obdn_S_Scene* scene, Vec3 pos, Vec3 target, Vec3 up);
-void obdn_s_Init(Obdn_S_Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip);
 void obdn_s_CreateEmptyScene(Obdn_S_Scene* scene);
 void obdn_s_UpdateLight(Obdn_S_Scene* scene, uint32_t id, float intensity);
 void obdn_s_BindPrimToMaterial(Obdn_S_Scene* scene, const Obdn_S_PrimId primId, const Obdn_S_MaterialId matId);

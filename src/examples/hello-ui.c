@@ -107,7 +107,7 @@ void init(void)
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_DONT_CARE,
         obdn_GetSwapchainFormat(swapchain), depthFormat, &renderPass);
-    Obdn_R_PipelineLayoutInfo pli = {0}; //nothin
+    Obdn_PipelineLayoutInfo pli = {0}; //nothin
     obdn_CreatePipelineLayouts(device, 1, &pli, &pipelineLayout);
     if (WIREFRAME)
         obdn_CreateGraphicsPipeline_Taurus(device, renderPass, pipelineLayout, VK_POLYGON_MODE_LINE, &pipeline);
@@ -189,19 +189,13 @@ int main(int argc, char *argv[])
     hell_SetVar(grimoire, "maxFps", "1000", 0);
     hell_Print("Starting hello triangle.\n");
 
-    Obdn_V_MemorySizes memSizes = {
-        .deviceGraphicsImageMemorySize = OBDN_100_MiB,
-        .deviceGraphicsBufferMemorySize = OBDN_100_MiB,
-        .hostGraphicsBufferMemorySize = OBDN_100_MiB,
-    };
-
-    oInstance = hell_Malloc(obdn_SizeOfInstance());
-    oMemory   = hell_Malloc(obdn_SizeOfMemory());
-    swapchain = hell_Malloc(obdn_SizeOfSwapchain());
-    ui        = hell_Malloc(obdn_SizeOfUI());
+    oInstance = obdn_AllocInstance();
+    oMemory   = obdn_AllocMemory();
+    swapchain = obdn_AllocSwapchain();
+    ui        = obdn_AllocUI();
     obdn_CreateInstance(true, false, 0, NULL, oInstance);
     obdn_CreateSwapchain(oInstance, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, swapchain);
-    obdn_CreateMemory(oInstance, &memSizes, oMemory);
+    obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
     device = obdn_GetDevice(oInstance);
 
     obdn_CreateUI(oMemory, eventQueue, window, obdn_GetSwapchainFormat(swapchain), 

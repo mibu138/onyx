@@ -269,7 +269,7 @@ Obdn_Swapchain* obdn_AllocSwapchain(void)
 }
 
 void
-obdn_CreateSwapchain(const Obdn_Instance* instance,
+obdn_CreateSwapchain(const Obdn_Instance*  instance,
                    Hell_EventQueue*        eventQueue,
                    const Hell_Window*      hellWindow,
                    const VkImageUsageFlags swapImageUsageFlags_,

@@ -15,6 +15,8 @@
 // DL = Device Local
 //#define MAX_BLOCKS 100000 we overflowed the stack...
 
+#define MB 0x100000
+
 typedef Obdn_V_BufferRegion BufferRegion;
 //
 // static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
@@ -49,18 +51,6 @@ printBlockChainInfo(const BlockChain* chain)
                block->id);
     }
     DPRINT("\n");
-}
-
-static Obdn_V_MemorySizes
-getDefaultMemSizes(void)
-{
-    return (Obdn_V_MemorySizes){
-        .hostGraphicsBufferMemorySize          = OBDN_256_MiB,
-        .deviceGraphicsBufferMemorySize        = OBDN_256_MiB,
-        .deviceGraphicsImageMemorySize         = OBDN_512_MiB,
-        .hostTransferBufferMemorySize          = 0,
-        .deviceExternalGraphicsImageMemorySize = 0,
-    };
 }
 
 static uint32_t
@@ -403,9 +393,16 @@ freeBlock(struct BlockChain* chain, const uint32_t id)
 }
 
 void
-obdn_CreateMemory(const Obdn_Instance*      instance,
-                const Obdn_V_MemorySizes* memSizes, Obdn_Memory* memory)
+obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphicsBufferMB,
+                  const uint32_t deviceGraphicsBufferMB,
+                  const uint32_t deviceGraphicsImageMB, const uint32_t hostTransferBufferMB,
+                  const uint32_t deviceExternalGraphicsImageMB, Obdn_Memory* memory)
 {
+    assert(hostGraphicsBufferMB < 10000); // maximum 10 GB
+    assert(deviceGraphicsBufferMB < 10000); // maximum 10 GB
+    assert(deviceGraphicsImageMB < 10000); // maximum 10 GB
+    assert(hostTransferBufferMB < 10000); // maximum 10 GB
+    assert(deviceExternalGraphicsImageMB < 10000); // maximum 10 GB
     memset(memory, 0, sizeof(Obdn_Memory));
     memory->instance                 = instance;
 
@@ -493,34 +490,27 @@ obdn_CreateMemory(const Obdn_Instance*      instance,
         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    Obdn_V_MemorySizes ms;
-    if (!memSizes)
-    {
-        ms       = getDefaultMemSizes();
-        memSizes = &ms;
-    }
-
     DPRINT("Obsidian: Initializing memory block chains...\n");
     initBlockChain(memory, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE,
-                   memSizes->hostGraphicsBufferMemorySize,
+                   hostGraphicsBufferMB * MB,
                    memory->hostVisibleCoherentTypeIndex, hostGraphicsFlags,
                    true, "hstGraphBuffer",
                    &memory->blockChainHostGraphicsBuffer);
     initBlockChain(memory, OBDN_V_MEMORY_HOST_TRANSFER_TYPE,
-                   memSizes->hostTransferBufferMemorySize,
+                   hostTransferBufferMB * MB,
                    memory->hostVisibleCoherentTypeIndex, hostTransferFlags,
                    true, "hstTransBuffer",
                    &memory->blockChainHostTransferBuffer);
     initBlockChain(memory, OBDN_V_MEMORY_DEVICE_TYPE,
-                   memSizes->deviceGraphicsBufferMemorySize,
+                   deviceGraphicsBufferMB * MB,
                    memory->deviceLocalTypeIndex, devBufFlags, false,
                    "devBuffer", &memory->blockChainDeviceGraphicsBuffer);
     initBlockChain(memory, OBDN_V_MEMORY_DEVICE_TYPE,
-                   memSizes->deviceGraphicsImageMemorySize,
+                   deviceGraphicsImageMB * MB,
                    memory->deviceLocalTypeIndex, 0, false, "devImage",
                    &memory->blockChainDeviceGraphicsImage);
     initBlockChain(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE,
-                   memSizes->deviceExternalGraphicsImageMemorySize,
+                   deviceExternalGraphicsImageMB * MB,
                    memory->deviceLocalTypeIndex, 0, false, "devExtImage",
                    &memory->blockChainExternalDeviceGraphicsImage);
 }
@@ -884,4 +874,9 @@ uint64_t
 obdn_SizeOfMemory(void)
 {
     return sizeof(Obdn_Memory);
+}
+
+Obdn_Memory* obdn_AllocMemory(void)
+{
+    return hell_Malloc(sizeof(Obdn_Memory));
 }

@@ -49,7 +49,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     const bool createMips,
     Obdn_V_Image* image);
 
-void obdn_v_SaveImage(Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const char* name);
+void obdn_SaveImage(Obdn_Memory* memory, Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const char* filename);
 
 void obdn_v_ClearColorImage(Obdn_V_Image* image);
 

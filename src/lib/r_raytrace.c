@@ -298,7 +298,7 @@ void obdn_DestroyAccelerationStruct(VkDevice device, AccelerationStructure* as)
     memset(as, 0, sizeof(*as));
 }
 
-void obdn_r_DestroyShaderBindingTable(Obdn_R_ShaderBindingTable* sb)
+void obdn_DestroyShaderBindingTable(Obdn_R_ShaderBindingTable* sb)
 {
     obdn_FreeBufferRegion(&sb->bufferRegion);
     memset(sb, 0, sizeof(*sb));

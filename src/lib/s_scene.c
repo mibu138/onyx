@@ -5,6 +5,7 @@
 #include "dtags.h"
 #include <hell/debug.h>
 #include "v_memory.h"
+#include "common.h"
 #include "r_geo.h"
 #include "v_image.h"
 #include <string.h>
@@ -151,7 +152,7 @@ static void removeLight(Scene* s, LightId id)
     s->dirt |= OBDN_S_LIGHTS_BIT;
 }
 
-void obdn_s_Init(Scene* scene, uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip)
+void obdn_CreateScene(uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip, Scene* scene)
 {
     memset(scene, 0, sizeof(Scene));
     scene->window[0] = windowWidth;
@@ -215,6 +216,7 @@ Obdn_S_PrimId obdn_s_LoadPrim(Scene* scene, Obdn_Memory* memory, const char* fil
     Obdn_R_Primitive prim = obdn_f_CreateRPrimFromFPrim(memory, &fprim);
     obdn_TransferPrimToDevice(memory, &prim);
     obdn_f_FreePrimitive(&fprim);
+    obdn_Announce("Loaded prim at %s\n", filePath);
     return obdn_s_AddRPrim(scene, prim, xform);
 }
 
@@ -452,4 +454,9 @@ void obdn_s_UpdateLightIntensity(Obdn_S_Scene* scene, Obdn_S_LightId id, float i
 {
     scene->lights[lightMap.indices[id]].intensity = i;
     scene->dirt |= OBDN_S_LIGHTS_BIT;
+}
+
+Obdn_Scene* obdn_AllocScene(void)
+{
+    return hell_Malloc(sizeof(Scene));
 }
