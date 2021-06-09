@@ -25,6 +25,7 @@ set(PUBLIC_HEADERS
     f_prim.h
     locations.h
     max_prims.h
+    framebuffer.h
     r_api.h
     r_attribute.h
     r_geo.h

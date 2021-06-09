@@ -38,6 +38,7 @@ typedef struct {
     VkDeviceSize       offset;//TODO: delete this and see if its even necessary... should probably be a VkOffset3D object
     VkExtent3D         extent;
     VkImageLayout      layout;
+    VkFormat           format;
     uint32_t           mipLevels;
     uint32_t           queueFamily;
     uint32_t           memBlockId;

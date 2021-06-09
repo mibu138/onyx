@@ -4,6 +4,7 @@
 #include "v_def.h"
 #include "v_memory.h"
 #include "v_command.h"
+#include "framebuffer.h"
 #include "types.h"
 #include <hell/window.h>
 
@@ -15,10 +16,12 @@ typedef struct Obdn_Swapchain Obdn_Swapchain;
 Obdn_Swapchain* obdn_AllocSwapchain(void);
 size_t          obdn_SizeOfSwapchain(void);
 void            obdn_FreeSwapchain(Obdn_Swapchain* swapchain);
-void            obdn_CreateSwapchain(const Obdn_Instance* instance,
+void obdn_CreateSwapchain(const Obdn_Instance*  instance,
+                   Obdn_Memory*            memory,
                    Hell_EventQueue*        eventQueue,
                    const Hell_Window*      hellWindow,
-                   const VkImageUsageFlags swapImageUsageFlags_,
+                   uint32_t                aovCount,
+                   Obdn_AovInfo            aovInfos[aovCount],
                    Obdn_Swapchain* swapchain);
 void            obdn_DestroySwapchain(const Obdn_Instance* instance, Obdn_Swapchain* swapchain);
 unsigned        obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain);
@@ -31,17 +34,14 @@ VkImageView obdn_GetSwapchainImageView(const Obdn_Swapchain* swapchain,
                                        int                   index);
 
 unsigned obdn_GetSwapchainImageCount(const Obdn_Swapchain* swapchain);
-const VkImageView* obdn_GetSwapchainImageViews(const Obdn_Swapchain* swapchain);
 
 // one thing to be careful of here is if this function fails the waitSemaphores
 // will not be signalled.
-bool obdn_PresentFrame(const Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,
+bool obdn_PresentFrame(Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,
                        VkSemaphore* waitSemaphores);
 
-unsigned obdn_AcquireSwapchainImage(Obdn_Swapchain* swapchain, VkFence* fence,
-                                    VkSemaphore* semaphore, bool* dirty);
-
-VkImage obdn_GetSwapchainImage(const Obdn_Swapchain* swapchain, uint32_t index);
+const Obdn_Framebuffer* obdn_AcquireSwapchainFramebuffer(Obdn_Swapchain* swapchain, VkFence* fence,
+                                    VkSemaphore* semaphore);
 
 VkDeviceSize obdn_GetSwapchainImageSize(const Obdn_Swapchain* swapchain);
 

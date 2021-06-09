@@ -126,10 +126,9 @@ void draw(void)
     timeSinceLastRender = 0;
 
     VkFence fence = VK_NULL_HANDLE;
-    bool swapchainDirty;
-    unsigned frameId = obdn_AcquireSwapchainImage(swapchain, &fence, &acquireSemaphore, &swapchainDirty);
+    const Obdn_Framebuffer* fb = obdn_AcquireSwapchainFramebuffer(swapchain, &fence, &acquireSemaphore);
 
-    if (swapchainDirty)
+    if (fb->dirty)
         onSwapchainRecreate();
 
     Obdn_Command cmd = drawCommands[frameCounter % 2];
@@ -142,7 +141,7 @@ void draw(void)
     obdn_CmdSetViewportScissorFull(cmd.buffer, dim.width, dim.height);
 
     obdn_CmdBeginRenderPass_ColorDepth(
-        cmd.buffer, renderPass, framebuffers[frameId], dim.width,
+        cmd.buffer, renderPass, framebuffers[fb->index], dim.width,
         dim.height, 0.0, 0.0, 0.01, 1.0);
 
         vkCmdBindPipeline(cmd.buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -180,9 +179,12 @@ int main(int argc, char *argv[])
     oInstance = obdn_AllocInstance();
     oMemory   = obdn_AllocMemory();
     swapchain = obdn_AllocSwapchain();
+    Obdn_AovInfo aovInfo = {
+        .usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    };
     obdn_CreateInstance(true, false, 0, NULL, oInstance);
-    obdn_CreateSwapchain(oInstance, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, swapchain);
     obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
+    obdn_CreateSwapchain(oInstance, oMemory, eventQueue, window, 1, &aovInfo, swapchain);
     device = obdn_GetDevice(oInstance);
     initApp();
     hell_Loop(hellmouth);

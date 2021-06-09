@@ -62,7 +62,8 @@ static void createSurfaceDependent(void)
     obdn_CreateFramebuffer(oInstance, 2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
 
     // ui recreation
-    obdn_RecreateSwapchainDependentUI(ui, dim.width, dim.height, 2, obdn_GetSwapchainImageViews(swapchain));
+    VkImageView views[2] = {obdn_GetSwapchainImageView(swapchain, 0), obdn_GetSwapchainImageView(swapchain, 1)};
+    obdn_RecreateSwapchainDependentUI(ui, dim.width, dim.height, 2, views);
 }
 
 static void destroySurfaceDependent(void)
@@ -136,10 +137,9 @@ void draw(void)
     timeSinceLastRender = 0;
 
     VkFence fence = VK_NULL_HANDLE;
-    bool swapchainDirty;
-    unsigned frameId = obdn_AcquireSwapchainImage(swapchain, &fence, &acquireSemaphore, &swapchainDirty);
+    const Obdn_Framebuffer* fb = obdn_AcquireSwapchainFramebuffer(swapchain, &fence, &acquireSemaphore);
 
-    if (swapchainDirty)
+    if (fb->dirty)
         onSwapchainRecreate();
 
     Obdn_Command cmd = drawCommands[frameCounter % 2];
@@ -152,7 +152,7 @@ void draw(void)
     obdn_CmdSetViewportScissorFull(cmd.buffer, dim.width, dim.height);
 
     obdn_CmdBeginRenderPass_ColorDepth(
-        cmd.buffer, renderPass, framebuffers[frameId], dim.width,
+        cmd.buffer, renderPass, framebuffers[fb->index], dim.width,
         dim.height, 0.0, 0.0, 0.01, 1.0);
 
         vkCmdBindPipeline(cmd.buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -165,7 +165,7 @@ void draw(void)
     obdn_SubmitGraphicsCommand(oInstance, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 1,
             &acquireSemaphore, 1, &drawSemaphore, drawFence, cmd.buffer);
 
-    VkSemaphore uiSemaphore = obdn_RenderUI(ui, frameId, dim.width, dim.height, drawSemaphore);
+    VkSemaphore uiSemaphore = obdn_RenderUI(ui, fb->index, dim.width, dim.height, drawSemaphore);
 
     bool result = obdn_PresentFrame(swapchain, 1, &uiSemaphore);
 
@@ -193,16 +193,21 @@ int main(int argc, char *argv[])
     oMemory   = obdn_AllocMemory();
     swapchain = obdn_AllocSwapchain();
     ui        = obdn_AllocUI();
+    Obdn_AovInfo aovInfo = {
+        .usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT 
+    };
     obdn_CreateInstance(true, false, 0, NULL, oInstance);
-    obdn_CreateSwapchain(oInstance, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, swapchain);
     obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
+    obdn_CreateSwapchain(oInstance, oMemory, eventQueue, window, 1, &aovInfo, swapchain);
     device = obdn_GetDevice(oInstance);
+
+    VkImageView views[2] = {obdn_GetSwapchainImageView(swapchain, 0), obdn_GetSwapchainImageView(swapchain, 1)};
 
     obdn_CreateUI(oMemory, eventQueue, window, obdn_GetSwapchainFormat(swapchain), 
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-                obdn_GetSwapchainImageCount(swapchain),
-                obdn_GetSwapchainImageViews(swapchain), ui);
+                2,
+                views, ui);
     uiBox = obdn_CreateSimpleBoxWidget(ui, 10, 10, 200, 100, NULL);
     uiText = obdn_CreateTextWidget(ui, 40, 40, "Blumpkin", uiBox);
     init();
