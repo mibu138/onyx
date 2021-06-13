@@ -20,9 +20,10 @@ void obdn_CreateSwapchain(const Obdn_Instance*  instance,
                    Obdn_Memory*            memory,
                    Hell_EventQueue*        eventQueue,
                    const Hell_Window*      hellWindow,
-                   uint32_t                aovCount,
-                   Obdn_AovInfo            aovInfos[aovCount],
-                   Obdn_Swapchain* swapchain);
+                   VkImageUsageFlags       usageFlags,
+                   uint32_t                extraAovCount,
+                   Obdn_AovInfo            extraAovInfos[extraAovCount],
+                   Obdn_Swapchain*         swapchain);
 void            obdn_DestroySwapchain(const Obdn_Instance* instance, Obdn_Swapchain* swapchain);
 unsigned        obdn_GetSwapchainWidth(const Obdn_Swapchain* swapchain);
 unsigned        obdn_GetSwapchainHeight(const Obdn_Swapchain* swapchain);
@@ -44,6 +45,9 @@ const Obdn_Framebuffer* obdn_AcquireSwapchainFramebuffer(Obdn_Swapchain* swapcha
                                     VkSemaphore* semaphore);
 
 VkDeviceSize obdn_GetSwapchainImageSize(const Obdn_Swapchain* swapchain);
+
+uint32_t obdn_GetSwapchainFramebufferCount(const Obdn_Swapchain*);
+const Obdn_Framebuffer* obdn_GetSwapchainFramebuffers(const Obdn_Swapchain*);
 
 uint32_t obdn_GetSwapchainPixelByteCount(const Obdn_Swapchain* swapchain);
 

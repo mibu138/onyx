@@ -21,7 +21,7 @@ static Hell_Hellmouth*  hellmouth;
 static Hell_Console*    console;
 static Hell_Window*     window;
 
-static Obdn_R_Primitive    triangle;
+static Obdn_Geometry    triangle;
 
 static VkFramebuffer       framebuffer;
 static VkRenderPass        renderPass;
@@ -71,7 +71,7 @@ static void onSwapchainRecreate(void)
 void initApp(void)
 {
     uint8_t attrSize = 3 * sizeof(float);
-    triangle = obdn_CreatePrimitive(oMemory, 3, 4, 1, &attrSize);
+    triangle = obdn_CreateGeometry(oMemory, 3, 4, 1, &attrSize);
     Coal_Vec3* verts = (Coal_Vec3*)triangle.vertexRegion.hostData;
     verts[0].x =  0.0;
     verts[0].y = -1.0;
@@ -88,7 +88,7 @@ void initApp(void)
     indices[2] = 2;
     indices[3] = 0; // this last index is so we render the full triangle in line mode
 
-    obdn_r_PrintPrim(&triangle);
+    obdn_PrintGeo(&triangle);
 
     // call this render pass joe
     obdn_CreateRenderPass_ColorDepth(device, 
@@ -145,7 +145,7 @@ void draw(void)
         dim.height, 0.0, 0.0, 0.01, 1.0);
 
         vkCmdBindPipeline(cmd.buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-        obdn_r_DrawPrim(cmd.buffer, &triangle);
+        obdn_DrawGeo(cmd.buffer, &triangle);
 
     obdn_CmdEndRenderPass(cmd.buffer);
 
@@ -179,12 +179,14 @@ int main(int argc, char *argv[])
     oInstance = obdn_AllocInstance();
     oMemory   = obdn_AllocMemory();
     swapchain = obdn_AllocSwapchain();
-    Obdn_AovInfo aovInfo = {
-        .usageFlags = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+    Obdn_AovInfo depthAov = {
+        .aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT,
+        .usageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
+        .format = depthFormat,
     };
     obdn_CreateInstance(true, false, 0, NULL, oInstance);
     obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
-    obdn_CreateSwapchain(oInstance, oMemory, eventQueue, window, 1, &aovInfo, swapchain);
+    obdn_CreateSwapchain(oInstance, oMemory, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, &depthAov, swapchain);
     device = obdn_GetDevice(oInstance);
     initApp();
     hell_Loop(hellmouth);

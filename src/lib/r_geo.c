@@ -11,8 +11,8 @@
 
 const int CW = 1;
 
-typedef Obdn_R_AttributeSize AttrSize;
-typedef Obdn_R_Primitive     Prim;
+typedef Obdn_GeoAttributeSize AttrSize;
+typedef Obdn_Geometry     Prim;
 
 typedef enum {
     OBDN_R_ATTRIBUTE_SFLOAT_TYPE,
@@ -20,7 +20,7 @@ typedef enum {
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
-static void initPrimBuffers(Obdn_Memory* memory, Obdn_R_Primitive* prim)
+static void initPrimBuffers(Obdn_Memory* memory, Obdn_Geometry* prim)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
@@ -40,11 +40,11 @@ static void initPrimBuffers(Obdn_Memory* memory, Obdn_R_Primitive* prim)
     prim->vertexRegion = obdn_RequestBufferRegion(memory, vertexBufferSize, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    prim->indexRegion = obdn_RequestBufferRegion(memory, sizeof(Obdn_R_Index) * prim->indexCount, 
+    prim->indexRegion = obdn_RequestBufferRegion(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
-static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_R_Primitive* prim, const uint32_t offsetAlignment)
+static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_Geometry* prim, const uint32_t offsetAlignment)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
@@ -65,7 +65,7 @@ static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_R_Primitive* prim, 
     prim->vertexRegion = obdn_RequestBufferRegionAligned(memory, vertexBufferSize, 
             offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
-    prim->indexRegion = obdn_RequestBufferRegionAligned(memory, sizeof(Obdn_R_Index) * prim->indexCount, 
+    prim->indexRegion = obdn_RequestBufferRegionAligned(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
             offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
@@ -89,6 +89,7 @@ static void printPrim(const Prim* prim)
             hell_Print("{");
             const int dim = prim->attrSizes[i]/4;
             const float* vals = &((float*)(prim->vertexRegion.hostData + offset))[j * dim];
+            assert(vals != NULL);
             for (int k = 0; k < dim; k++)
                 hell_Print("%f%s", vals[k], k == dim - 1 ? "" : ", ");
             hell_Print("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
@@ -97,11 +98,11 @@ static void printPrim(const Prim* prim)
     }
     hell_Print("Indices: ");
     for (int i = 0; i < prim->indexCount; i++) 
-        hell_Print("%d%s", ((Obdn_R_Index*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
+        hell_Print("%d%s", ((Obdn_GeoIndex*)prim->indexRegion.hostData)[i], i == prim->indexCount - 1 ? "" : ", ");
     hell_Print("\n");
 }
 
-static VkFormat getFormat(const Obdn_R_AttributeSize attrSize, const Obdn_R_AttributeType attrType)
+static VkFormat getFormat(const Obdn_GeoAttributeSize attrSize, const Obdn_R_AttributeType attrType)
 {
     switch (attrType)
     {
@@ -117,20 +118,20 @@ static VkFormat getFormat(const Obdn_R_AttributeSize attrSize, const Obdn_R_Attr
     }
 }
 
-void obdn_r_PrintPrim(const Obdn_R_Primitive* prim)
+void obdn_PrintGeo(const Obdn_Geometry* prim)
 {
     printPrim(prim);
 }
 
-void obdn_TransferPrimToDevice(Obdn_Memory* memory, Obdn_R_Primitive* prim)
+void obdn_TransferGeoToDevice(Obdn_Memory* memory, Obdn_Geometry* prim)
 {
     obdn_TransferToDevice(memory, &prim->vertexRegion);
     obdn_TransferToDevice(memory, &prim->indexRegion);
 }
 
-Obdn_R_Primitive obdn_CreateTriangle(Obdn_Memory* memory)
+Obdn_Geometry obdn_CreateTriangle(Obdn_Memory* memory)
 {
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .indexCount = 3, 
         .vertexCount = 3,
         .attrCount = 2,
@@ -151,11 +152,11 @@ Obdn_R_Primitive obdn_CreateTriangle(Obdn_Memory* memory)
         {0.5, 0.3, 0.9}
     };
 
-    Obdn_R_Index indices[] = {0, 1, 2};
+    Obdn_GeoIndex indices[] = {0, 1, 2};
 
-    void* posData = obdn_r_GetPrimAttribute(&prim, 0);
-    void* colData = obdn_r_GetPrimAttribute(&prim, 1);
-    Obdn_R_Index* indexData = obdn_r_GetPrimIndices(&prim);
+    void* posData = obdn_GetGeoAttribute(&prim, 0);
+    void* colData = obdn_GetGeoAttribute(&prim, 1);
+    Obdn_GeoIndex* indexData = obdn_GetGeoIndices(&prim);
 
     memcpy(posData, positions, sizeof(positions));
     memcpy(colData, colors, sizeof(colors));
@@ -164,13 +165,13 @@ Obdn_R_Primitive obdn_CreateTriangle(Obdn_Memory* memory)
     return prim;
 }
 
-Obdn_R_Primitive obdn_CreateCubePrim(Obdn_Memory* memory, const bool isClockWise)
+Obdn_Geometry obdn_CreateCubePrim(Obdn_Memory* memory, const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     const uint32_t attrCount  = 3; // position, normals, uvw
 
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount,
@@ -185,9 +186,9 @@ Obdn_R_Primitive obdn_CreateCubePrim(Obdn_Memory* memory, const bool isClockWise
         memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
     }
 
-    Vec3* pPositions = obdn_r_GetPrimAttribute(&prim, 0);
-    Vec3* pNormals   = obdn_r_GetPrimAttribute(&prim, 1);
-    Vec3* pUvws      = obdn_r_GetPrimAttribute(&prim, 2);
+    Vec3* pPositions = obdn_GetGeoAttribute(&prim, 0);
+    Vec3* pNormals   = obdn_GetGeoAttribute(&prim, 1);
+    Vec3* pUvws      = obdn_GetGeoAttribute(&prim, 2);
 
     const Vec3 points[8] = {
         { -0.5,  0.5,  0.5 },
@@ -285,7 +286,7 @@ Obdn_R_Primitive obdn_CreateCubePrim(Obdn_Memory* memory, const bool isClockWise
         pUvws[i + 3] = uvws[3];
     }
 
-    Obdn_R_Index* indices = obdn_r_GetPrimIndices(&prim);
+    Obdn_GeoIndex* indices = obdn_GetGeoIndices(&prim);
 
     if (isClockWise)
         for (int face = 0; face < indexCount / 6; face++) 
@@ -314,13 +315,13 @@ Obdn_R_Primitive obdn_CreateCubePrim(Obdn_Memory* memory, const bool isClockWise
     return prim;
 }
 
-Obdn_R_Primitive obdn_CreateCubePrimUV(Obdn_Memory* memory, const bool isClockWise)
+Obdn_Geometry obdn_CreateCubePrimUV(Obdn_Memory* memory, const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     const uint32_t attrCount  = 3; // position, normals, uvw
 
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount,
@@ -335,9 +336,9 @@ Obdn_R_Primitive obdn_CreateCubePrimUV(Obdn_Memory* memory, const bool isClockWi
         memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
     }
 
-    Vec3* pPositions = obdn_r_GetPrimAttribute(&prim, 0);
-    Vec3* pNormals   = obdn_r_GetPrimAttribute(&prim, 1);
-    Vec2* pUvws      = obdn_r_GetPrimAttribute(&prim, 2);
+    Vec3* pPositions = obdn_GetGeoAttribute(&prim, 0);
+    Vec3* pNormals   = obdn_GetGeoAttribute(&prim, 1);
+    Vec2* pUvws      = obdn_GetGeoAttribute(&prim, 2);
 
     const Vec3 points[8] = {
         { -0.5,  0.5,  0.5 },
@@ -435,7 +436,7 @@ Obdn_R_Primitive obdn_CreateCubePrimUV(Obdn_Memory* memory, const bool isClockWi
         pUvws[i + 3] = uvws[3];
     }
 
-    Obdn_R_Index* indices = obdn_r_GetPrimIndices(&prim);
+    Obdn_GeoIndex* indices = obdn_GetGeoIndices(&prim);
 
     if (isClockWise)
         for (int face = 0; face < indexCount / 6; face++) 
@@ -464,9 +465,9 @@ Obdn_R_Primitive obdn_CreateCubePrimUV(Obdn_Memory* memory, const bool isClockWi
     return prim;
 }
 
-Obdn_R_Primitive obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
+Obdn_Geometry obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
 {
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .attrCount = 2,
         .attrSizes = {12, 12},
         .indexCount = 0, 
@@ -484,8 +485,8 @@ Obdn_R_Primitive obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
     prim.attrOffsets[0] = posOffset;
     prim.attrOffsets[1] = colOffset;
 
-    Vec3* positions = obdn_r_GetPrimAttribute(&prim, 0);
-    Vec3* colors    = obdn_r_GetPrimAttribute(&prim, 1);
+    Vec3* positions = obdn_GetGeoAttribute(&prim, 0);
+    Vec3* colors    = obdn_GetGeoAttribute(&prim, 1);
 
     for (int i = 0; i < count; i++) 
     {
@@ -496,12 +497,12 @@ Obdn_R_Primitive obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
     return prim;
 }
 
-Obdn_R_Primitive obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
+Obdn_Geometry obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset)
 {
     assert(patchSize < vertCount);
     assert(restartOffset < patchSize);
 
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .attrCount = 2,
         .attrSizes = {12, 12},
         .indexCount = vertCount * patchSize, // to handle maximum restartOffset
@@ -510,8 +511,8 @@ Obdn_R_Primitive obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
 
     initPrimBuffers(memory, &prim);
 
-    Vec3* positions = obdn_r_GetPrimAttribute(&prim, 0);
-    Vec3* colors    = obdn_r_GetPrimAttribute(&prim, 1);
+    Vec3* positions = obdn_GetGeoAttribute(&prim, 0);
+    Vec3* colors    = obdn_GetGeoAttribute(&prim, 1);
 
     for (int i = 0; i < vertCount; i++) 
     {
@@ -519,7 +520,7 @@ Obdn_R_Primitive obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
         colors[i] = (Vec3){1, 0, 0};  
     }
 
-    Obdn_R_Index* indices = obdn_r_GetPrimIndices(&prim);
+    Obdn_GeoIndex* indices = obdn_GetGeoIndices(&prim);
 
     for (int i = 0, vertid = 0; vertid < prim.vertexCount; ) 
     {
@@ -535,73 +536,9 @@ Obdn_R_Primitive obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
     return prim;
 }
 
-Obdn_R_Primitive obdn_CreateQuad(Obdn_Memory* memory, const float width, const float height, Obdn_R_AttributeBits attribBits)
+Obdn_Geometry obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float y, const float width, const float height)
 {
-    const int attrCount = __builtin_popcount(attribBits) + 1;
-
-    Obdn_R_Primitive prim = {
-        .attrCount = attrCount,
-        .indexCount = 6,
-        .vertexCount = 4,
-    };
-
-    for (int i = 0; i < attrCount; i++) 
-    {
-        prim.attrSizes[i] = 12;
-    }
-
-    initPrimBuffers(memory, &prim);
-
-    Vec3* pos = obdn_r_GetPrimAttribute(&prim, 0);
-
-    const float w = width / 2;
-    const float h = height / 2;
-
-    pos[0] = (Vec3){-w,  h, 0};
-    pos[1] = (Vec3){-w, -h, 0};
-    pos[2] = (Vec3){ w,  h, 0};
-    pos[3] = (Vec3){ w, -h, 0};
-
-    for (int i = 1; i < attrCount; i++) 
-    {
-        if (attribBits & OBDN_R_ATTRIBUTE_NORMAL_BIT)
-        {
-            Vec3* normals = obdn_r_GetPrimAttribute(&prim, i);
-            normals[0] = (Vec3){0, 0, 1};
-            normals[1] = (Vec3){0, 0, 1};
-            normals[2] = (Vec3){0, 0, 1};
-            normals[3] = (Vec3){0, 0, 1};
-            attribBits &= ~OBDN_R_ATTRIBUTE_NORMAL_BIT;
-        }
-        else if (attribBits & OBDN_R_ATTRIBUTE_UVW_BIT)
-        {
-            Vec3* uvw = obdn_r_GetPrimAttribute(&prim, i);
-            uvw[0] = (Vec3){0, 0, 0};
-            uvw[1] = (Vec3){0, 1, 0};
-            uvw[2] = (Vec3){1, 0, 0};
-            uvw[3] = (Vec3){1, 1, 0};
-            attribBits &= ~OBDN_R_ATTRIBUTE_UVW_BIT;
-        }
-    }
-
-    Obdn_R_Index* index = obdn_r_GetPrimIndices(&prim);
-
-    index[0] = 0;
-    index[1] = 1;
-    index[2] = 2;
-    index[3] = 2;
-    index[4] = 1;
-    index[5] = 3;
-
-    obdn_TransferToDevice(memory, &prim.vertexRegion);
-    obdn_TransferToDevice(memory, &prim.indexRegion);
-
-    return prim;
-}
-
-Obdn_R_Primitive obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float y, const float width, const float height)
-{
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .attrCount = 2,
         .indexCount = 6,
         .vertexCount = 4,
@@ -610,20 +547,20 @@ Obdn_R_Primitive obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const fl
 
     initPrimBuffers(memory, &prim);
 
-    Vec3* pos = obdn_r_GetPrimAttribute(&prim, 0);
+    Vec3* pos = obdn_GetGeoAttribute(&prim, 0);
     // upper left. x, y
     pos[0] = (Vec3){x, y, 0};
     pos[1] = (Vec3){x, y + height, 0};
     pos[2] = (Vec3){x + width, y, 0};
     pos[3] = (Vec3){x + width, y + height, 0};
 
-    Vec3* uvw = obdn_r_GetPrimAttribute(&prim, 1);
+    Vec3* uvw = obdn_GetGeoAttribute(&prim, 1);
     uvw[0] = (Vec3){0, 0, 0};
     uvw[1] = (Vec3){0, 1, 0};
     uvw[2] = (Vec3){1, 0, 0};
     uvw[3] = (Vec3){1, 1, 0};
 
-    Obdn_R_Index* index = obdn_r_GetPrimIndices(&prim);
+    Obdn_GeoIndex* index = obdn_GetGeoIndices(&prim);
     index[0] = 0;
     index[1] = 1;
     index[2] = 2;
@@ -634,10 +571,10 @@ Obdn_R_Primitive obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const fl
     return prim;
 }
 
-Obdn_R_Primitive obdn_CreatePrimitive(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t indexCount, 
+Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t indexCount, 
         const uint8_t attrCount, const uint8_t attrSizes[attrCount])
 {
-    Obdn_R_Primitive prim = {
+    Obdn_Geometry prim = {
         .attrCount = attrCount,
         .indexCount = indexCount,
         .vertexCount = vertCount
@@ -655,10 +592,10 @@ Obdn_R_Primitive obdn_CreatePrimitive(Obdn_Memory* memory, const uint32_t vertCo
     return prim;
 }
 
-Obdn_R_VertexDescription obdn_r_GetVertexDescription(const uint32_t attrCount, const Obdn_R_AttributeSize attrSizes[attrCount])
+Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[attrCount])
 {
     assert(attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
-    Obdn_R_VertexDescription desc = {
+    Obdn_VertexDescription desc = {
         .attributeCount = attrCount,
         .bindingCount   = attrCount
     };
@@ -682,18 +619,18 @@ Obdn_R_VertexDescription obdn_r_GetVertexDescription(const uint32_t attrCount, c
     return desc;
 }
 
-void* obdn_r_GetPrimAttribute(const Obdn_R_Primitive* prim, const uint32_t index)
+void* obdn_GetGeoAttribute(const Obdn_Geometry* prim, const uint32_t index)
 {
     assert(index < OBDN_R_MAX_VERT_ATTRIBUTES);
     return (prim->vertexRegion.hostData + prim->attrOffsets[index]);
 }
 
-Obdn_R_Index* obdn_r_GetPrimIndices(const Obdn_R_Primitive* prim)
+Obdn_GeoIndex* obdn_GetGeoIndices(const Obdn_Geometry* prim)
 {
-    return (Obdn_R_Index*)prim->indexRegion.hostData;
+    return (Obdn_GeoIndex*)prim->indexRegion.hostData;
 }
 
-void obdn_r_BindPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
+void obdn_BindGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim)
 {
     VkBuffer     vertBuffers[prim->attrCount];
     VkDeviceSize attrOffsets[prim->attrCount];
@@ -710,19 +647,19 @@ void obdn_r_BindPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
             prim->indexRegion.offset, OBDN_VERT_INDEX_TYPE);
 }
 
-void obdn_r_DrawPrim(const VkCommandBuffer cmdBuf, const Obdn_R_Primitive* prim)
+void obdn_DrawGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim)
 {
-    obdn_r_BindPrim(cmdBuf, prim);
+    obdn_BindGeo(cmdBuf, prim);
     vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
-void obdn_r_FreePrim(Obdn_R_Primitive *prim)
+void obdn_FreeGeo(Obdn_Geometry *prim)
 {
     obdn_FreeBufferRegion(&prim->vertexRegion);
     obdn_FreeBufferRegion(&prim->indexRegion);
 }
 
-VkDeviceSize obdn_r_GetAttrOffset(const Obdn_R_Primitive* prim, const char* attrname)
+VkDeviceSize obdn_GetAttrOffset(const Obdn_Geometry* prim, const char* attrname)
 {
     for (int i = 0; i < prim->attrCount; i++)
     {
@@ -733,7 +670,7 @@ VkDeviceSize obdn_r_GetAttrOffset(const Obdn_R_Primitive* prim, const char* attr
     return 0;
 }
 
-VkDeviceSize obdn_r_GetAttrRange(const Obdn_R_Primitive* prim, const char* attrname)
+VkDeviceSize obdn_GetAttrRange(const Obdn_Geometry* prim, const char* attrname)
 {
     for (int i = 0; i < prim->attrCount; i++)
     {

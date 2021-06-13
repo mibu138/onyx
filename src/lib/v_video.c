@@ -30,7 +30,7 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
               const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
               void*                                       pUserData)
 {
-    DPRINT_VK("%s\n", pCallbackData->pMessage);
+    DPRINT_VK("\n%s\n", pCallbackData->pMessage);
     return VK_FALSE; // application must return false;
 }
 
@@ -411,11 +411,11 @@ initDevice(
     VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
         .sType =
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-        .pNext = NULL};
+        .pNext = &rtFeatures};
 
     VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-        .pNext = &devAddressFeatures,
+        .pNext = NULL,
     };
 
     VkPhysicalDeviceFeatures2 deviceFeatures = {
@@ -423,7 +423,7 @@ initDevice(
         .pNext = &descIndexingFeatures};
 
     if (enableRayTracing)
-        devAddressFeatures.pNext = &rtFeatures;
+        descIndexingFeatures.pNext = &devAddressFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 

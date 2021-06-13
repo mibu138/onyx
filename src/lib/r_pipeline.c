@@ -694,7 +694,7 @@ void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass rend
         .polygonMode = mode,
         .dynamicStateCount = 2,
         .pDynamicStates = dynamicStates,
-        .vertexDescription = obdn_r_GetVertexDescription(1, &attrSize),
+        .vertexDescription = obdn_GetVertexDescription(1, &attrSize),
         .vertShader = "obsidian/simple.vert.spv",
         .fragShader = "obsidian/simple.frag.spv"
     };

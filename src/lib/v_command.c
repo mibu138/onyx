@@ -167,7 +167,7 @@ void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf,
 {
     VkClearValue clears[2] = {
         {r, g, b, a},
-        {0.0} //depth
+        {1.0, 0} //depth
     };
 
     VkRenderPassBeginInfo rpi = {

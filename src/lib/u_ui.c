@@ -88,7 +88,7 @@ typedef struct {
 } Obdn_U_DragData;
 
 struct Obdn_U_Widget {
-    Obdn_R_Primitive   primitives[MAX_PRIMS_PER_WIDGET];
+    Obdn_Geometry   primitives[MAX_PRIMS_PER_WIDGET];
     Obdn_U_Widget*     widgets[MAX_WIDGETS_PER_WIDGET]; // unordered
     Obdn_U_Widget*     parent;
     Obdn_U_ResponderFn inputHandlerFn;
@@ -216,7 +216,7 @@ updateTexture(const Obdn_UI* ui, uint8_t imageIndex)
 static void
 initPipelines(Obdn_UI* ui, uint32_t width, uint32_t height)
 {
-    Obdn_R_AttributeSize        attrSizes[2] = {12, 12};
+    Obdn_GeoAttributeSize        attrSizes[2] = {12, 12};
     Obdn_GraphicsPipelineInfo pipeInfos[]  = {
         {// simple box
          .renderPass        = ui->renderPass,
@@ -224,7 +224,7 @@ initPipelines(Obdn_UI* ui, uint32_t width, uint32_t height)
          .sampleCount       = VK_SAMPLE_COUNT_1_BIT,
          .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
          .blendMode         = OBDN_R_BLEND_MODE_OVER,
-         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+         .vertexDescription = obdn_GetVertexDescription(2, attrSizes),
          .viewportDim       = {width, height},
          .vertShader        = "obsidian/ui.vert.spv",
          .fragShader        = "obsidian/ui-box.frag.spv"},
@@ -235,7 +235,7 @@ initPipelines(Obdn_UI* ui, uint32_t width, uint32_t height)
          .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
          .blendMode         = OBDN_R_BLEND_MODE_OVER,
          .viewportDim       = {width, height},
-         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+         .vertexDescription = obdn_GetVertexDescription(2, attrSizes),
          .vertShader        = "obsidian/ui.vert.spv",
          .fragShader        = "obsidian/ui-slider.frag.spv"},
         {// texture
@@ -245,7 +245,7 @@ initPipelines(Obdn_UI* ui, uint32_t width, uint32_t height)
          .frontFace         = VK_FRONT_FACE_COUNTER_CLOCKWISE,
          .blendMode         = OBDN_R_BLEND_MODE_OVER,
          .viewportDim       = {width, height},
-         .vertexDescription = obdn_r_GetVertexDescription(2, attrSizes),
+         .vertexDescription = obdn_GetVertexDescription(2, attrSizes),
          .vertShader        = "obsidian/ui.vert.spv",
          .fragShader        = "obsidian/ui-texture.frag.spv"}};
 
@@ -300,8 +300,8 @@ updateWidgetPos(const int16_t dx, const int16_t dy, Widget* widget)
     widget->y += dy;
     for (int i = 0; i < widget->primCount; i++)
     {
-        Obdn_R_Primitive* prim = &widget->primitives[i];
-        Vec3*             pos  = obdn_r_GetPrimAttribute(prim, 0);
+        Obdn_Geometry* prim = &widget->primitives[i];
+        Vec3*             pos  = obdn_GetGeoAttribute(prim, 0);
         for (int i = 0; i < prim->vertexCount; i++)
         {
             pos[i].x += dx;
@@ -342,14 +342,14 @@ dfnSimpleBox(const VkCommandBuffer cmdBuf, const Widget* widget)
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       widget->ui->pipelines[PIPELINE_BOX]);
 
-    const Obdn_R_Primitive* prim = &widget->primitives[0];
+    const Obdn_Geometry* prim = &widget->primitives[0];
 
     PushConstantFrag pc = {.i0 = widget->width, .i1 = widget->height};
 
     vkCmdPushConstants(cmdBuf, widget->ui->pipelineLayout,
                        VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
 
-    obdn_r_DrawPrim(cmdBuf, prim);
+    obdn_DrawGeo(cmdBuf, prim);
 }
 
 static bool
@@ -400,7 +400,7 @@ dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       widget->ui->pipelines[PIPELINE_SLIDER]);
 
-    const Obdn_R_Primitive* prim = &widget->primitives[0];
+    const Obdn_Geometry* prim = &widget->primitives[0];
 
     PushConstantFrag pc = {.i0 = widget->width,
                            .i1 = widget->height,
@@ -409,7 +409,7 @@ dfnSlider(const VkCommandBuffer cmdBuf, const Widget* widget)
     vkCmdPushConstants(cmdBuf, widget->ui->pipelineLayout,
                        VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
 
-    obdn_r_DrawPrim(cmdBuf, prim);
+    obdn_DrawGeo(cmdBuf, prim);
 }
 
 static bool
@@ -451,14 +451,14 @@ dfnText(const VkCommandBuffer cmdBuf, const Widget* widget)
     vkCmdBindPipeline(cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS,
                       widget->ui->pipelines[PIPELINE_TEXTURE]);
 
-    const Obdn_R_Primitive* prim = &widget->primitives[0];
+    const Obdn_Geometry* prim = &widget->primitives[0];
 
     PushConstantFrag pc = {.i0 = widget->data.text.imageIndex};
 
     vkCmdPushConstants(cmdBuf, widget->ui->pipelineLayout,
                        VK_SHADER_STAGE_FRAGMENT_BIT, 0, sizeof(pc), &pc);
 
-    obdn_r_DrawPrim(cmdBuf, prim);
+    obdn_DrawGeo(cmdBuf, prim);
 }
 
 static void
@@ -549,7 +549,7 @@ destroyWidget(Widget* widget)
     }
     for (int i = 0; i < widget->primCount; i++)
     {
-        obdn_r_FreePrim(&widget->primitives[i]);
+        obdn_FreeGeo(&widget->primitives[i]);
     }
     if (widget->destructFn)
         widget->destructFn(widget);

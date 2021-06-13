@@ -38,6 +38,7 @@ typedef struct {
     VkDeviceSize       offset;//TODO: delete this and see if its even necessary... should probably be a VkOffset3D object
     VkExtent3D         extent;
     VkImageLayout      layout;
+    VkImageUsageFlags  usageFlags;
     VkFormat           format;
     uint32_t           mipLevels;
     uint32_t           queueFamily;
@@ -51,6 +52,7 @@ void obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphic
                   const uint32_t deviceGraphicsBufferMB,
                   const uint32_t deviceGraphicsImageMB, const uint32_t hostTransferBufferMB,
                   const uint32_t deviceExternalGraphicsImageMB, Obdn_Memory* memory);
+
 Obdn_V_BufferRegion obdn_RequestBufferRegion(Obdn_Memory*, size_t size,
                                              const VkBufferUsageFlags,
                                              const Obdn_V_MemoryType);

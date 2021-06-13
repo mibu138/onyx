@@ -8,10 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-_Static_assert(sizeof(uint8_t) == sizeof(Obdn_R_AttributeSize),
+_Static_assert(sizeof(uint8_t) == sizeof(Obdn_GeoAttributeSize),
                "sizeof(Obdn_R_AttributeSize) must be 1");
 
-typedef Obdn_F_Primitive FPrim;
+typedef Obdn_FileGeo FPrim;
 
 #define FCHECK
 
@@ -50,23 +50,23 @@ printPrim(const FPrim* prim)
 }
 
 void
-obdn_f_PrintPrim(const Obdn_F_Primitive* prim)
+obdn_PrintFileGeo(const Obdn_FileGeo* prim)
 {
     printPrim(prim);
 }
 
-Obdn_F_Primitive
-obdn_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount,
+Obdn_FileGeo
+obdn_CreateFileGeo(const uint32_t vertexCount, const uint32_t indexCount,
                        const uint32_t             attrCount,
-                       const Obdn_R_AttributeSize attrSizes[attrCount],
+                       const Obdn_GeoAttributeSize attrSizes[attrCount],
                        const char attrNames[attrCount][OBDN_R_ATTR_NAME_LEN])
 {
-    Obdn_F_Primitive fprim = {.vertexCount = vertexCount,
+    Obdn_FileGeo fprim = {.vertexCount = vertexCount,
                               .indexCount  = indexCount,
                               .attrCount   = attrCount};
 
-    fprim.attrSizes  = hell_Malloc(attrCount * sizeof(Obdn_R_AttributeSize));
-    fprim.indices    = hell_Malloc(indexCount * sizeof(Obdn_R_Index));
+    fprim.attrSizes  = hell_Malloc(attrCount * sizeof(Obdn_GeoAttributeSize));
+    fprim.indices    = hell_Malloc(indexCount * sizeof(Obdn_GeoIndex));
     fprim.attrNames  = hell_Malloc(attrCount * sizeof(char*));
     fprim.attributes = hell_Malloc(attrCount * sizeof(void*));
 
@@ -88,10 +88,10 @@ obdn_f_CreatePrimitive(const uint32_t vertexCount, const uint32_t indexCount,
     return fprim;
 }
 
-Obdn_F_Primitive
-obdn_f_CreateFPrimFromRPrim(Obdn_Memory* memory, const Obdn_R_Primitive* rprim)
+Obdn_FileGeo
+obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
 {
-    Obdn_F_Primitive fprim = obdn_f_CreatePrimitive(
+    Obdn_FileGeo fprim = obdn_CreateFileGeo(
         rprim->vertexCount, rprim->indexCount, rprim->attrCount,
         rprim->attrSizes, rprim->attrNames);
 
@@ -112,7 +112,7 @@ obdn_f_CreateFPrimFromRPrim(Obdn_Memory* memory, const Obdn_R_Primitive* rprim)
         hostVertRegion = obdn_RequestBufferRegion(
             memory, attrDataSize, 0, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
         hostIndexRegion = obdn_RequestBufferRegion(
-            memory, rprim->indexCount * sizeof(Obdn_R_Index), 0,
+            memory, rprim->indexCount * sizeof(Obdn_GeoIndex), 0,
             OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
         obdn_CopyBufferRegion(&rprim->vertexRegion, &hostVertRegion);
         obdn_CopyBufferRegion(&rprim->indexRegion, &hostIndexRegion);
@@ -134,7 +134,7 @@ obdn_f_CreateFPrimFromRPrim(Obdn_Memory* memory, const Obdn_R_Primitive* rprim)
     }
 
     memcpy(fprim.indices, hostIndexRegion.hostData,
-           rprim->indexCount * sizeof(Obdn_R_Index));
+           rprim->indexCount * sizeof(Obdn_GeoIndex));
 
     if (!rprim->vertexRegion.hostData)
     {
@@ -145,16 +145,16 @@ obdn_f_CreateFPrimFromRPrim(Obdn_Memory* memory, const Obdn_R_Primitive* rprim)
     return fprim;
 }
 
-Obdn_R_Primitive
-obdn_f_CreateRPrimFromFPrim(Obdn_Memory* memory, const Obdn_F_Primitive* fprim)
+Obdn_Geometry
+obdn_CreateGeoFromFileGeo(Obdn_Memory* memory, const Obdn_FileGeo* fprim)
 {
-    Obdn_R_Primitive rprim =
-        obdn_CreatePrimitive(memory, fprim->vertexCount, fprim->indexCount,
+    Obdn_Geometry rprim =
+        obdn_CreateGeometry(memory, fprim->vertexCount, fprim->indexCount,
                              fprim->attrCount, fprim->attrSizes);
-    const size_t indexDataSize = fprim->indexCount * sizeof(Obdn_R_Index);
+    const size_t indexDataSize = fprim->indexCount * sizeof(Obdn_GeoIndex);
     for (int i = 0; i < fprim->attrCount; i++)
     {
-        void* dst = obdn_r_GetPrimAttribute(&rprim, i);
+        void* dst = obdn_GetGeoAttribute(&rprim, i);
         memcpy(dst, fprim->attributes[i],
                rprim.attrSizes[i] * rprim.vertexCount);
         memcpy(rprim.attrNames[i], fprim->attrNames[i], OBDN_R_ATTR_NAME_LEN);
@@ -164,13 +164,13 @@ obdn_f_CreateRPrimFromFPrim(Obdn_Memory* memory, const Obdn_F_Primitive* fprim)
 }
 
 int
-obdn_f_WritePrimitive(const char* filename, const Obdn_F_Primitive* fprim)
+obdn_WriteFileGeo(const char* filename, const Obdn_FileGeo* fprim)
 {
     FILE* file = fopen(filename, "wb");
     assert(file);
-    const size_t headerSize = offsetof(Obdn_F_Primitive, attrSizes);
+    const size_t headerSize = offsetof(Obdn_FileGeo, attrSizes);
     assert(headerSize == 16);
-    const size_t indexDataSize = sizeof(Obdn_R_Index) * fprim->indexCount;
+    const size_t indexDataSize = sizeof(Obdn_GeoIndex) * fprim->indexCount;
     size_t       r;
     r = fwrite(fprim, headerSize, 1, file);
     assert(r == 1);
@@ -195,21 +195,21 @@ obdn_f_WritePrimitive(const char* filename, const Obdn_F_Primitive* fprim)
 }
 
 int
-obdn_f_ReadPrimitive(const char* filename, Obdn_F_Primitive* fprim)
+obdn_ReadFileGeo(const char* filename, Obdn_FileGeo* fprim)
 {
     FILE* file = fopen(filename, "rb");
     assert(file);
     size_t r     UNUSED;
-    const size_t headerSize = offsetof(Obdn_F_Primitive, attrSizes);
+    const size_t headerSize = offsetof(Obdn_FileGeo, attrSizes);
     assert(headerSize == 16);
     r = fread(fprim, headerSize, 1, file);
     assert(r == 1);
     fprim->attrSizes =
-        hell_Malloc(fprim->attrCount * sizeof(Obdn_R_AttributeSize));
-    fprim->indices    = hell_Malloc(fprim->indexCount * sizeof(Obdn_R_Index));
+        hell_Malloc(fprim->attrCount * sizeof(Obdn_GeoAttributeSize));
+    fprim->indices    = hell_Malloc(fprim->indexCount * sizeof(Obdn_GeoIndex));
     fprim->attrNames  = hell_Malloc(fprim->attrCount * sizeof(char*));
     fprim->attributes = hell_Malloc(fprim->attrCount * sizeof(void*));
-    r = fread(fprim->attrSizes, fprim->attrCount * sizeof(Obdn_R_AttributeSize),
+    r = fread(fprim->attrSizes, fprim->attrCount * sizeof(Obdn_GeoAttributeSize),
               1, file);
     assert(r);
     for (int i = 0; i < fprim->attrCount; i++)
@@ -226,30 +226,30 @@ obdn_f_ReadPrimitive(const char* filename, Obdn_F_Primitive* fprim)
                   fprim->vertexCount * fprim->attrSizes[i], 1, file);
         assert(r);
     }
-    fread(fprim->indices, fprim->indexCount * sizeof(Obdn_R_Index), 1, file);
+    fread(fprim->indices, fprim->indexCount * sizeof(Obdn_GeoIndex), 1, file);
     assert(r == 1);
     return 1;
 }
 
-Obdn_R_Primitive
-obdn_f_LoadRPrim(Obdn_Memory* memory, const char* filename,
+Obdn_Geometry
+obdn_LoadGeo(Obdn_Memory* memory, const char* filename,
                  const bool transferToDevice)
 {
-    Obdn_F_Primitive fprim;
+    Obdn_FileGeo fprim;
     int              r;
-    r = obdn_f_ReadPrimitive(filename, &fprim);
+    r = obdn_ReadFileGeo(filename, &fprim);
     assert(r);
-    Obdn_R_Primitive rprim = obdn_f_CreateRPrimFromFPrim(memory, &fprim);
-    obdn_f_FreePrimitive(&fprim);
+    Obdn_Geometry rprim = obdn_CreateGeoFromFileGeo(memory, &fprim);
+    obdn_FreeFileGeo(&fprim);
     if (transferToDevice)
     {
-        obdn_TransferPrimToDevice(memory, &rprim);
+        obdn_TransferGeoToDevice(memory, &rprim);
     }
     return rprim;
 }
 
 void
-obdn_f_FreePrimitive(Obdn_F_Primitive* fprim)
+obdn_FreeFileGeo(Obdn_FileGeo* fprim)
 {
     for (int i = 0; i < fprim->attrCount; i++)
     {
@@ -260,5 +260,5 @@ obdn_f_FreePrimitive(Obdn_F_Primitive* fprim)
     hell_Free(fprim->indices);
     hell_Free(fprim->attrNames);
     hell_Free(fprim->attrSizes);
-    memset(fprim, 0, sizeof(Obdn_F_Primitive));
+    memset(fprim, 0, sizeof(Obdn_FileGeo));
 }

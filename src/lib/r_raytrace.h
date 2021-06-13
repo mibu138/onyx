@@ -19,7 +19,7 @@ typedef struct {
     VkStridedDeviceAddressRegionKHR callableTable;
 } Obdn_R_ShaderBindingTable;
 
-void obdn_BuildBlas(Obdn_Memory*, const Obdn_R_Primitive* prim, Obdn_R_AccelerationStructure* blas);
+void obdn_BuildBlas(Obdn_Memory*, const Obdn_Geometry* prim, Obdn_R_AccelerationStructure* blas);
 void obdn_BuildTlas(Obdn_Memory*, const uint32_t count, const Obdn_R_AccelerationStructure blasses[count],
         const Coal_Mat4 xforms[count],
         Obdn_R_AccelerationStructure* tlas);

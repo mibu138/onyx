@@ -262,6 +262,7 @@ createSwapchainFramebuffers(Obdn_Swapchain* swapchain, uint32_t aovCount, Obdn_A
         colorImage->extent.height = swapchain->height;
         colorImage->extent.depth = 1;
         colorImage->format = swapchain->format;
+        colorImage->usageFlags = swapchain->imageUsageFlags;
 
         for (uint32_t i = 1; i < aovCount; i++)
         {
@@ -320,21 +321,30 @@ obdn_CreateSwapchain(const Obdn_Instance*  instance,
                    Obdn_Memory*            memory,
                    Hell_EventQueue*        eventQueue,
                    const Hell_Window*      hellWindow,
-                   uint32_t                aovCount,
-                   Obdn_AovInfo            aovInfos[aovCount],
-                   Obdn_Swapchain* swapchain)
+                   VkImageUsageFlags       usageFlags,
+                   uint32_t                extraAovCount,
+                   Obdn_AovInfo            extraAovInfos[extraAovCount],
+                   Obdn_Swapchain*         swapchain)
 {
     memset(swapchain, 0, sizeof(Obdn_Swapchain));
+    uint32_t aovCount = extraAovCount + 1;
     assert(aovCount > 0);
+    assert(aovCount <= OBDN_MAX_AOVS);
+    Obdn_AovInfo aovInfos[OBDN_MAX_AOVS];
+    memset(aovInfos, 0, sizeof(aovInfos));
+    memcpy(&aovInfos[1], extraAovInfos, extraAovCount * sizeof(Obdn_AovInfo));
+    aovInfos[0].usageFlags = usageFlags;
+    aovInfos[0].aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
     swapchain->device = instance->device;
     swapchain->memory = memory;
     swapchain->presentQueue = instance->presentQueue;
-    swapchain->imageUsageFlags = aovInfos[0].usageFlags;
+    swapchain->imageUsageFlags = usageFlags;
     swapchain->physicalDevice = instance->physicalDevice;
     swapchain->aovCount = aovCount;
     memcpy(swapchain->aovInfos, aovInfos, sizeof(Obdn_AovInfo) * aovCount);
     initSurface(instance->vkinstance, hellWindow, &swapchain->surface);
     swapchain->format = chooseFormat(instance->physicalDevice, swapchain->surface);
+    aovInfos[0].format = swapchain->format;
     initSwapchainPresentMode(instance->physicalDevice, swapchain->surface, swapchain);
     createSwapchainWithSurface(swapchain, hell_GetWindowWidth(hellWindow), hell_GetWindowHeight(hellWindow));
     createSwapchainFramebuffers(swapchain, aovCount, aovInfos);
@@ -500,3 +510,12 @@ uint32_t obdn_GetSwapchainPixelByteCount(const Obdn_Swapchain* swapchain)
     return 4;
 }
 
+uint32_t obdn_GetSwapchainFramebufferCount(const Obdn_Swapchain* s)
+{
+    return s->imageCount;
+}
+
+const Obdn_Framebuffer* obdn_GetSwapchainFramebuffers(const Obdn_Swapchain* s)
+{
+    return s->framebuffers;
+}

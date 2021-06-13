@@ -12,7 +12,7 @@ typedef struct {
     char**    attrNames;
     void**    attributes;
     uint32_t* indices;
-} Obdn_F_Primitive;
+} Obdn_FileGeo;
 
 
 #endif /* end of include guard: OBSIDIAN_F_PRIM_H */

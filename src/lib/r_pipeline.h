@@ -53,7 +53,7 @@ typedef enum {
 typedef struct {
     VkRenderPass              renderPass;
     VkPipelineLayout          layout;
-    Obdn_R_VertexDescription  vertexDescription;
+    Obdn_VertexDescription  vertexDescription;
     VkPolygonMode             polygonMode;
     VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
     VkFrontFace               frontFace;

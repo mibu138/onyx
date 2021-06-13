@@ -18,7 +18,7 @@ typedef Obdn_R_ShaderBindingTable    ShaderBindingTable;
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_RAYTRACE, fmt, ##__VA_ARGS__)
 
-void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_R_Primitive* prim, AccelerationStructure* blas)
+void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, AccelerationStructure* blas)
 {
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
