@@ -742,9 +742,12 @@ obdn_CreateDescriptorSetLayout(
     V_ASSERT(vkCreateDescriptorSetLayout(device, &layoutInfo, NULL, layout));
 }
 
+#define MAX_POOL_SIZES 8
+
 void
 obdn_CreateDescriptorPool(VkDevice device,
-        uint32_t uniformBufferCount,
+                            uint32_t uniformBufferCount,
+                            uint32_t dynamicUniformBufferCount,
                           uint32_t combinedImageSamplerCount,
                           uint32_t storageImageCount,
                           uint32_t storageBufferCount,
@@ -752,30 +755,61 @@ obdn_CreateDescriptorPool(VkDevice device,
                           uint32_t accelerationStructureCount,
                           VkDescriptorPool* pool)
 {
-    VkDescriptorPoolSize poolSizes[] = {{
-            .descriptorCount = uniformBufferCount,
-            .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-        },{
-            .descriptorCount = accelerationStructureCount,
-            .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR,
-        },{
-            .descriptorCount = storageImageCount,
-            .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
-        },{
-            .descriptorCount = storageBufferCount,
-            .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
-        },{
-            .descriptorCount = combinedImageSamplerCount,
-            .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-        },{
-            .descriptorCount = inputAttachmentCount,
-            .type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-    }};
+    // if we pass in a pool size at all, desc count cannot be 0 for it, so we must do some funstuff
+    VkDescriptorPoolSize uniformBufferPS = {
+        .descriptorCount = uniformBufferCount,
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
+    };
+
+    VkDescriptorPoolSize dynamicUniformBufferPS = {
+        .descriptorCount = dynamicUniformBufferCount,
+        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC
+    };
+
+    VkDescriptorPoolSize combinedImageSamplerPS = {
+        .descriptorCount = combinedImageSamplerCount,
+        .type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
+    };
+
+    VkDescriptorPoolSize storageImagePS = {
+        .descriptorCount = storageImageCount,
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
+    };
+
+    VkDescriptorPoolSize storageBufferPS = {
+        .descriptorCount = storageBufferCount,
+        .type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
+    };
+
+    VkDescriptorPoolSize inputAttachmentPS = {
+        .descriptorCount = inputAttachmentCount,
+        .type = VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
+    };
+
+    VkDescriptorPoolSize accelerationStructurePS = {
+        .descriptorCount = accelerationStructureCount,
+        .type = VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR
+    };
+
+    VkDescriptorPoolSize poolSizes[8];
+    memset(poolSizes, 0, sizeof(poolSizes));
+
+    VkDescriptorPoolSize* psp = poolSizes;
+
+    if (uniformBufferCount > 0) *psp++ = uniformBufferPS;
+    if (dynamicUniformBufferCount > 0) *psp++ = dynamicUniformBufferPS;
+    if (combinedImageSamplerCount > 0) *psp++ = combinedImageSamplerPS;
+    if (storageImageCount > 0) *psp++ = storageImagePS;
+    if (storageBufferCount > 0) *psp++ = storageBufferPS;
+    if (inputAttachmentCount > 0) *psp++ = inputAttachmentPS;
+    if (accelerationStructureCount > 0) *psp++ = accelerationStructurePS;
+
+    uint32_t psCount = psp - poolSizes;
 
     VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
         .maxSets = OBDN_MAX_DESCRIPTOR_SETS,
-        .poolSizeCount = LEN(poolSizes),
+        .poolSizeCount = psCount,
         .pPoolSizes = poolSizes
     };
 

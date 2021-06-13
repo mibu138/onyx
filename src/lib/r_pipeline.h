@@ -113,7 +113,9 @@ void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass rend
                                         const VkPolygonMode mode,
                                         VkPipeline *pipeline);
 
-void obdn_CreateDescriptorPool(VkDevice, uint32_t uniformBufferCount,
+void obdn_CreateDescriptorPool(VkDevice device,
+                            uint32_t uniformBufferCount,
+                            uint32_t dynamicUniformBufferCount,
                           uint32_t combinedImageSamplerCount,
                           uint32_t storageImageCount,
                           uint32_t storageBufferCount,
