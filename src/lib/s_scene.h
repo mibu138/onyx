@@ -104,7 +104,8 @@ Obdn_Scene* obdn_AllocScene(void);
 
 void obdn_CreateScene(uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip, Obdn_Scene* scene);
 
-void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home);
+// will update camera as well as target.
+void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home);
 void obdn_UpdateCamera_LookAt(Obdn_Scene* scene, Vec3 pos, Vec3 target, Vec3 up);
 void obdn_CreateEmptyScene(Obdn_Scene* scene);
 void obdn_UpdateLight(Obdn_Scene* scene, uint32_t id, float intensity);

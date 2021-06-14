@@ -55,6 +55,7 @@ typedef struct {
     VkPipelineLayout          layout;
     Obdn_VertexDescription  vertexDescription;
     VkPolygonMode             polygonMode;
+    VkPrimitiveTopology       primitiveTopology;
     VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
     VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;

@@ -212,18 +212,9 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
 
         inputAssemblyStates[i] = (VkPipelineInputAssemblyStateCreateInfo){
             .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-            .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
+            .topology = rasterInfo->primitiveTopology,
             .primitiveRestartEnable = VK_FALSE // applies only to index calls
         };
-
-        if (rasterInfo->polygonMode == VK_POLYGON_MODE_POINT)
-            inputAssemblyStates[i].topology = VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
-
-        if (rasterInfo->polygonMode == VK_POLYGON_MODE_LINE)
-            inputAssemblyStates[i].topology = VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
-
-        if (rasterInfo->tessCtrlShader)
-            inputAssemblyStates[i].topology = VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
 
         VkExtent2D viewportDim = rasterInfo->viewportDim;
         if (viewportDim.width < 1) // use window size
@@ -691,6 +682,7 @@ void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass rend
         .layout = layout,
         .attachmentCount = 1,
         .sampleCount = VK_SAMPLE_COUNT_1_BIT,
+        .primitiveTopology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         .polygonMode = mode,
         .dynamicStateCount = 2,
         .pDynamicStates = dynamicStates,

@@ -288,11 +288,14 @@ void obdn_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
     scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
 }
 
-void obdn_UpdateCamera_ArcBall(Scene* scene, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home)
+static Vec3 prevpos;
+static Vec3 prevtarget;
+static Vec3 prevup;
+
+void obdn_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home)
 {
-    Vec3 pos    = HOME_POS;
-    Vec3 target = HOME_TARGET;
-    Vec3 up     = HOME_UP;
+    Vec3 pos = coal_GetTranslation_Mat4(scene->camera.xform);
+    Vec3 up = coal_GetLocalY_Mat4(scene->camera.xform);
     int zoom_ticks = 0;
     if (zooming)
         zoom_ticks = x - xprev;
@@ -301,15 +304,14 @@ void obdn_UpdateCamera_ArcBall(Scene* scene, int screenWidth, int screenHeight, 
     if (home)
     {
         pos =    (Vec3)HOME_POS;
-        target = (Vec3)HOME_TARGET;
+        *target = (Vec3)HOME_TARGET;
         up =     (Vec3)HOME_UP;
     }
     //pos = m_RotateY_Vec3(dt, &pos);
-    arcball_camera_update(pos.e, target.e, up.e, NULL, dt, 
+    arcball_camera_update(pos.e, target->e, up.e, NULL, dt, 
             ZOOM_RATE, PAN_RATE, TUMBLE_RATE, screenWidth, screenHeight, xprev, x, yprev, y, 
             panning, tumbling, zoom_ticks, 0);
-    Mat4 m = coal_LookAt(pos, target, up);
-    coal_PrintMat4(m);
+    Mat4 m = coal_LookAt(pos, *target, up);
     scene->camera.xform = m;
     scene->camera.view  = coal_Invert4x4(scene->camera.xform);
     scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
