@@ -8,7 +8,7 @@
 #include "s_scene.h"
 #include "r_pipeline.h"
 #include "r_pipeline.h"
-#include "r_geo.h"
+#include "geo.h"
 #include "r_renderpass.h"
 #include "s_scene.h"
 #include "u_ui.h"
