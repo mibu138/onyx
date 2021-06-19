@@ -13,17 +13,17 @@ typedef Obdn_GeoIndex Obdn_AttrIndex;
 typedef uint8_t      Obdn_GeoAttributeSize;
 
 // vertexRegion.offset is the byte offset info the buffer where the vertex data
-// is kept. attrOffsets store the byte offset relative to the vertexRegion offset
-// where the individual attribute data is kept
-// attrSizes stores how many bytes each individual attribute element takes up
-// attrCount is how many different attribute types the primitive holds
-// vertexRegion.size is the total size of the vertex attribute data
-typedef struct Obdn_R_Primitive {
+// is kept. attrOffsets store the byte offset relative to the vertexRegion
+// offset where the individual attribute data is kept attrSizes stores how many
+// bytes each individual attribute element takes up attrCount is how many
+// different attribute types the primitive holds vertexRegion.size is the total
+// size of the vertex attribute data
+typedef struct Obdn_Geometry {
     uint32_t              vertexCount;
-    Obdn_V_BufferRegion  vertexRegion;
     uint32_t              indexCount;
-    Obdn_V_BufferRegion  indexRegion;
     uint32_t              attrCount;
+    Obdn_V_BufferRegion  vertexRegion;
+    Obdn_V_BufferRegion  indexRegion;
     char                  attrNames[OBDN_R_MAX_VERT_ATTRIBUTES][OBDN_R_ATTR_NAME_LEN];
     Obdn_GeoAttributeSize attrSizes[OBDN_R_MAX_VERT_ATTRIBUTES]; // individual element sizes
     VkDeviceSize          attrOffsets[OBDN_R_MAX_VERT_ATTRIBUTES];
@@ -38,8 +38,7 @@ typedef struct {
 
 // pos and color. clockwise for now.
 Obdn_Geometry  obdn_CreateTriangle(Obdn_Memory*);
-Obdn_Geometry  obdn_CreateCubePrim(Obdn_Memory*, const bool isClockWise);
-Obdn_Geometry  obdn_CreateCubePrimUV(Obdn_Memory*, const bool isClockWise);
+Obdn_Geometry  obdn_CreateCube(Obdn_Memory* memory, const bool isClockWise);
 Obdn_Geometry  obdn_CreatePoints(Obdn_Memory*, const uint32_t count);
 Obdn_Geometry  obdn_CreateCurve(Obdn_Memory*, const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
 Obdn_Geometry  obdn_CreateQuadNDC(Obdn_Memory*, const float x, const float y, const float width, const float height);

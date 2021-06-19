@@ -2,6 +2,7 @@
 #include "f_file.h"
 #include "coal/util.h"
 #include "hell/common.h"
+#include <hell/ds.h>
 #include "dtags.h"
 #include <hell/debug.h>
 #include "v_memory.h"
@@ -20,102 +21,176 @@ typedef Obdn_Material      Material;
 typedef Obdn_Camera        Camera;
 typedef Obdn_Texture       Texture;
 
-typedef Obdn_LightId       LightId;
-typedef Obdn_PrimId        PrimId;
+typedef Obdn_SceneObjectInt obint;
+
+typedef Obdn_PrimitiveHandle PrimitiveHandle;
+typedef Obdn_LightHandle LightHandle;
+typedef Obdn_MaterialHandle MaterialHandle;
+typedef Obdn_TextureHandle TextureHandle;
 
 typedef Obdn_PrimitiveList PrimitiveList;
 
-// TODO: this function needs to updated
-#define DEFAULT_MAT_ID 0
+#define INIT_PRIM_CAP 16
+#define INIT_LIGHT_CAP 8
+#define INIT_MATERIAL_CAP 8
+#define INIT_TEXTURE_CAP 8
+
+#define PRIM(scene, handle) scene->prims[scene->primMap.indices[handle.id]]
+#define TEXTURE(scene, handle) scene->textures[scene->texMap.indices[handle.id]]
+#define LIGHT(scene, handle) scene->lights[scene->lightMap.indices[handle.id]]
+#define MATERIAL(scene, handle) scene->materials[scene->matMap.indices[handle.id]]
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_SCENE, fmt, ##__VA_ARGS__)
 
-typedef int32_t LightIndex;
-typedef int32_t PrimIndex;
 // lightMap is an indirection from Light Id to the actual light data in the scene.
 // invariants are that the active lights in the scene are tightly packed and
 // that the lights in the scene are ordered such that their indices are ordered
 // within the map.
-static struct {
-    LightIndex indices[OBDN_SCENE_MAX_LIGHTS]; // maps light id to light index
-    LightId    nextId; // this always increases
-} lightMap;
 
-static struct {
-    PrimIndex indices[OBDN_SCENE_MAX_PRIMS];
-    PrimId    nextId;
-} primMap;
+typedef struct {
+    // an array of indices into the object buffers. a handle id is an index into
+    // this.
+    obint*  indices;
+    // a stack of ids that are available for reuse. gets added to when we remove
+    // an object and can reclaim its id. the bottom of the stack should always
+    // be larger than any other Id used yet. in other words, we should always pull from this 
+    // stack for the next id
+    Hell_Stack availableIds;
+} ObjectMap;
 
-static Obdn_PrimId addPrim(Scene* s, const Obdn_Primitive prim)
+typedef struct Obdn_Scene {
+    Obdn_SceneDirtyFlags dirt;
+    obint                primCount;
+    obint                lightCount;
+    obint                materialCount;
+    obint                textureCount;
+    Obdn_Camera          camera;
+    obint                primCapacity;
+    Obdn_Primitive*      prims;
+    obint                materialCapacity;
+    Obdn_Material*       materials;
+    obint                textureCapacity;
+    Obdn_Texture*        textures;
+    obint                lightCapacity;
+    Obdn_Light*          lights;
+    ObjectMap            primMap;
+    ObjectMap            lightMap;
+    ObjectMap            matMap;
+    ObjectMap            texMap;
+} Obdn_Scene;
+
+static void createObjectMap(u32 initObjectCap, u32 initIdStackCap, ObjectMap* map)
 {
-    PrimIndex index  = s->primCount++;
-    assert(index < OBDN_SCENE_MAX_PRIMS);
-    PrimId    id     = primMap.nextId++;
-    while (primMap.indices[id % OBDN_SCENE_MAX_PRIMS] >= 0) 
-        id = primMap.nextId++;
-    PrimId    slot   = id % OBDN_SCENE_MAX_PRIMS;
-    if (index > slot)
-    {
-        memmove(s->prims + slot + 1, s->prims + slot, sizeof(Primitive) * (s->primCount - (slot + 1)));
-        for (int i = slot + 1; i < OBDN_SCENE_MAX_PRIMS; i++)
-        {
-            ++primMap.indices[i];
-        }
-        index = slot;
-    }
-    primMap.indices[slot] = index;
-    memcpy(&s->prims[index], &prim, sizeof(Primitive));
+    map->indices = hell_Malloc(sizeof(map->indices[0]) * initObjectCap);
+    hell_CreateStack(initIdStackCap, sizeof(map->indices[0]), NULL, NULL, &map->availableIds);
+}
 
-    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+static void growArray(void** curptr, obint* curcap, const u32 elemsize)
+{
+    assert(*curcap);
+    assert(*curptr);
+    uint32_t newcap = *curcap * 2;
+    void* p = hell_Realloc(*curptr, newcap * elemsize);
+    if (!p) 
+        hell_Error(HELL_ERR_FATAL, "Growing array capacity failed. Realloc returned Null\n");
+    *curptr = p;
+    *curcap = newcap;
+}
+
+static obint addSceneObject(const void* object, void* objectArray, obint* objectCount, obint* cap, const u32 elemSize, ObjectMap* map)
+{
+    const obint index = (*objectCount)++;
+    if (index == *cap)
+    {
+        growArray(objectArray, cap, elemSize);
+        growArray((void**)&map->indices, cap, elemSize);
+    }
+    assert(index < *cap);
+    obint id = 0;
+    if (map->availableIds.count == 0)
+        id = index;
+    else 
+        hell_StackPop(&map->availableIds, &id);
+    map->indices[id] = index;
+    void* dst = (u8*)(objectArray) + index * elemSize;
+    memcpy(dst, object, elemSize);
     return id;
 }
 
-static void removePrim(Scene* s, Obdn_PrimId id)
+static void removeSceneObject(obint id, void* objectArray, obint* objectCount, const u32 elemSize, ObjectMap* map)
 {
-    PrimId slot = id % OBDN_SCENE_MAX_PRIMS;
-    PrimIndex dst = primMap.indices[slot];
-    PrimIndex src = dst + 1;
-    obdn_FreeGeo(&s->prims[dst].geo);
-    memmove(s->prims + dst, s->prims + src, sizeof(Primitive) * (s->primCount - src));
-    s->primCount--;
-    for (int i = slot + 1; i < OBDN_SCENE_MAX_PRIMS; i++)
-    {
-        --primMap.indices[i];
-    }
-    primMap.indices[slot] = -OBDN_SCENE_MAX_PRIMS;
-    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+    void* const       dst   = (u8*)(objectArray) + map->indices[id] * elemSize;
+    const void* const src   = (u8*)dst + elemSize;
+    const u8* const   end   = (u8*)(objectArray) + *objectCount * elemSize;
+    const u32         range = end - (u8*)src;
+    memmove(dst, src, range);
+    (*objectCount)--;
+    hell_StackPush(&map->availableIds, &id);
 }
 
-static LightId addLight(Scene* s, Light light)
+static PrimitiveHandle addPrim(Scene* s, Obdn_Primitive prim)
 {
-    DPRINT("Adding light...\nBefore info:\n");
-    obdn_PrintLightInfo(s);
-    LightIndex index  = s->lightCount++;
-    assert(index < OBDN_SCENE_MAX_LIGHTS);
-    LightId    id     = lightMap.nextId++;
-    while (lightMap.indices[id % OBDN_SCENE_MAX_LIGHTS] >= 0) 
-        id = lightMap.nextId++;
-    LightId    slot   = id % OBDN_SCENE_MAX_LIGHTS;
-    DPRINT("Index: %d slot %d\n", index, slot);
-    if (index > slot)
-    {
-        memmove(s->lights + slot + 1, s->lights + slot, sizeof(Light) * (s->lightCount - (slot + 1)));
-        for (int i = slot + 1; i < OBDN_SCENE_MAX_LIGHTS; i++)
-        {
-            ++lightMap.indices[i];
-        }
-        index = slot;
-    }
-    lightMap.indices[slot] = index;
-    memcpy(&s->lights[index], &light, sizeof(Light));
+    obint id = addSceneObject(&prim, s->prims, &s->primCount, &s->primCapacity, sizeof(prim), &s->primMap);
+    PrimitiveHandle handle = {id};
+    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+    return handle;
+}
 
+static LightHandle addLight(Scene* s, Light light)
+{
+    obint id = addSceneObject(&light, s->lights, &s->lightCount, &s->lightCapacity, sizeof(light), &s->lightMap);
+    LightHandle handle = {id};
     s->dirt |= OBDN_SCENE_LIGHTS_BIT;
-    DPRINT("After info: \n");
-    obdn_PrintLightInfo(s);
-    return id;
+    return handle;
 }
 
-static LightId addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 color, const float intensity)
+static TextureHandle addTexture(Scene* s, Obdn_Texture texture)
+{
+    obint id = addSceneObject(&texture, s->textures, &s->textureCount, &s->textureCapacity, sizeof(texture), &s->texMap);
+    TextureHandle handle = {id};
+    s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+    return handle;
+}
+
+static MaterialHandle addMaterial(Scene* s, Obdn_Material material)
+{
+    obint id = addSceneObject(&material, s->materials, &s->materialCount, &s->materialCapacity, sizeof(s->materials[0]), &s->matMap);
+    MaterialHandle handle = {id};
+    s->dirt |= OBDN_SCENE_MATERIALS_BIT;
+    return handle;
+}
+
+static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
+{
+    assert(handle.id < s->primCapacity);
+    obdn_FreeGeo(&PRIM(s, handle).geo);
+    removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
+    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+}
+
+static void removeLight(Scene* s, Obdn_LightHandle handle)
+{
+    assert(handle.id < s->lightCapacity);
+    removeSceneObject(handle.id, s->lights, &s->lightCount, sizeof(s->lights[0]), &s->lightMap);
+    s->dirt |= OBDN_SCENE_LIGHTS_BIT;
+}
+
+static void removeTexture(Scene* s, Obdn_TextureHandle handle)
+{
+    assert(handle.id < s->textureCapacity);
+    obdn_FreeImage(&TEXTURE(s, handle).devImage);
+    removeSceneObject(handle.id, s->textures, &s->textureCount, sizeof(s->textures[0]), &s->texMap);
+    s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+}
+
+static void removeMaterial(Scene* s, Obdn_MaterialHandle handle)
+{
+    assert(handle.id < s->materialCapacity);
+    removeSceneObject(handle.id, s->materials, &s->materialCount, sizeof(s->materials[0]), &s->matMap);
+    s->dirt |= OBDN_SCENE_MATERIALS_BIT;
+}
+
+static LightHandle addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 color, const float intensity)
 {
     Light light = {
         .type = OBDN_DIRECTION_LIGHT_TYPE,
@@ -126,7 +201,7 @@ static LightId addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 
     return addLight(s, light);
 }
 
-static LightId addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 color, const float intensity)
+static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 color, const float intensity)
 {
     Light light = {
         .type = OBDN_LIGHT_POINT_TYPE,
@@ -137,22 +212,7 @@ static LightId addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 colo
     return addLight(s, light);
 }
 
-static void removeLight(Scene* s, LightId id)
-{
-    LightId slot = id % OBDN_SCENE_MAX_PRIMS;
-    LightIndex dst = lightMap.indices[slot];
-    LightIndex src = dst + 1;
-    memmove(s->lights + dst, s->lights + src, sizeof(Light) * (s->lightCount - src));
-    s->lightCount--;
-    for (int i = slot + 1; i < OBDN_SCENE_MAX_LIGHTS; i++)
-    {
-        --lightMap.indices[i];
-    }
-    lightMap.indices[slot] = -OBDN_SCENE_MAX_LIGHTS;
-    s->dirt |= OBDN_SCENE_LIGHTS_BIT;
-}
-
-void obdn_CreateScene(uint16_t windowWidth, uint16_t windowHeight, float nearClip, float farClip, Scene* scene)
+void obdn_CreateScene(float nearClip, float farClip, Scene* scene)
 {
     memset(scene, 0, sizeof(Scene));
     scene->camera.xform = coal_Ident_Mat4();
@@ -162,51 +222,44 @@ void obdn_CreateScene(uint16_t windowWidth, uint16_t windowHeight, float nearCli
     scene->camera.view = coal_Invert4x4(m);
     scene->camera.proj = coal_BuildPerspective(nearClip, farClip);
     // set all xforms to identity
-    obdn_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, 0, 0, 0); // default. color is H-Beta from hydrogen balmer series
-    for (int i = 0; i < OBDN_SCENE_MAX_LIGHTS; i++)
-    {
-        lightMap.indices[i] = -OBDN_SCENE_MAX_LIGHTS;
-    }
-    for (int i = 0; i < OBDN_SCENE_MAX_PRIMS; i++)
-    {
-        primMap.indices[i] = -OBDN_SCENE_MAX_PRIMS;
-    }
+    scene->primCapacity = INIT_PRIM_CAP;
+    scene->lightCapacity = INIT_LIGHT_CAP;
+    scene->materialCapacity = INIT_MATERIAL_CAP;
+    scene->textureCapacity = INIT_TEXTURE_CAP;
+    createObjectMap(scene->primCapacity, 8, &scene->primMap);
+    createObjectMap(scene->lightCapacity, 8, &scene->lightMap);
+    createObjectMap(scene->materialCapacity, 8, &scene->matMap);
+    createObjectMap(scene->textureCapacity, 8, &scene->texMap);
 
+    scene->prims = hell_Malloc(scene->primCapacity * sizeof(scene->prims[0]));
+    scene->lights = hell_Malloc(scene->lightCapacity * sizeof(scene->lights[0]));
+    scene->materials = hell_Malloc(scene->materialCapacity * sizeof(scene->materials[0]));
+    scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
+
+    obdn_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, NULL_TEXTURE, NULL_TEXTURE, NULL_TEXTURE);
     scene->dirt = -1;
 }
 
-void obdn_CreateEmptyScene(Scene* scene)
+void obdn_BindPrimToMaterial(Scene* scene, Obdn_PrimitiveHandle primhandle, Obdn_MaterialHandle mathandle)
 {
-    memset(scene, 0, sizeof(Scene));
-    Mat4 m = coal_LookAt((Vec3){1, 1, 2}, (Vec3){0, 0, 0}, (Vec3){0, 1, 0});
-    scene->camera.xform = m;
-    scene->camera.view = coal_Invert4x4(m);
-    scene->camera.proj = coal_BuildPerspective(0.01, 100);
-    obdn_CreateMaterial(scene, (Vec3){1, .4, .7}, 1, 0, 0, 0); // default matId
-
-    scene->dirt |= -1;
-}
-
-void obdn_BindPrimToMaterial(Scene* scene, const Obdn_PrimId primId, const Obdn_MaterialId matId)
-{
-    assert(scene->materialCount > matId);
-    scene->prims[primMap.indices[primId]].materialId = matId;
+    assert(scene->materialCount > mathandle.id);
+    PRIM(scene, primhandle).material = mathandle;
 
     scene->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
 
-Obdn_PrimId obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform)
+Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform)
 {
     Obdn_Primitive prim = {
         .geo = geo,
         .xform = COAL_MAT4_IDENT,
-        .materialId = 0
+        .material = NULL_MATERIAL
     };
     prim.xform = xform;
     return addPrim(scene, prim);
 }
 
-Obdn_PrimId obdn_LoadPrim(Scene* scene, Obdn_Memory* memory, const char* filePath, const Coal_Mat4 xform)
+Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, Obdn_Memory* memory, const char* filePath, const Coal_Mat4 xform)
 {
     Obdn_FileGeo fprim;
     int r = obdn_ReadFileGeo(filePath, &fprim);
@@ -218,7 +271,7 @@ Obdn_PrimId obdn_LoadPrim(Scene* scene, Obdn_Memory* memory, const char* filePat
     return obdn_AddPrim(scene, prim, xform);
 }
 
-Obdn_TextureId obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, const char* filePath, const uint8_t channelCount)
+Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, const char* filePath, const uint8_t channelCount)
 {
     Texture texture = {0};
 
@@ -229,7 +282,7 @@ Obdn_TextureId obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, const ch
         case 1: format = VK_FORMAT_R8_UNORM; break;
         case 3: format = VK_FORMAT_R8G8B8A8_UNORM; break;
         case 4: format = VK_FORMAT_R8G8B8A8_UNORM; break;
-        default: DPRINT("ChannelCount %d not support.\n", channelCount); return 0;
+        default: DPRINT("ChannelCount %d not support.\n", channelCount); return NULL_TEXTURE;
     }
 
     obdn_LoadImage(memory, filePath, channelCount, format,
@@ -238,38 +291,28 @@ Obdn_TextureId obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, const ch
             1, VK_FILTER_LINEAR, OBDN_V_MEMORY_DEVICE_TYPE, 
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
 
-    const Obdn_TextureId texId = ++scene->textureCount; // we purposely leave the 0th texture slot empty
-    scene->textures[texId] = texture;
-    assert(scene->textureCount < OBDN_SCENE_MAX_TEXTURES);
-
-    scene->dirt |= OBDN_SCENE_TEXTURES_BIT;
-
-    return texId;
+    return addTexture(scene, texture);
 }
 
-Obdn_MaterialId obdn_CreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
-        Obdn_TextureId albedoId, Obdn_TextureId roughnessId, Obdn_TextureId normalId)
+Obdn_MaterialHandle obdn_CreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
+        Obdn_TextureHandle albedoId, Obdn_TextureHandle roughnessId, Obdn_TextureHandle normalId)
 {
-    Obdn_MaterialId matId = scene->materialCount++;
-    assert(matId < OBDN_SCENE_MAX_MATERIALS);
+    Obdn_Material mat = {0};
 
-    scene->materials[matId].color     = color;
-    scene->materials[matId].roughness = roughness;
-    scene->materials[matId].textureAlbedo    = albedoId;
-    scene->materials[matId].textureRoughness = roughnessId;
-    scene->materials[matId].textureNormal    = normalId;
+    mat.roughness = roughness;
+    mat.textureAlbedo    = albedoId;
+    mat.textureRoughness = roughnessId;
+    mat.textureNormal    = normalId;
 
-    scene->dirt |= OBDN_SCENE_MATERIALS_BIT;
-
-    return matId;
+    return addMaterial(scene, mat);
 }
 
-Obdn_LightId obdn_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
+Obdn_LightHandle obdn_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
 {
     return addDirectionLight(scene, direction, color, 1.0);
 }
 
-Obdn_LightId obdn_SceneCreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
+Obdn_LightHandle obdn_SceneCreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
 {
     return addPointLight(scene, position, color, 1.0);
 }
@@ -317,31 +360,28 @@ void obdn_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int 
     scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
 }
 
-void obdn_UpdateLight(Scene* scene, uint32_t id, float intensity)
+void obdn_UpdateLight(Scene* scene, LightHandle handle, float intensity)
 {
-    scene->lights[lightMap.indices[id]].intensity = intensity;
+    LIGHT(scene, handle).intensity = intensity;
     scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
 }
 
-void obdn_UpdatePrimXform(Scene* scene, const Obdn_PrimId primId, const Mat4 delta)
+void obdn_UpdatePrimXform(Scene* scene, PrimitiveHandle handle, const Mat4 delta)
 {
-    assert(primId < scene->primCount);
-    Coal_Mat4 M = coal_Mult_Mat4(scene->prims[primMap.indices[primId]].xform, delta);
-    scene->prims[primMap.indices[primId]].xform = M;
+    Coal_Mat4 M = coal_Mult_Mat4(PRIM(scene, handle).xform, delta);
+    PRIM(scene, handle).xform = M;
     scene->dirt |= OBDN_SCENE_XFORMS_BIT;
 }
 
-void obdn_AddPrimToList(const Obdn_PrimId primId, Obdn_PrimitiveList* list)
+void obdn_AddPrimToList(Obdn_PrimitiveHandle handle, Obdn_PrimitiveList* list)
 {
-    list->primIds[list->primCount] = primId;
+    list->primIds[list->primCount] = handle.id;
     list->primCount++;
-    assert(list->primCount < OBDN_SCENE_MAX_PRIMS);
 }
 
 void obdn_ClearPrimList(Obdn_PrimitiveList* list)
 {
     list->primCount = 0;
-    assert(list->primCount < OBDN_SCENE_MAX_PRIMS);
 }
 
 void obdn_CleanUpScene(Obdn_Scene* scene)
@@ -359,23 +399,9 @@ void obdn_CleanUpScene(Obdn_Scene* scene)
     memset(scene, 0, sizeof(*scene));
 }
 
-Obdn_Geometry obdn_SwapRPrim(Obdn_Scene* scene, const Obdn_Geometry* newRprim, const Obdn_PrimId id)
+void obdn_RemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
 {
-    assert(id < scene->primCount);
-    Obdn_Geometry oldPrim = scene->prims[id].geo;
-    scene->prims[id].geo = *newRprim;
-    scene->dirt |= OBDN_SCENE_PRIMS_BIT;
-    return oldPrim;
-}
-
-bool obdn_PrimExists(const Obdn_Scene* s, Obdn_PrimId id)
-{
-    return (s->primCount > 0 && s->prims[id].geo.attrCount > 0);
-}
-
-void obdn_RemovePrim(Obdn_Scene* s, Obdn_PrimId id)
-{
-    removePrim(s, id);
+    removePrim(s, handle);
 }
 
 void obdn_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
@@ -388,7 +414,7 @@ void obdn_SceneAddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float int
     addPointLight(s, pos, color, intensity);
 }
 
-void obdn_RemoveLight(Scene* s, LightId id)
+void obdn_RemoveLight(Scene* s, LightHandle id)
 {
     removeLight(s, id);
 }
@@ -406,9 +432,9 @@ void obdn_PrintLightInfo(const Scene* s)
         hell_Print(" I  %f\n", s->lights[i].intensity);
     }
     hell_Print("Light map: ");
-    for (int i = 0; i < OBDN_SCENE_MAX_LIGHTS; i++)
+    for (int i = 0; i < s->lightCapacity; i++)
     {
-        hell_Print(" %d:%d ", i, lightMap.indices[i]);
+        hell_Print(" %d:%d ", i, s->lightMap.indices[i]);
     }
     hell_Print("\n");
 }
@@ -419,42 +445,73 @@ void obdn_PrintPrimInfo(const Scene* s)
     hell_Print("Prim count: %d\n", s->primCount);
     for (int i = 0; i < s->primCount; i++)
     {
-        hell_Print("Prim %d material id %d\n", i, s->prims[i].materialId); 
-        hell_Print("Material: id %d roughness %f\n", s->prims[i].materialId, s->materials[s->prims[i].materialId].roughness);
+        hell_Print("Prim %d material id %d\n", i, s->prims[i].material.id); 
+        hell_Print("Material: id %d roughness %f\n", s->prims[i].material.id, s->materials[s->prims[i].material.id].roughness);
         hell_Print_Mat4(s->prims[i].xform.e);
         hell_Print("\n");
     }
     hell_Print("Prim map: ");
-    for (int i = 0; i < OBDN_SCENE_MAX_PRIMS; i++)
+    for (int i = 0; i < s->primCapacity; i++)
     {
-        hell_Print(" %d:%d ", i, primMap.indices[i]);
+        hell_Print(" %d:%d ", i, s->primMap.indices[i]);
     }
     hell_Print("\n");
 }
 
-void obdn_UpdateLightColor(Obdn_Scene* scene, Obdn_LightId id, float r, float g, float b)
+void obdn_UpdateLightColor(Obdn_Scene* scene, Obdn_LightHandle handle, float r, float g, float b)
 {
-    scene->lights[lightMap.indices[id]].color.r = r;
-    scene->lights[lightMap.indices[id]].color.g = g;
-    scene->lights[lightMap.indices[id]].color.b = b;
+    LIGHT(scene, handle).color.r = r;
+    LIGHT(scene, handle).color.g = g;
+    LIGHT(scene, handle).color.b = b;
     scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
 }
 
-void obdn_UpdateLightPos(Obdn_Scene* scene, Obdn_LightId id, float x, float y, float z)
+void obdn_UpdateLightPos(Obdn_Scene* scene, Obdn_LightHandle handle, float x, float y, float z)
 {
-    scene->lights[lightMap.indices[id]].structure.pointLight.pos.x = x;
-    scene->lights[lightMap.indices[id]].structure.pointLight.pos.y = y;
-    scene->lights[lightMap.indices[id]].structure.pointLight.pos.z = z;
+    LIGHT(scene, handle).structure.pointLight.pos.x = x;
+    LIGHT(scene, handle).structure.pointLight.pos.y = y;
+    LIGHT(scene, handle).structure.pointLight.pos.z = z;
     scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
 }
 
-void obdn_UpdateLightIntensity(Obdn_Scene* scene, Obdn_LightId id, float i)
+void obdn_UpdateLightIntensity(Obdn_Scene* scene, Obdn_LightHandle handle, float i)
 {
-    scene->lights[lightMap.indices[id]].intensity = i;
+    LIGHT(scene, handle).intensity = i;
     scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
 }
 
 Obdn_Scene* obdn_AllocScene(void)
 {
     return hell_Malloc(sizeof(Scene));
+}
+
+Mat4 obdn_GetCameraView(const Obdn_Scene* scene)
+{
+    return scene->camera.view;
+}
+
+Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene)
+{
+    return scene->camera.proj;
+}
+
+const Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id)
+{
+    PrimitiveHandle handle = {id};
+    return &PRIM(s, handle);
+}
+
+uint32_t obdn_GetPrimCount(const Obdn_Scene* s)
+{
+    return s->primCount;
+}
+
+Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene* s)
+{
+    return s->dirt;
+}
+
+void obdn_SceneClearDirt(Obdn_Scene* s)
+{
+    s->dirt = 0;
 }
