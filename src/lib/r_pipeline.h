@@ -2,7 +2,7 @@
 #define OBDN_R_PIPELINE_H
 
 #include "v_def.h"
-#include "r_geo.h"
+#include "geo.h"
 #include "r_raytrace.h"
 
 #define OBDN_MAX_PIPELINES 10

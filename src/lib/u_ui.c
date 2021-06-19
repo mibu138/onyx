@@ -1,7 +1,7 @@
 #include "u_ui.h"
 #include "common.h"
 #include "dtags.h"
-#include "r_geo.h"
+#include "geo.h"
 #include "r_pipeline.h"
 #include "r_render.h"
 #include "r_renderpass.h"

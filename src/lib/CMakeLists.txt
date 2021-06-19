@@ -9,7 +9,7 @@ set(SRCS
     r_pipeline.c   
 	r_renderpass.c 
 	r_raytrace.c   
-	r_geo.c        
+	geo.c        
 	s_scene.c      
 	file.c       
 	u_ui.c         
@@ -26,9 +26,9 @@ set(PUBLIC_HEADERS
     locations.h
     max_prims.h
     framebuffer.h
-    r_api.h
-    r_attribute.h
-    r_geo.h
+    api.h
+    attribute.h
+    geo.h
     r_pipeline.h
     r_raytrace.h
     r_render.h

@@ -1,7 +1,7 @@
-#include "r_geo.h"
+#include "geo.h"
 #include "r_render.h"
 #include "v_memory.h"
-#include "r_attribute.h"
+#include "attribute.h"
 #include "v_private.h"
 #include "dtags.h"
 #include <hell/debug.h>

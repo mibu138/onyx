@@ -7,7 +7,7 @@
 #include <hell/debug.h>
 #include "v_memory.h"
 #include "common.h"
-#include "r_geo.h"
+#include "geo.h"
 #include "v_image.h"
 #include <string.h>
 #define ARCBALL_CAMERA_IMPLEMENTATION

@@ -3,7 +3,7 @@
 
 #include "v_video.h"
 #include "r_render.h"
-#include "r_geo.h"
+#include "geo.h"
 
 typedef struct {
     VkAccelerationStructureKHR handle;

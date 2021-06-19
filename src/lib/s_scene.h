@@ -1,7 +1,7 @@
 #ifndef OBDN_S_SCENE_H
 #define OBDN_S_SCENE_H
 
-#include "r_geo.h"
+#include "geo.h"
 #include "types.h"
 #include <coal/coal.h>
 
