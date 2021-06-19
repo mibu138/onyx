@@ -1,5 +1,5 @@
-#ifndef OBSIDIAN_F_PRIM_H
-#define OBSIDIAN_F_PRIM_H
+#ifndef OBSIDIAN_FILE_GEO_H
+#define OBSIDIAN_FILE_GEO_H
 
 #include <stdint.h>
 
@@ -15,5 +15,5 @@ typedef struct {
 } Obdn_FileGeo;
 
 
-#endif /* end of include guard: OBSIDIAN_F_PRIM_H */
+#endif /* end of include guard: OBSIDIAN_FILE_GEO_H */
 
