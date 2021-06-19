@@ -11,7 +11,7 @@ set(SRCS
 	r_raytrace.c   
 	r_geo.c        
 	s_scene.c      
-	f_file.c       
+	file.c       
 	u_ui.c         
 	t_text.c       
 	common.c       
@@ -21,8 +21,8 @@ set(PUBLIC_HEADERS
     obsidian.h
     common.h
     dtags.h
-    f_file.h
-    f_prim.h
+    file.h
+    filegeo.h
     locations.h
     max_prims.h
     framebuffer.h

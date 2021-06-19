@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "r_geo.h"
-#include "f_prim.h"
+#include "filegeo.h"
 
 // Must be freed
 #ifdef __cplusplus
