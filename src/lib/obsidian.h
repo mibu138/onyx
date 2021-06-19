@@ -10,5 +10,8 @@
 #include "r_render.h"
 #include "r_raytrace.h"
 #include "r_renderpass.h"
+#include "geo.h"
+#include "file.h"
+#include "r_pipeline.h"
 
 #endif /* end of include guard: OBSIDIAN_H */
