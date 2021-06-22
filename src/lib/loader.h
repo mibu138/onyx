@@ -1,7 +1,7 @@
 #ifndef OBDN_V_LOADER_H
 #define OBDN_V_LOADER_H
 
-#include "v_vulkan.h"
+#include "vulkan.h"
 
 VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureBuildSizesKHR(
     VkDevice                                    device,

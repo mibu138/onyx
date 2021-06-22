@@ -1,12 +1,12 @@
 #include "common.h"
-#include "v_swapchain.h"
+#include "swapchain.h"
 #include <hell/common.h>
 #include <hell/cmd.h>
 #include <stdarg.h>
 #include <stdio.h>
-#include "v_video.h"
-#include "u_ui.h"
-#include "v_private.h"
+#include "video.h"
+#include "ui.h"
+#include "private.h"
 
 #define MAX_PRINT_MSG 256
 #define HEADER "OBSIDIAN: "

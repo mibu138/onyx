@@ -1,15 +1,15 @@
-#include "r_raytrace.h"
+#include "raytrace.h"
 #include "coal/linalg.h"
-#include "v_video.h"
-#include "r_render.h"
-#include "v_memory.h"
-#include "v_command.h"
+#include "video.h"
+#include "render.h"
+#include "memory.h"
+#include "command.h"
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
 #include <hell/debug.h>
 #include "dtags.h"
-#include "v_private.h"
+#include "private.h"
 
 typedef Obdn_V_BufferRegion          BufferRegion;
 typedef Obdn_R_AccelerationStructure AccelerationStructure;

@@ -1,8 +1,8 @@
 #include "geo.h"
-#include "r_render.h"
-#include "v_memory.h"
+#include "render.h"
+#include "memory.h"
 #include "attribute.h"
-#include "v_private.h"
+#include "private.h"
 #include "dtags.h"
 #include <hell/debug.h>
 #include <string.h>

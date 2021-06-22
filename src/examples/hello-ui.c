@@ -3,16 +3,9 @@
 #include <hell/window.h>
 #include <hell/cmd.h>
 #include <coal/coal.h>
-#include "common.h"
-#include "v_swapchain.h"
-#include "s_scene.h"
-#include "r_pipeline.h"
-#include "r_pipeline.h"
-#include "geo.h"
-#include "r_renderpass.h"
-#include "s_scene.h"
-#include "u_ui.h"
 #include <alloca.h>
+#include "obsidian.h"
+#include "ui.h"
 
 #define WIREFRAME 0
 

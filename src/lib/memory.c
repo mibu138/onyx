@@ -1,9 +1,9 @@
-#include "v_memory.h"
+#include "memory.h"
 #include "common.h"
 #include "dtags.h"
-#include "v_command.h"
-#include "v_private.h"
-#include "v_video.h"
+#include "command.h"
+#include "private.h"
+#include "video.h"
 #include <assert.h>
 #include <hell/common.h>
 #include <hell/debug.h>

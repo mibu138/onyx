@@ -1,11 +1,11 @@
-#include "v_video.h"
-#include "v_private.h"
+#include "video.h"
+#include "private.h"
 #include "common.h"
 #include "dtags.h"
-#include "v_command.h"
-#include "v_loader.h"
-#include "v_memory.h"
-#include "v_vulkan.h"
+#include "command.h"
+#include "loader.h"
+#include "memory.h"
+#include "vulkan.h"
 #include <assert.h>
 #include <hell/attributes.h>
 #include <hell/common.h>

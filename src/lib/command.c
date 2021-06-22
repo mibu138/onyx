@@ -1,6 +1,6 @@
-#include "v_command.h"
-#include "v_video.h"
-#include "v_private.h"
+#include "command.h"
+#include "video.h"
+#include "private.h"
 
 void obdn_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
 {

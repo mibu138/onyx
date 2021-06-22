@@ -1,9 +1,9 @@
 #ifndef V_SWAPCHAIN_H
 #define V_SWAPCHAIN_H
 
-#include "v_def.h"
-#include "v_memory.h"
-#include "v_command.h"
+#include "def.h"
+#include "memory.h"
+#include "command.h"
 #include "framebuffer.h"
 #include "types.h"
 #include <hell/window.h>

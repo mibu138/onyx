@@ -1,7 +1,7 @@
 #ifndef OBSIDIAN_V_PRIVATE_H
 #define OBSIDIAN_V_PRIVATE_H
 
-#include "v_vulkan.h"
+#include "vulkan.h"
 
 #define MAX_QUEUES 32
 #define MAX_BLOCKS 1000

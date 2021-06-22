@@ -1,10 +1,10 @@
 /*
-v_video.c
+video.c
  */
 #ifndef OBDN_V_VIDEO_H
 #define OBDN_V_VIDEO_H
 
-#include "v_def.h"
+#include "def.h"
 
 typedef enum {
     OBDN_V_QUEUE_GRAPHICS_TYPE,

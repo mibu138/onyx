@@ -1,19 +1,19 @@
 set(SRCS 
-    v_video.c      
-    v_memory.c     
-	v_image.c      
-	v_command.c    
-	v_loader.c     
-    v_swapchain.c  
-    r_render.c     
-    r_pipeline.c   
-	r_renderpass.c 
-	r_raytrace.c   
+    video.c      
+    memory.c     
+	image.c      
+	command.c    
+	loader.c     
+    swapchain.c  
+    render.c     
+    pipeline.c   
+	renderpass.c 
+	raytrace.c   
 	geo.c        
-	s_scene.c      
+	scene.c      
 	file.c       
-	u_ui.c         
-	t_text.c       
+	ui.c         
+	text.c       
 	common.c       
 	locations.c)
 
@@ -29,21 +29,21 @@ set(PUBLIC_HEADERS
     api.h
     attribute.h
     geo.h
-    r_pipeline.h
-    r_raytrace.h
-    r_render.h
-    r_renderpass.h
-    s_scene.h
-    t_text.h
+    pipeline.h
+    raytrace.h
+    render.h
+    renderpass.h
+    scene.h
+    text.h
     types.h
-    u_ui.h
-    v_command.h
-    v_def.h
-    v_image.h
-    v_memory.h
-    v_swapchain.h
-    v_video.h
-    v_vulkan.h)
+    ui.h
+    command.h
+    def.h
+    image.h
+    memory.h
+    swapchain.h
+    video.h
+    vulkan.h)
 
 include(author_library)
 author_library(obsidian 

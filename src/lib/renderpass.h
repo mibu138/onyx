@@ -1,7 +1,7 @@
 #ifndef OBDN_R_RENDERPASS_H
 #define OBDN_R_RENDERPASS_H
 
-#include "v_def.h"
+#include "def.h"
 
 #define OBDN_R_MAX_ATTACHMENTS 8
 #define OBDN_R_MAX_ATTACHMENT_REFERENCES 8

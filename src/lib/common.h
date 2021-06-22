@@ -1,9 +1,9 @@
 #ifndef OBSIDIAN_COMMON_H
 #define OBSIDIAN_COMMON_H
 
-#include "v_vulkan.h"
-#include "v_image.h"
-#include "v_command.h"
+#include "vulkan.h"
+#include "image.h"
+#include "command.h"
 
 struct Hell_Window;
 

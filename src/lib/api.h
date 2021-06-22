@@ -1,7 +1,7 @@
 #ifndef OBSIDIAN_R_API_H
 #define OBSIDIAN_R_API_H
 
-#include "s_scene.h"
+#include "scene.h"
 
 typedef struct {
     VkSemaphore    (*renderUi)(VkSemaphore waitSemephore);

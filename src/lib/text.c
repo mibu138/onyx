@@ -1,6 +1,6 @@
-#include "t_text.h"
-#include "v_image.h"
-#include "v_memory.h"
+#include "text.h"
+#include "image.h"
+#include "memory.h"
 #include <ft2build.h>
 #include <hell/platform.h>
 #include <hell/common.h>

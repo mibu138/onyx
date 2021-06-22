@@ -1,8 +1,8 @@
 #ifndef OBDN_V_COMMAND_H
 #define OBDN_V_COMMAND_H
 
-#include "v_def.h"
-#include "v_video.h"
+#include "def.h"
+#include "video.h"
 
 typedef struct Obdn_V_Command{
     VkCommandPool        pool;

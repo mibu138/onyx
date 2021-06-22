@@ -1,11 +1,11 @@
-#include "v_swapchain.h"
+#include "swapchain.h"
 #include "common.h"
 #include "dtags.h"
 #include "hell/input.h"
-#include "s_scene.h"
-#include "v_command.h"
-#include "v_private.h"
-#include "v_video.h"
+#include "scene.h"
+#include "command.h"
+#include "private.h"
+#include "video.h"
 #include "framebuffer.h"
 #include <hell/common.h>
 #include <hell/debug.h>

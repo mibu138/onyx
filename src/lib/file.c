@@ -1,6 +1,6 @@
 #include "file.h"
 #include "geo.h"
-#include "v_memory.h"
+#include "memory.h"
 #include <hell/attributes.h>
 #include <hell/common.h>
 #include <stddef.h>

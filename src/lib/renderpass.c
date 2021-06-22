@@ -1,7 +1,7 @@
-#include "r_renderpass.h"
-#include "r_render.h"
-#include "v_private.h"
-#include "v_video.h"
+#include "renderpass.h"
+#include "render.h"
+#include "private.h"
+#include "video.h"
 #include <hell/len.h>
 
 void obdn_CreateRenderPass(VkDevice device, const Obdn_R_RenderPassInfo *info, VkRenderPass *pRenderPass)

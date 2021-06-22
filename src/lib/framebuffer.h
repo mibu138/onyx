@@ -2,7 +2,7 @@
 #define FRAMEBUFFER_H
 
 #include <stdint.h>
-#include "v_memory.h"
+#include "memory.h"
 
 #define OBDN_MAX_AOVS 8
 

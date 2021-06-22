@@ -1,8 +1,8 @@
 #ifndef R_RAYTRACE_H
 #define R_RAYTRACE_H
 
-#include "v_video.h"
-#include "r_render.h"
+#include "video.h"
+#include "render.h"
 #include "geo.h"
 
 typedef struct {

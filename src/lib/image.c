@@ -1,12 +1,12 @@
-#include "v_image.h"
-#include "v_memory.h"
-#include "v_video.h"
+#include "image.h"
+#include "memory.h"
+#include "video.h"
 #include "common.h"
-#include "v_command.h"
+#include "command.h"
 #include "dtags.h"
 #include <hell/debug.h>
 #include <string.h>
-#include "v_private.h"
+#include "private.h"
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
 #include "stb_image.h"

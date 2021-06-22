@@ -1,7 +1,7 @@
 #ifndef OBDN_R_GEO_H
 #define OBDN_R_GEO_H
 
-#include "v_memory.h"
+#include "memory.h"
 #include <stdint.h>
 #include <coal/coal.h>
 

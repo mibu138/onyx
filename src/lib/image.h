@@ -5,8 +5,8 @@
  * Utility functions for Obdn Images
  */
 
-#include "v_memory.h"
-#include "v_command.h"
+#include "memory.h"
+#include "command.h"
 
 typedef enum {
     OBDN_V_IMAGE_FILE_TYPE_PNG,

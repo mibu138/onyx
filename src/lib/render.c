@@ -1,4 +1,4 @@
-#include "s_scene.h"
+#include "scene.h"
 
 // TODO: we should implement a way to specify the offscreen format
 static const VkFormat offscreenColorFormat = VK_FORMAT_R32G32B32A32_SFLOAT;

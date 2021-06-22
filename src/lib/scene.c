@@ -1,14 +1,14 @@
-#include "s_scene.h"
+#include "scene.h"
 #include "file.h"
 #include "coal/util.h"
 #include "hell/common.h"
 #include <hell/ds.h>
 #include "dtags.h"
 #include <hell/debug.h>
-#include "v_memory.h"
+#include "memory.h"
 #include "common.h"
 #include "geo.h"
-#include "v_image.h"
+#include "image.h"
 #include <string.h>
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
