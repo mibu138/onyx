@@ -12,7 +12,7 @@ int main(int argc, char *argv[])
     scene     = obdn_AllocScene();
     obdn_CreateInstance(true, false, 0, NULL, instance);
     obdn_CreateMemory(instance, 100, 100, 100, 0, 0, memory);
-    obdn_CreateScene(0.01, 100, scene);
+    obdn_CreateScene(memory, 0.01, 100, scene);
 
     Obdn_Geometry cube = obdn_CreateCube(memory, false);
     obdn_PrintGeo(&cube);

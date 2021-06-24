@@ -90,6 +90,8 @@ typedef struct {
     Obdn_TextureHandle padding;
 } Obdn_Material;
 
+_Static_assert(sizeof(Obdn_Material) == 32, "Changing material size and layout may conflict with shader uniforms");
+
 typedef struct Obdn_Scene Obdn_Scene;
 
 // container to associate prim ids with pipelines
@@ -100,7 +102,7 @@ typedef struct {
 
 
 Obdn_Scene* obdn_AllocScene(void);
-void obdn_CreateScene(float nearClip, float farClip, Obdn_Scene* scene);
+void obdn_CreateScene(Obdn_Memory* memory, float nearClip, float farClip, Obdn_Scene* scene);
 
 // will update camera as well as target.
 void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home);
@@ -121,14 +123,14 @@ void obdn_RemoveLight(Obdn_Scene* s, Obdn_LightHandle id);
 
 bool obdn_PrimExists(const Obdn_Scene* s, Obdn_PrimitiveHandle id);
 
-Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, Obdn_Memory* memory, const char* filePath, const Coal_Mat4 xform);
+Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath, const Coal_Mat4 xform);
 void             obdn_RemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle id);
-Obdn_PrimitiveHandle    obdn_AddPrim(Obdn_Scene* scene, const Obdn_Geometry prim, const Coal_Mat4 xform);
-Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory*, const char* filePath, const uint8_t channelCount);
+Obdn_PrimitiveHandle obdn_AddPrim(Obdn_Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform, Obdn_MaterialHandle mat);
+Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, const uint8_t channelCount);
 Obdn_LightHandle   obdn_CreateDirectionLight(Obdn_Scene* scene, const Vec3 color, const Vec3 direction);
 Obdn_LightHandle   obdn_CreatePointLight(Obdn_Scene* scene, const Vec3 color, const Vec3 position);
 // a texture id of 0 means no texture will be used
-Obdn_MaterialHandle obdn_CreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
+Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
         Obdn_TextureHandle albedoId, 
         Obdn_TextureHandle roughnessId,
         Obdn_TextureHandle normalId);
@@ -144,7 +146,7 @@ void obdn_UpdatePrimXform(Obdn_Scene* scene, const Obdn_PrimitiveHandle primId, 
 Mat4 obdn_GetCameraView(const Obdn_Scene* scene);
 Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene);
 
-const Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene*, uint32_t id);
+Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id);
 
 uint32_t obdn_GetPrimCount(const Obdn_Scene*);
 
@@ -152,5 +154,22 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene*);
 
 // sets dirt flags to 0
 void obdn_SceneClearDirt(Obdn_Scene*);
+
+void obdn_SceneAddCube(Obdn_Scene* s, Mat4 xform, Obdn_MaterialHandle mathandle, bool clockwise);
+
+Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene* scene, Obdn_V_Image image);
+
+Obdn_Material* obdn_GetMaterial(const Obdn_Scene* s, Obdn_MaterialHandle handle);
+
+// given a handle returns the index into the raw resource array
+uint32_t obdn_SceneGetMaterialIndex(const Obdn_Scene*, Obdn_MaterialHandle);
+
+// given a handle returns the index into the raw resource array
+uint32_t obdn_SceneGetTextureIndex(const Obdn_Scene*, Obdn_TextureHandle);
+
+uint32_t       obdn_SceneGetTextureCount(const Obdn_Scene* s);
+Obdn_Texture*  obdn_SceneGetTextures(const Obdn_Scene* s);
+uint32_t       obdn_SceneGetMaterialCount(const Obdn_Scene* s);
+Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s);
 
 #endif /* end of include guard: OBDN_S_SCENE_H */

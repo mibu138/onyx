@@ -60,6 +60,7 @@ typedef struct {
 
 typedef struct Obdn_Scene {
     Obdn_SceneDirtyFlags dirt;
+    Obdn_Memory*         memory;
     obint                primCount;
     obint                lightCount;
     obint                materialCount;
@@ -212,9 +213,10 @@ static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 
     return addLight(s, light);
 }
 
-void obdn_CreateScene(float nearClip, float farClip, Scene* scene)
+void obdn_CreateScene(Obdn_Memory* memory, float nearClip, float farClip, Scene* scene)
 {
-    memset(scene, 0, sizeof(Scene));
+    memset(scene, 0, sizeof(*scene));
+    scene->memory = memory;
     scene->camera.xform = coal_Ident_Mat4();
     scene->camera.view = coal_Ident_Mat4();
     Mat4 m = coal_LookAt((Vec3){1, 1, 2}, (Vec3){0, 0, 0}, (Vec3){0, 1, 0});
@@ -236,7 +238,8 @@ void obdn_CreateScene(float nearClip, float farClip, Scene* scene)
     scene->materials = hell_Malloc(scene->materialCapacity * sizeof(scene->materials[0]));
     scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
 
-    obdn_CreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, NULL_TEXTURE, NULL_TEXTURE, NULL_TEXTURE);
+
+    obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, NULL_TEXTURE, NULL_TEXTURE, NULL_TEXTURE);
     scene->dirt = -1;
 }
 
@@ -248,30 +251,30 @@ void obdn_BindPrimToMaterial(Scene* scene, Obdn_PrimitiveHandle primhandle, Obdn
     scene->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
 
-Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform)
+Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform, MaterialHandle mat)
 {
     Obdn_Primitive prim = {
         .geo = geo,
         .xform = COAL_MAT4_IDENT,
-        .material = NULL_MATERIAL
+        .material = mat
     };
     prim.xform = xform;
     return addPrim(scene, prim);
 }
 
-Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, Obdn_Memory* memory, const char* filePath, const Coal_Mat4 xform)
+Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform)
 {
     Obdn_FileGeo fprim;
     int r = obdn_ReadFileGeo(filePath, &fprim);
     assert(r);
-    Obdn_Geometry prim = obdn_CreateGeoFromFileGeo(memory, &fprim);
-    obdn_TransferGeoToDevice(memory, &prim);
+    Obdn_Geometry prim = obdn_CreateGeoFromFileGeo(scene->memory, &fprim);
+    obdn_TransferGeoToDevice(scene->memory, &prim);
     obdn_FreeFileGeo(&fprim);
     obdn_Announce("Loaded prim at %s\n", filePath);
-    return obdn_AddPrim(scene, prim, xform);
+    return obdn_AddPrim(scene, prim, xform, NULL_MATERIAL);
 }
 
-Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, const char* filePath, const uint8_t channelCount)
+Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, const uint8_t channelCount)
 {
     Texture texture = {0};
 
@@ -285,7 +288,7 @@ Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, cons
         default: DPRINT("ChannelCount %d not support.\n", channelCount); return NULL_TEXTURE;
     }
 
-    obdn_LoadImage(memory, filePath, channelCount, format,
+    obdn_LoadImage(scene->memory, filePath, channelCount, format,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             1, VK_FILTER_LINEAR, OBDN_V_MEMORY_DEVICE_TYPE, 
@@ -294,11 +297,12 @@ Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, Obdn_Memory* memory, cons
     return addTexture(scene, texture);
 }
 
-Obdn_MaterialHandle obdn_CreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
+Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
         Obdn_TextureHandle albedoId, Obdn_TextureHandle roughnessId, Obdn_TextureHandle normalId)
 {
     Obdn_Material mat = {0};
 
+    mat.color = color;
     mat.roughness = roughness;
     mat.textureAlbedo    = albedoId;
     mat.textureRoughness = roughnessId;
@@ -495,7 +499,7 @@ Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene)
     return scene->camera.proj;
 }
 
-const Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id)
+Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id)
 {
     PrimitiveHandle handle = {id};
     return &PRIM(s, handle);
@@ -514,4 +518,57 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene* s)
 void obdn_SceneClearDirt(Obdn_Scene* s)
 {
     s->dirt = 0;
+}
+
+void obdn_SceneAddCube(Obdn_Scene* s, Mat4 xform, MaterialHandle mathandle, bool clockwise)
+{
+    Obdn_Geometry cube = obdn_CreateCube(s->memory, clockwise);
+    obdn_AddPrim(s, cube, xform, mathandle);
+}
+
+Obdn_Texture* obdn_GetTexture(const Obdn_Scene* s, Obdn_TextureHandle handle)
+{
+    return &TEXTURE(s, handle);
+}
+
+Obdn_Material* obdn_GetMaterial(const Obdn_Scene* s, Obdn_MaterialHandle handle)
+{
+    return &MATERIAL(s, handle);
+}
+
+Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene* scene, Obdn_V_Image image)
+{
+    Obdn_Texture tex = {0};
+    tex.devImage = image;
+    return addTexture(scene, tex);
+}
+
+uint32_t obdn_SceneGetTextureCount(const Obdn_Scene* s)
+{
+    return s->textureCount;
+}
+
+Obdn_Texture* obdn_SceneGetTextures(const Obdn_Scene* s)
+{
+    return s->textures;
+}
+
+uint32_t       obdn_SceneGetMaterialCount(const Obdn_Scene* s)
+{
+    return s->materialCount;
+}
+
+Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s)
+{
+    return s->materials;
+}
+
+uint32_t obdn_SceneGetMaterialIndex(const Obdn_Scene* s, Obdn_MaterialHandle handle)
+{
+    return s->matMap.indices[handle.id];
+}
+
+uint32_t obdn_SceneGetTextureIndex(const Obdn_Scene* s, Obdn_TextureHandle handle)
+{
+    return s->texMap.indices[handle.id];
 }
