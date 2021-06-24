@@ -213,7 +213,41 @@ static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 
     return addLight(s, light);
 }
 
-void obdn_CreateScene(Obdn_Memory* memory, float nearClip, float farClip, Scene* scene)
+#define DEFAULT_TEX_DIM 4
+
+static void createDefaultTexture(Obdn_Memory* memory, Texture* texture)
+{
+    texture->hostBuffer = obdn_RequestBufferRegion(
+        memory, 4 * DEFAULT_TEX_DIM * DEFAULT_TEX_DIM /* 4 components, 1 byte each*/,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+    u8* pxcomponent = texture->hostBuffer.hostData;
+    for (int i = 0; i < (DEFAULT_TEX_DIM * DEFAULT_TEX_DIM * 4); i++)
+    {
+        *pxcomponent++ = UINT8_MAX; // should be full white, hopefully
+    }
+
+    texture->devImage = obdn_CreateImageAndSampler(
+        memory, DEFAULT_TEX_DIM, DEFAULT_TEX_DIM, VK_FORMAT_R8G8B8A8_UNORM,
+        VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+        VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, VK_FILTER_LINEAR,
+        OBDN_V_MEMORY_DEVICE_TYPE);
+
+    obdn_CopyBufferToImage(&texture->hostBuffer, &texture->devImage);
+
+    obdn_TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &texture->devImage);
+}
+
+static void printPrimInfoCmd(const Hell_Grimoire* grim, void* scene)
+{
+    obdn_PrintPrimInfo(scene);
+}
+
+static void printTexInfoCmd(const Hell_Grimoire* grim, void* scene)
+{
+    obdn_PrintTextureInfo(scene);
+}
+
+void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, float farClip, Scene* scene)
 {
     memset(scene, 0, sizeof(*scene));
     scene->memory = memory;
@@ -238,9 +272,14 @@ void obdn_CreateScene(Obdn_Memory* memory, float nearClip, float farClip, Scene*
     scene->materials = hell_Malloc(scene->materialCapacity * sizeof(scene->materials[0]));
     scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
 
+    Texture tex = {};
+    createDefaultTexture(memory, &tex);
+    TextureHandle texhandle = addTexture(scene, tex);
+    obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
+    scene->dirt = -1; // dirty everything
 
-    obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, NULL_TEXTURE, NULL_TEXTURE, NULL_TEXTURE);
-    scene->dirt = -1;
+    hell_AddCommand(grim, "priminfo", printPrimInfoCmd, scene);
+    hell_AddCommand(grim, "texinfo", printTexInfoCmd, scene);
 }
 
 void obdn_BindPrimToMaterial(Scene* scene, Obdn_PrimitiveHandle primhandle, Obdn_MaterialHandle mathandle)
@@ -443,6 +482,27 @@ void obdn_PrintLightInfo(const Scene* s)
     hell_Print("\n");
 }
 
+void obdn_PrintTextureInfo(const Scene* s)
+{
+    hell_Print("====== Scene: texture info =======\n");
+    hell_Print("Texture count: %d\n", s->textureCount);
+    for (int i = 0; i < s->textureCount; i++)
+    {
+        const Texture* tex = &s->textures[i];
+        const Obdn_Image* img = &tex->devImage;
+        hell_Print("Texture index %d\n", i); 
+        hell_Print("Width %d Height %d Size %d \n", img->extent.width, img->extent.height, img->size);
+        hell_Print("Format %d \n", img->format);
+        hell_Print("\n");
+    }
+    hell_Print("Texture map: ");
+    for (int i = 0; i < s->textureCapacity; i++)
+    {
+        hell_Print(" %d:%d ", i, s->texMap.indices[i]);
+    }
+    hell_Print("\n");
+}
+
 void obdn_PrintPrimInfo(const Scene* s)
 {
     hell_Print("====== Scene: primitive info =======\n");
@@ -450,7 +510,9 @@ void obdn_PrintPrimInfo(const Scene* s)
     for (int i = 0; i < s->primCount; i++)
     {
         hell_Print("Prim %d material id %d\n", i, s->prims[i].material.id); 
-        hell_Print("Material: id %d roughness %f\n", s->prims[i].material.id, s->materials[s->prims[i].material.id].roughness);
+        const Material* mat = &MATERIAL(s, s->prims[i].material);
+        hell_Print("Material: handle id %d color %f %f %f roughness %f\n", s->prims[i].material.id, mat->color.r, mat->color.g, mat->color.b, mat->roughness);
+        hell_Print("Material: Albedo TextureHandle: %d\n", mat->textureAlbedo.id);
         hell_Print_Mat4(s->prims[i].xform.e);
         hell_Print("\n");
     }

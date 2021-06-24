@@ -4,6 +4,7 @@
 #include "geo.h"
 #include "types.h"
 #include <coal/coal.h>
+#include <hell/cmd.h>
 
 //#define OBDN_S_MAX_PRIMS     256
 //#define OBDN_SCENE_MAX_PRIMS     32
@@ -102,7 +103,7 @@ typedef struct {
 
 
 Obdn_Scene* obdn_AllocScene(void);
-void obdn_CreateScene(Obdn_Memory* memory, float nearClip, float farClip, Obdn_Scene* scene);
+void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, float farClip, Obdn_Scene* scene);
 
 // will update camera as well as target.
 void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home);
@@ -117,6 +118,7 @@ void  obdn_ClearPrimList(Obdn_PrimitiveList*);
 void  obdn_CleanUpScene(Obdn_Scene* scene);
 void obdn_AddPointLight(Obdn_Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity);
 void obdn_PrintLightInfo(const Obdn_Scene* s);
+void obdn_PrintTextureInfo(const Obdn_Scene* s);
 void obdn_PrintPrimInfo(const Obdn_Scene* s);
 void obdn_RemoveLight(Obdn_Scene* s, Obdn_LightHandle id);
 
