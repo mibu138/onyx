@@ -663,8 +663,9 @@ obdn_SubmitGraphicsCommand(const Obdn_Instance*       instance,
                            VkSemaphore signalSemphores[signalCount],
                            VkFence fence, const VkCommandBuffer cmdBuf)
 {
+    VkPipelineStageFlags waitDstStageMasks[] = {waitDstStageMask, waitDstStageMask, waitDstStageMask, waitDstStageMask}; // hack...
     VkSubmitInfo si = {.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-                       .pWaitDstStageMask    = &waitDstStageMask,
+                       .pWaitDstStageMask    = waitDstStageMasks,
                        .waitSemaphoreCount   = waitCount,
                        .pWaitSemaphores      = waitSemephores,
                        .signalSemaphoreCount = signalCount,

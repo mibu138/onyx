@@ -2,7 +2,6 @@
 #define OBDN_U_UI_H
 
 #include <stdint.h>
-#include <vulkan/vulkan_core.h>
 #include <hell/input.h>
 #include "geo.h"
 
