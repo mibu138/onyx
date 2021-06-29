@@ -52,7 +52,6 @@ typedef struct Obdn_UI {
     Obdn_R_Description    descriptions[OBDN_FRAME_COUNT];
     VkFramebuffer         framebuffers[OBDN_FRAME_COUNT];
     Image                 images[MAX_IMAGE_COUNT];
-    Obdn_V_Command        renderCommands[OBDN_FRAME_COUNT];
     Obdn_Memory*          memory;
     VkDevice              device;
 } Obdn_UI;
@@ -123,17 +122,6 @@ freeWidget(Widget* w)
     memset(w, 0, sizeof(Widget));
     free(w);
     w = NULL;
-}
-
-static void
-initRenderCommands(Obdn_UI* ui)
-{
-    for (int i = 0; i < OBDN_FRAME_COUNT; i++)
-    {
-        ui->renderCommands[i] = obdn_CreateCommand(ui->memory->instance,
-                                                   OBDN_V_QUEUE_GRAPHICS_TYPE);
-        DPRINT("UI COMMAND BUF: %p\n", ui->renderCommands[i].buffer);
-    }
 }
 
 static void
@@ -581,7 +569,6 @@ obdn_CreateUI(Obdn_Memory* memory, Hell_EventQueue* queue, Hell_Window* window,
     ui->memory    = memory;
     ui->device    = memory->instance->device;
     VkExtent2D ex = {hell_GetWindowWidth(window), hell_GetWindowHeight(window)};
-    initRenderCommands(ui);
     initRenderPass(ui, imageFormat, inputLayout, finalLayout);
     initDescriptionsAndPipelineLayouts(ui);
     initPipelines(ui, ex.width, ex.height);
@@ -692,24 +679,10 @@ drawWidget(const VkCommandBuffer cmdBuf, Widget* widget)
         widget->drawFn(cmdBuf, widget);
 }
 
-VkSemaphore
+void
 obdn_RenderUI(Obdn_UI* ui, const uint32_t frameIndex, const uint32_t width,
-              const uint32_t height, VkSemaphore waitSemephore)
+              const uint32_t height, VkCommandBuffer cmdBuf)
 {
-    vkWaitForFences(ui->device, 1, &ui->renderCommands[frameIndex].fence,
-                    VK_TRUE, UINT64_MAX);
-    vkResetFences(ui->device, 1, &ui->renderCommands[frameIndex].fence);
-
-    vkResetCommandPool(ui->device, ui->renderCommands[frameIndex].pool, 0);
-
-    VkCommandBufferBeginInfo cbbi = {
-        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO};
-
-    V_ASSERT(
-        vkBeginCommandBuffer(ui->renderCommands[frameIndex].buffer, &cbbi));
-
-    VkCommandBuffer cmdBuf = ui->renderCommands[frameIndex].buffer;
-
     VkClearValue clear = {0};
 
     const VkRenderPassBeginInfo rpassInfoUi = {
@@ -736,16 +709,6 @@ obdn_RenderUI(Obdn_UI* ui, const uint32_t frameIndex, const uint32_t width,
     drawWidget(cmdBuf, ui->rootWidget);
 
     vkCmdEndRenderPass(cmdBuf);
-
-    V_ASSERT(vkEndCommandBuffer(ui->renderCommands[frameIndex].buffer));
-
-    obdn_SubmitGraphicsCommand(
-        ui->memory->instance, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        1, &waitSemephore, 1, &ui->renderCommands[frameIndex].semaphore,
-        ui->renderCommands[frameIndex].fence,
-        ui->renderCommands[frameIndex].buffer);
-
-    return ui->renderCommands[frameIndex].semaphore;
 }
 
 // does modify parent
@@ -781,7 +744,6 @@ obdn_DestroyUI(Obdn_UI* ui, const uint32_t imgCount)
     vkDestroyRenderPass(ui->device, ui->renderPass, NULL);
     for (int i = 0; i < OBDN_FRAME_COUNT; i++)
     {
-        obdn_DestroyCommand(ui->renderCommands[i]);
         obdn_DestroyDescription(ui->device, &ui->descriptions[i]);
     }
     for (int i = 0; i < MAX_IMAGE_COUNT; i++)
@@ -793,18 +755,6 @@ obdn_DestroyUI(Obdn_UI* ui, const uint32_t imgCount)
     destroyWidget(ui->rootWidget);
     memset(ui, 0, sizeof(Obdn_UI));
     obdn_Announce("UI cleaned up.\n");
-}
-
-const VkSemaphore
-obdn_u_GetSemaphore(Obdn_UI* ui, uint32_t frameIndex)
-{
-    return ui->renderCommands[frameIndex].semaphore;
-}
-
-const VkFence
-obdn_u_GetFence(Obdn_UI* ui, uint32_t frameIndex)
-{
-    return ui->renderCommands[frameIndex].fence;
 }
 
 uint64_t

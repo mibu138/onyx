@@ -153,14 +153,15 @@ void draw(void)
 
     obdn_CmdEndRenderPass(cmd.buffer);
 
+    obdn_RenderUI(ui, fb->index, dim.width, dim.height, cmd.buffer);
+
     obdn_EndCommandBuffer(cmd.buffer);
 
     obdn_SubmitGraphicsCommand(oInstance, 0, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 1,
             &acquireSemaphore, 1, &drawSemaphore, drawFence, cmd.buffer);
 
-    VkSemaphore uiSemaphore = obdn_RenderUI(ui, fb->index, dim.width, dim.height, drawSemaphore);
 
-    bool result = obdn_PresentFrame(swapchain, 1, &uiSemaphore);
+    bool result = obdn_PresentFrame(swapchain, 1, &drawSemaphore);
 
     obdn_WaitForFence(device, &drawFence);
 

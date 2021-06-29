@@ -29,7 +29,9 @@ void obdn_CreateUI(Obdn_Memory* memory, Hell_EventQueue* queue, Hell_Window* win
               const VkImageLayout finalLayout, const uint32_t imageViewCount,
               const VkImageView views[imageViewCount], Obdn_UI* ui);
 void obdn_DestroyUI(Obdn_UI*, const uint32_t imgCount);
-VkSemaphore obdn_RenderUI(Obdn_UI*, const uint32_t frameIndex, const uint32_t width, const uint32_t height, const VkSemaphore waitSemephore);
+
+void obdn_RenderUI(Obdn_UI* ui, const uint32_t frameIndex, const uint32_t width,
+              const uint32_t height, VkCommandBuffer cmdBuf);
 
 void
 obdn_RecreateSwapchainDependentUI(Obdn_UI*, const uint32_t width, const uint32_t height,
