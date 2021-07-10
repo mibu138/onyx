@@ -412,13 +412,13 @@ void obdn_SaveImage(Obdn_Memory* memory, Obdn_V_Image* image, Obdn_V_ImageFileTy
     char strbuf[256];
     const char* pwd = getenv("PWD");
     assert(pwd);
-    const char* dir = IMG_OUT_DIR;
+    const char* dir = "/";
     assert(strlen(pwd) + strlen(dir) + strlen(filename) < 256);
     strcpy(strbuf, pwd);
     strcat(strbuf, dir);
     strcat(strbuf, filename);
 
-    DPRINT("Filepath: %s", strbuf);
+    DPRINT("Filepath: %s\n", strbuf);
 
     int r;
     switch (fileType)

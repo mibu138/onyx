@@ -174,4 +174,7 @@ Obdn_Texture*  obdn_SceneGetTextures(const Obdn_Scene* s);
 uint32_t       obdn_SceneGetMaterialCount(const Obdn_Scene* s);
 Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s);
 
+// a bit of a hack for dali
+void obdn_SceneDirtyTextures(Obdn_Scene* s);
+
 #endif /* end of include guard: OBDN_S_SCENE_H */

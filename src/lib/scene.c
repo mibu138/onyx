@@ -634,3 +634,8 @@ uint32_t obdn_SceneGetTextureIndex(const Obdn_Scene* s, Obdn_TextureHandle handl
 {
     return s->texMap.indices[handle.id];
 }
+
+void obdn_SceneDirtyTextures(Obdn_Scene* s)
+{
+    s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+}
