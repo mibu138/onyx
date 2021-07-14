@@ -111,6 +111,9 @@ void obdn_UpdateCamera_LookAt(Obdn_Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
 void obdn_CreateEmptyScene(Obdn_Scene* scene);
 void obdn_UpdateLight(Obdn_Scene* scene, Obdn_LightHandle handle, float intensity);
 void obdn_BindPrimToMaterial(Obdn_Scene* scene, const Obdn_PrimitiveHandle Obdn_PrimitiveHandle, const Obdn_MaterialHandle matId);
+// this does not go through the prim map. allows us to preemptively bind prims to materials before we 
+// have an actual handle to them. practically useful for texture painting to always bind a material to the first prim
+void obdn_BindPrimToMaterialDirect(Obdn_Scene* scene, uint32_t directIndex, Obdn_MaterialHandle mathandle);
 
 void  obdn_AddPrimToList(const Obdn_PrimitiveHandle, Obdn_PrimitiveList*);
 void obdn_AddDirectionLight(Obdn_Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity);
@@ -176,5 +179,6 @@ Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s);
 
 // a bit of a hack for dali
 void obdn_SceneDirtyTextures(Obdn_Scene* s);
+void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, uint32_t directIndex);
 
 #endif /* end of include guard: OBDN_S_SCENE_H */

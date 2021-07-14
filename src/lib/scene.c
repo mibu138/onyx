@@ -278,14 +278,25 @@ void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, 
     obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
     scene->dirt = -1; // dirty everything
 
-    hell_AddCommand(grim, "priminfo", printPrimInfoCmd, scene);
-    hell_AddCommand(grim, "texinfo", printTexInfoCmd, scene);
+    if (grim)
+    {
+        hell_AddCommand(grim, "priminfo", printPrimInfoCmd, scene);
+        hell_AddCommand(grim, "texinfo", printTexInfoCmd, scene);
+    }
 }
 
 void obdn_BindPrimToMaterial(Scene* scene, Obdn_PrimitiveHandle primhandle, Obdn_MaterialHandle mathandle)
 {
     assert(scene->materialCount > mathandle.id);
     PRIM(scene, primhandle).material = mathandle;
+
+    scene->dirt |= OBDN_SCENE_PRIMS_BIT;
+}
+
+void obdn_BindPrimToMaterialDirect(Scene* scene, uint32_t directIndex, Obdn_MaterialHandle mathandle)
+{
+    assert(scene->materialCount > mathandle.id);
+    scene->prims[directIndex].material = mathandle;
 
     scene->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
@@ -638,4 +649,10 @@ uint32_t obdn_SceneGetTextureIndex(const Obdn_Scene* s, Obdn_TextureHandle handl
 void obdn_SceneDirtyTextures(Obdn_Scene* s)
 {
     s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+}
+
+void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, u32 directIndex)
+{
+    s->prims[directIndex].geo = geo;
+    s->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
