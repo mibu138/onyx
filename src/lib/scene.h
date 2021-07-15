@@ -181,4 +181,8 @@ Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s);
 void obdn_SceneDirtyTextures(Obdn_Scene* s);
 void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, uint32_t directIndex);
 
+void obdn_SceneFreeGeoDirect(Obdn_Scene* s, uint32_t directIndex);
+
+bool obdn_SceneHasGeoDirect(Obdn_Scene* s, uint32_t directIndex);
+
 #endif /* end of include guard: OBDN_S_SCENE_H */

@@ -656,3 +656,15 @@ void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, u32 directIndex)
     s->prims[directIndex].geo = geo;
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
+
+void obdn_SceneFreeGeoDirect(Obdn_Scene* s, u32 directIndex)
+{
+    obdn_FreeGeo(&s->prims[directIndex].geo);
+    memset(&s->prims[directIndex].geo, 0, sizeof(s->prims[directIndex].geo));;
+}
+
+bool obdn_SceneHasGeoDirect(Obdn_Scene* s, u32 directIndex)
+{
+    if (s->prims[0].geo.vertexCount) return true;
+    return false;
+}
