@@ -151,6 +151,9 @@ void obdn_UpdatePrimXform(Obdn_Scene* scene, const Obdn_PrimitiveHandle primId, 
 Mat4 obdn_GetCameraView(const Obdn_Scene* scene);
 Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene);
 
+void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4);
+void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4);
+
 Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id);
 
 uint32_t obdn_GetPrimCount(const Obdn_Scene*);

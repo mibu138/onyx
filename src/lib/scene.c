@@ -668,3 +668,15 @@ bool obdn_SceneHasGeoDirect(Obdn_Scene* s, u32 directIndex)
     if (s->prims[0].geo.vertexCount) return true;
     return false;
 }
+
+void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4 m)
+{
+    scene->camera.view = m;
+    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+}
+
+void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4 m)
+{
+    scene->camera.proj = m;
+    scene->dirt |= OBDN_SCENE_CAMERA_PROJ_BIT;
+}
