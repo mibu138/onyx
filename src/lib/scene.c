@@ -680,3 +680,9 @@ void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4 m)
     scene->camera.proj = m;
     scene->dirt |= OBDN_SCENE_CAMERA_PROJ_BIT;
 }
+
+Obdn_Primitive* 
+obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
+{
+    return &PRIM(s, handle);
+}

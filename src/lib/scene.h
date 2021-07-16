@@ -187,6 +187,9 @@ void obdn_SceneFreeGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 
 bool obdn_SceneHasGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 
+Obdn_Primitive* 
+obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
+
 Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath, const Coal_Mat4 xform, Obdn_MaterialHandle mat);
 
 #endif /* end of include guard: OBDN_S_SCENE_H */
