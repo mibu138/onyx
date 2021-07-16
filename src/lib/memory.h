@@ -97,4 +97,6 @@ void obdn_CreateUnmanagedBuffer(Obdn_Memory* memory, const VkBufferUsageFlags bu
 const VkDeviceMemory obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_V_MemoryType memType);
 const VkDeviceSize   obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_V_MemoryType memType);
 
+bool obdn_GetExternalMemoryFd(const Obdn_Memory* memory, int* fd, uint64_t* size);
+
 #endif /* end of include guard: V_MEMORY_H */

@@ -872,6 +872,23 @@ obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_V_MemoryType memType)
     }
 }
 
+bool obdn_GetExternalMemoryFd(const Obdn_Memory* memory, int* fd, uint64_t* size)
+{
+    // fast path
+    VkMemoryGetFdInfoKHR fdInfo = {
+        .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
+        .memory = obdn_GetDeviceMemory(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE),
+        .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
+    };
+
+    V_ASSERT( vkGetMemoryFdKHR(obdn_GetDevice(memory->instance), &fdInfo, fd) );
+
+    *size = obdn_GetMemorySize(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
+
+    assert(*size);
+    return true;
+}
+
 uint64_t
 obdn_SizeOfMemory(void)
 {
