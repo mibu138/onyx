@@ -128,7 +128,6 @@ void obdn_RemoveLight(Obdn_Scene* s, Obdn_LightHandle id);
 
 bool obdn_PrimExists(const Obdn_Scene* s, Obdn_PrimitiveHandle id);
 
-Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath, const Coal_Mat4 xform);
 void             obdn_RemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle id);
 Obdn_PrimitiveHandle obdn_AddPrim(Obdn_Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform, Obdn_MaterialHandle mat);
 Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, const uint8_t channelCount);
@@ -187,5 +186,7 @@ void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, uint32_t directInd
 void obdn_SceneFreeGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 
 bool obdn_SceneHasGeoDirect(Obdn_Scene* s, uint32_t directIndex);
+
+Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath, const Coal_Mat4 xform, Obdn_MaterialHandle mat);
 
 #endif /* end of include guard: OBDN_S_SCENE_H */

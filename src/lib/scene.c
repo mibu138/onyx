@@ -312,7 +312,7 @@ Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const C
     return addPrim(scene, prim);
 }
 
-Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform)
+Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform, MaterialHandle mat)
 {
     Obdn_FileGeo fprim;
     int r = obdn_ReadFileGeo(filePath, &fprim);
@@ -321,7 +321,7 @@ Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, const char* filePath, const Coa
     obdn_TransferGeoToDevice(scene->memory, &prim);
     obdn_FreeFileGeo(&fprim);
     obdn_Announce("Loaded prim at %s\n", filePath);
-    return obdn_AddPrim(scene, prim, xform, NULL_MATERIAL);
+    return obdn_AddPrim(scene, prim, xform, mat);
 }
 
 Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, const uint8_t channelCount)
