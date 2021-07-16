@@ -57,5 +57,6 @@ author_library(obsidianObj
     TYPE OBJECT
     EXPORT_NAME ObsidianObj
     SOURCES ${SRCS}
+    PUBLIC_HEADERS ${PUBLIC_HEADERS}
     DEPS Coal::CoalObj Hell::HellObj Vulkan::Vulkan Freetype::Freetype
     EXTRA_INC_DIRS ${CMAKE_SOURCE_DIR}/thirdparty)
