@@ -112,6 +112,8 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     obdn_EndCommandBuffer(cmd.buffer);
 
+    hell_DPrint("HERE!");
+
     obdn_SubmitAndWait(&cmd, 0);
 
     obdn_DestroyCommand(cmd);
