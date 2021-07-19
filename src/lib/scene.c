@@ -695,3 +695,8 @@ obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry 
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
     return old;
 }
+
+void obdn_SceneDirtyAll(Obdn_Scene* s)
+{
+    s->dirt = -1;
+}

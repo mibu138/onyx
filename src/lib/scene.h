@@ -195,4 +195,6 @@ Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath, cons
 // replaces geo on a prim with new geo. returns the geo that was there ( to be potentially freed )
 Obdn_Geometry  obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry newgeo);
 
+void obdn_SceneDirtyAll(Obdn_Scene* s);
+
 #endif /* end of include guard: OBDN_S_SCENE_H */
