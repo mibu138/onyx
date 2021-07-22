@@ -149,7 +149,7 @@ Obdn_V_Image obdn_CreateImageAndSampler(
     return image;
 }
 
-void obdn_v_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrier barrier, 
+void obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrier barrier, 
         const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t mipLevels, VkImage image)
 {
     VkImageSubresourceRange subResRange = {
@@ -238,7 +238,7 @@ void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayo
         .dstAccessMask = 0, 
     };
 
-    obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, oldLayout, newLayout, image->mipLevels, image->handle);
+    obdn_CmdTransitionImageLayout(cmd.buffer, barrier, oldLayout, newLayout, image->mipLevels, image->handle);
 
     obdn_EndCommandBuffer(cmd.buffer);
 
@@ -266,7 +266,7 @@ void obdn_CopyBufferToImage(const Obdn_V_BufferRegion* region,
     };
 
     if (origLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout, 
+        obdn_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout, 
                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, image->mipLevels, image->handle);
 
     obdn_CmdCopyBufferToImage(cmd.buffer, 0, region, image);
@@ -277,7 +277,7 @@ void obdn_CopyBufferToImage(const Obdn_V_BufferRegion* region,
     barrier.dstAccessMask = 0;
 
     if (origLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, origLayout, 
+        obdn_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, origLayout, 
                 image->mipLevels, image->handle);
 
     obdn_EndCommandBuffer(cmd.buffer);
@@ -329,7 +329,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
         .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT
     };
 
-    obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, image->handle);
+    obdn_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, image->handle);
 
     obdn_CmdCopyBufferToImage(cmd.buffer, 0, &stagingBuffer, image);
 
@@ -340,7 +340,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
         barrier.dstAccessMask = 0;
         barrier.srcStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
         barrier.dstStageFlags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        obdn_v_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout, mipLevels, image->handle);
+        obdn_CmdTransitionImageLayout(cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, layout, mipLevels, image->handle);
         image->layout = layout;
     }
 
