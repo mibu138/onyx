@@ -18,7 +18,7 @@ include(header)
 find_package(Hell REQUIRED FATAL_ERROR)
 find_package(Coal 0.2.0 REQUIRED FATAL_ERROR)
 find_package(Vulkan 1.2.162 REQUIRED FATAL_ERROR)
-find_package(Freetype REQUIRED FATAL_ERROR)
+find_library(Freetype REQUIRED FATAL_ERROR)
 
 add_subdirectory(cmake)
 add_subdirectory(src/lib)
