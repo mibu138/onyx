@@ -53,6 +53,9 @@ author_library(obsidian
     DEPS Coal::Coal Hell::Hell Vulkan::Vulkan Freetype::Freetype
     EXTRA_INC_DIRS ${CMAKE_SOURCE_DIR}/thirdparty)
 
+get_target_property(vklib Vulkan::Vulkan IMPORTED_LOCATION)
+message("OBDN: Vulkan imported location: ${vklib}")
+
 author_library(obsidianObj 
     TYPE OBJECT
     EXPORT_NAME ObsidianObj
