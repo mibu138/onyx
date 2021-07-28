@@ -77,7 +77,11 @@ static void initShaderModule(const VkDevice device, const char* filepath, VkShad
     V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
 }
 
-#define SPVDIR "/shaders/spv/"
+#ifdef SPVDIR_PREFIX 
+#define SPVDIR SPVDIR_PREFIX "/obsidian"
+#else
+#define SPVDIR "obsidian"
+#endif
 
 static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
 {
@@ -109,6 +113,12 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
     if (hell_FileExists(pathBuffer))
         return;
     const char* obdnRoot = obdn_GetObdnRoot();
+    strcpy(pathBuffer, SPVDIR);
+    strcat(pathBuffer, "/");
+    strcat(pathBuffer, shaderName);
+    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    if (hell_FileExists(pathBuffer))
+        return;
     if (strlen(obdnRoot) + shaderNameLen + strlen(SPVDIR) > OBDN_MAX_PATH_LEN)
         hell_Error(HELL_ERR_FATAL, "Cumulative shader path length exceeds limit.");
     strcpy(pathBuffer, obdnRoot);
