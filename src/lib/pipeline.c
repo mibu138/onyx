@@ -77,6 +77,7 @@ static void initShaderModule(const VkDevice device, const char* filepath, VkShad
     V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
 }
 
+#define FOO
 #ifdef SPVDIR_PREFIX 
 #define SPVDIR SPVDIR_PREFIX "/obsidian"
 #else
