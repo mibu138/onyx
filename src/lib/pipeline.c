@@ -99,6 +99,20 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
         strcpy(pathBuffer, shaderName);
         return;
     }
+    if (runtimeSpvPrefix)
+    {
+        strcpy(pathBuffer, runtimeSpvPrefix);
+        strcat(pathBuffer, shaderName);
+        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+        if (hell_FileExists(pathBuffer))
+            return;
+        strcpy(pathBuffer, runtimeSpvPrefix);
+        strcat(pathBuffer, "obsidian/");
+        strcat(pathBuffer, shaderName);
+        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+        if (hell_FileExists(pathBuffer))
+            return;
+    }
     const char* localShaderDir = "./shaders/";
     strcpy(pathBuffer, localShaderDir);
     strcat(pathBuffer, shaderName);
@@ -117,20 +131,6 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
     hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
-    if (runtimeSpvPrefix)
-    {
-        strcpy(pathBuffer, runtimeSpvPrefix);
-        strcat(pathBuffer, shaderName);
-        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
-        if (hell_FileExists(pathBuffer))
-            return;
-        strcpy(pathBuffer, runtimeSpvPrefix);
-        strcat(pathBuffer, "obsidian/");
-        strcat(pathBuffer, shaderName);
-        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
-        if (hell_FileExists(pathBuffer))
-            return;
-    }
     const char* obdnRoot = obdn_GetObdnRoot();
     if (strlen(obdnRoot) + shaderNameLen + strlen(SPVDIR) > OBDN_MAX_PATH_LEN)
         hell_Error(HELL_ERR_FATAL, "Cumulative shader path length exceeds limit.");
