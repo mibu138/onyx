@@ -128,5 +128,7 @@ void obdn_AllocateDescriptorSets(VkDevice, VkDescriptorPool pool, uint32_t descS
                             const VkDescriptorSetLayout layouts[descSetCount],
                             VkDescriptorSet*      sets);
 
+void obdn_SetRuntimeSpvPrefix(const char* prefix);
+
 #endif /* end of include guard: R_PIPELINE_H */
 

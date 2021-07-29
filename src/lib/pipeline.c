@@ -16,6 +16,15 @@
 
 enum shaderStageType { VERT, FRAG };
 
+// universal prefix path to search at runtime for shaders.
+static char* runtimeSpvPrefix; 
+
+void obdn_SetRuntimeSpvPrefix(const char* prefix)
+{
+    assert(runtimeSpvPrefix == NULL); // should only be set once
+    runtimeSpvPrefix = hell_CopyString(prefix);
+}
+
 static void setBlendModeOverPremult(VkPipelineColorBlendAttachmentState* state)
 {
     state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -77,12 +86,7 @@ static void initShaderModule(const VkDevice device, const char* filepath, VkShad
     V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
 }
 
-#define FOO
-#ifdef SPVDIR_PREFIX 
-#define SPVDIR SPVDIR_PREFIX "/obsidian"
-#else
 #define SPVDIR "obsidian"
-#endif
 
 static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
 {
@@ -113,13 +117,21 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
     hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
+    if (runtimeSpvPrefix)
+    {
+        strcpy(pathBuffer, runtimeSpvPrefix);
+        strcat(pathBuffer, shaderName);
+        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+        if (hell_FileExists(pathBuffer))
+            return;
+        strcpy(pathBuffer, runtimeSpvPrefix);
+        strcat(pathBuffer, "obsidian/");
+        strcat(pathBuffer, shaderName);
+        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+        if (hell_FileExists(pathBuffer))
+            return;
+    }
     const char* obdnRoot = obdn_GetObdnRoot();
-    strcpy(pathBuffer, SPVDIR);
-    strcat(pathBuffer, "/");
-    strcat(pathBuffer, shaderName);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
-    if (hell_FileExists(pathBuffer))
-        return;
     if (strlen(obdnRoot) + shaderNameLen + strlen(SPVDIR) > OBDN_MAX_PATH_LEN)
         hell_Error(HELL_ERR_FATAL, "Cumulative shader path length exceeds limit.");
     strcpy(pathBuffer, obdnRoot);
