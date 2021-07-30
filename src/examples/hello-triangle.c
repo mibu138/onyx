@@ -3,7 +3,7 @@
 #include <hell/window.h>
 #include <hell/cmd.h>
 #include <coal/coal.h>
-#include "obsidian.h"
+#include "obsidian/obsidian.h"
 
 #define WIREFRAME 0
 

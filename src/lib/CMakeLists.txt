@@ -1,4 +1,4 @@
-set(SRCS 
+list(APPEND SRCS 
     video.c      
     memory.c     
 	image.c      
@@ -12,54 +12,29 @@ set(SRCS
 	geo.c        
 	scene.c      
 	file.c       
-	ui.c         
-	text.c       
 	common.c       
 	locations.c)
+list(APPEND DEPS 
+    Vulkan::Vulkan)
+if(FREETYPE_FOUND)
+    list(APPEND SRCS
+	ui.c         
+	text.c)
+    list(APPEND DEPS 
+    Freetype::Freetype)
+    set(FT2_DIR ${FREETYPE_INCLUDE_DIR_ft2build})
+endif()
 
-set(PUBLIC_HEADERS
-    obsidian.h
-    common.h
-    dtags.h
-    file.h
-    filegeo.h
-    locations.h
-    max_prims.h
-    framebuffer.h
-    api.h
-    attribute.h
-    geo.h
-    pipeline.h
-    raytrace.h
-    render.h
-    renderpass.h
-    scene.h
-    text.h
-    types.h
-    ui.h
-    command.h
-    def.h
-    image.h
-    memory.h
-    swapchain.h
-    video.h
-    vulkan.h)
-
-include(author_library)
-author_library(obsidian 
-    EXPORT_NAME Obsidian
-    SOURCES ${SRCS}
-    PUBLIC_HEADERS ${PUBLIC_HEADERS}
-    DEPS Coal::Coal Hell::Hell Vulkan::Vulkan Freetype::Freetype
-    EXTRA_INC_DIRS ${CMAKE_SOURCE_DIR}/thirdparty)
-
-get_target_property(vklib Vulkan::Vulkan IMPORTED_LOCATION)
-message("OBDN: Vulkan imported location: ${vklib}")
-
-author_library(obsidianObj 
-    TYPE OBJECT
-    EXPORT_NAME ObsidianObj
-    SOURCES ${SRCS}
-    PUBLIC_HEADERS ${PUBLIC_HEADERS}
-    DEPS Coal::Coal Hell::Hell Vulkan::Vulkan Freetype::Freetype
-    EXTRA_INC_DIRS ${CMAKE_SOURCE_DIR}/thirdparty)
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+add_library(obsidianObj OBJECT)
+add_library(obsidian    SHARED)
+target_sources(obsidianObj PRIVATE ${SRCS})
+target_include_directories(obsidianObj 
+    PRIVATE "../include/obsidian" ${FT2_DIR}
+    INTERFACE "../include")
+target_link_libraries(obsidianObj 
+    PRIVATE   thirdparty 
+    INTERFACE ${DEPS})
+target_link_libraries(obsidian PUBLIC Hell::Hell Coal::Coal obsidianObj)
+add_library(Obsidian::ObsidianObj ALIAS obsidianObj)
+add_library(Obsidian::Obsidian ALIAS obsidian)

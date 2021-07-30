@@ -1,5 +1,5 @@
 #include <hell/hell.h>
-#include <obsidian.h>
+#include <obsidian/obsidian.h>
 
 Hell_Grimoire* grim;
 Hell_EventQueue* equeue;

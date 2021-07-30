@@ -1,5 +1,5 @@
 #include <hell/hell.h>
-#include <obsidian.h>
+#include <obsidian/obsidian.h>
 
 static Obdn_Instance*  oInstance;
 static Obdn_Memory*    oMemory;

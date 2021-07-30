@@ -4,8 +4,8 @@
 #include <hell/cmd.h>
 #include <coal/coal.h>
 #include <alloca.h>
-#include "obsidian.h"
-#include "ui.h"
+#include "obsidian/obsidian.h"
+#include "obsidian/ui.h"
 
 #define WIREFRAME 0
 

@@ -3,24 +3,36 @@ cmake_minimum_required(VERSION 3.17)
 project(Obsidian VERSION 0.1.0)
 
 include(FetchContent)
+FetchContent_Declare(
+    cmake-common
+    GIT_REPOSITORY /home/michaelb/dev/cmake-common
+    GIT_TAG origin/master)
 FetchContent_GetProperties(cmake-common)
-if(NOT ${cmake-common_POPULATED})
-    FetchContent_Declare(
-        cmake-common
-        GIT_REPOSITORY https://github.com/mokchira/cmake-common
-        GIT_TAG origin/master)
+if(NOT cmake-common_POPULATED)
     FetchContent_Populate(cmake-common)
 endif()
+
 list(APPEND CMAKE_MODULE_PATH ${cmake-common_SOURCE_DIR})
 
-include(header)
+set(git_base_url /home/michaelb/dev)
 
-find_package(Hell REQUIRED FATAL_ERROR)
-find_package(Coal 0.2.0 REQUIRED FATAL_ERROR)
+FetchContent_Declare(
+    hell 
+    GIT_REPOSITORY ${git_base_url}/hell
+    GIT_TAG master)
+
+FetchContent_Declare(
+    coal
+    GIT_REPOSITORY ${git_base_url}/coal
+    GIT_TAG master)
+
 find_package(Vulkan 1.2.162 REQUIRED FATAL_ERROR)
-find_package(Freetype REQUIRED FATAL_ERROR)
+find_package(Freetype)
 
-add_subdirectory(cmake)
+FetchContent_MakeAvailable(hell coal)
+add_library(thirdparty INTERFACE)
+target_include_directories(thirdparty INTERFACE "thirdparty")
+
 add_subdirectory(src/lib)
 add_subdirectory(src/shaders)
 add_subdirectory(src/examples)
