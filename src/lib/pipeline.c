@@ -119,6 +119,12 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
     hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
+    strcpy(pathBuffer, localShaderDir);
+    strcat(pathBuffer, "obsidian/");
+    strcat(pathBuffer, shaderName);
+    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    if (hell_FileExists(pathBuffer))
+        return;
     const char* unixShaderDir = "/usr/local/share/shaders/";
     strcpy(pathBuffer, unixShaderDir);
     strcat(pathBuffer, shaderName);
