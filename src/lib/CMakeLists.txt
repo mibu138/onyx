@@ -34,7 +34,13 @@ target_include_directories(obsidianObj
     INTERFACE "../include")
 target_link_libraries(obsidianObj 
     PRIVATE   thirdparty 
-    INTERFACE ${DEPS})
+    PUBLIC ${DEPS} Hell::HellObj Coal::CoalObj)
 target_link_libraries(obsidian PUBLIC Hell::Hell Coal::Coal obsidianObj)
 add_library(Obsidian::ObsidianObj ALIAS obsidianObj)
 add_library(Obsidian::Obsidian ALIAS obsidian)
+
+if(DEFINED UNIX)
+    target_compile_definitions(obsidianObj PUBLIC UNIX)
+else()
+    message(FATAL_ERROR "Need additional platform checks if not on unix.")
+endif()

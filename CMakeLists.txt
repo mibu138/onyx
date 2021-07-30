@@ -26,6 +26,7 @@ FetchContent_Declare(
     GIT_REPOSITORY ${git_base_url}/coal
     GIT_TAG master)
 
+include(header)
 find_package(Vulkan 1.2.162 REQUIRED FATAL_ERROR)
 find_package(Freetype)
 

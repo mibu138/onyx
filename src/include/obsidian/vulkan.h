@@ -1,8 +1,6 @@
 #ifndef OBDN_V_VULKAN_H
 #define OBDN_V_VULKAN_H
 
-#include <hell/platform.h>
-
 #ifdef UNIX
 #define VK_USE_PLATFORM_XCB_KHR
 #else 
