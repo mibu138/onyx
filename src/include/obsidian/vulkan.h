@@ -9,6 +9,7 @@
 #include <vulkan/vulkan.h>
 #include <assert.h>
 #include <hell/debug.h>
+#include <hell/hell.h>
 
 static inline void obdn_VulkanErrorMessage(VkResult result)
 {
@@ -16,7 +17,7 @@ static inline void obdn_VulkanErrorMessage(VkResult result)
     {
         switch (result)
         {
-#define CASE_PRINT(r) case r: hell_DPrint(#r); break
+#define CASE_PRINT(r) case r: hell_DPrint(#r); hell_Print("\n"); break
             CASE_PRINT(VK_NOT_READY);
             CASE_PRINT(VK_TIMEOUT);
             CASE_PRINT(VK_EVENT_SET);

@@ -181,9 +181,12 @@ int main(int argc, char *argv[])
         VK_KHR_SURFACE_EXTENSION_NAME,
         VK_KHR_XCB_SURFACE_EXTENSION_NAME
     };
+    const char* ln[] = {"pooopy butt"};
     Obdn_InstanceParms ip = {
         .enabledInstanceExentensionCount = LEN(instanceExtensions),
-        .ppEnabledInstanceExtensionNames = instanceExtensions
+        .ppEnabledInstanceExtensionNames = instanceExtensions,
+        .enabledInstanceLayerCount       = 1,
+        .ppEnabledInstanceLayerNames   = ln
     };
     obdn_CreateInstance(&ip, oInstance);
     obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);

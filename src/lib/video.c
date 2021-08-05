@@ -19,9 +19,6 @@
 
 #include <unistd.h>
 
-static void inspectAvailableLayers(void) __attribute__((unused));
-static void inspectAvailableExtensions(void) __attribute__((unused));
-
 #define DPRINT_VK(fmt, ...)                                                    \
     hell_DebugPrint(OBDN_DEBUG_TAG_VK, fmt, ##__VA_ARGS__)
 
