@@ -18,8 +18,23 @@ typedef struct Obdn_Instance Obdn_Instance;
 uint64_t obdn_SizeOfInstance(void);
 Obdn_Instance* obdn_AllocInstance(void);
 
-void obdn_CreateInstance(bool enableValidation, bool enableRayTracing, const int extcount,
-                  const char* extensions[], Obdn_Instance* instance);
+// enabling/disabling validation and/or raytracing 
+// will automatically enable the required layers and 
+// extensions for those to be used effectively
+typedef struct Obdn_InstanceParms {
+    bool                                disableValidation;
+    bool                                enableRayTracing;
+    uint32_t                            enabledInstanceLayerCount;
+    const char**                        ppEnabledInstanceLayerNames;
+    uint32_t                            enabledInstanceExentensionCount;
+    const char**                        ppEnabledInstanceExtensionNames;
+    uint32_t                            validationFeaturesCount;
+    const VkValidationFeatureEnableEXT* pValidationFeatures;
+    uint32_t                            enabledDeviceExtensionCount;
+    const char**                        ppEnabledDeviceExtensionNames;
+} Obdn_InstanceParms;
+
+void obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance);
 const VkInstance* obdn_GetVkInstance(const Obdn_Instance*);
 void obdn_SubmitToQueue(const Obdn_Instance*, const VkCommandBuffer* buffer,
                         Obdn_V_QueueType, uint32_t queueIndex);

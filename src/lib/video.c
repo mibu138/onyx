@@ -35,48 +35,90 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
 }
 
 static void
-inspectAvailableLayers(void)
+checkForAvailableLayers(const Obdn_InstanceParms* parms)
 {
     uint32_t availableCount;
     vkEnumerateInstanceLayerProperties(&availableCount, NULL);
-    VkLayerProperties propertiesAvailable[availableCount];
+    VkLayerProperties* propertiesAvailable = hell_Malloc(sizeof(VkLayerProperties) * availableCount);
     vkEnumerateInstanceLayerProperties(&availableCount, propertiesAvailable);
-    obdn_Announce("%s\n", "Vulkan Instance layers available:");
-    const int padding = 90;
-    for (int i = 0; i < padding; i++)
+    const char* listAvailableLayers = getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_LAYERS");
+    if (listAvailableLayers)
     {
-        hell_Print("-");
-    }
-    hell_Print("\n");
-    for (int i = 0; i < availableCount; i++)
-    {
-        const char*      name   = propertiesAvailable[i].layerName;
-        const char* desc UNUSED = propertiesAvailable[i].description;
-        const int pad    UNUSED = padding - strlen(name);
-        hell_Print("%s%*s\n", name, pad, desc);
+        DPRINT_VK("%s\n", "Vulkan Instance layers available:");
+        const int padding = 90;
         for (int i = 0; i < padding; i++)
         {
             hell_Print("-");
         }
         hell_Print("\n");
+        for (int i = 0; i < availableCount; i++)
+        {
+            const char*      name   = propertiesAvailable[i].layerName;
+            const char* desc UNUSED = propertiesAvailable[i].description;
+            const int pad    UNUSED = padding - strlen(name);
+            hell_Print("%s%*s\n", name, pad, desc);
+            for (int i = 0; i < padding; i++)
+            {
+                hell_Print("-");
+            }
+            hell_Print("\n");
+        }
+        hell_Print("\n");
     }
-    hell_Print("\n");
+    for (int i = 0; i < parms->enabledInstanceLayerCount; i++)
+    {
+        bool matched = false;
+        const char* layerName = parms->ppEnabledInstanceLayerNames[i];
+        for (int j = 0; j < availableCount; j++)
+        {
+            if (strcmp(layerName, propertiesAvailable[j].layerName) == 0)
+            {
+                matched = true;
+            }
+        }
+        if (!matched)
+        {
+            obdn_Announce("WARNING: Requested Vulkan Instance Layer not available: %s\n", layerName);
+        }
+    }
+    hell_Free(propertiesAvailable);
 }
 
 static void
-inspectAvailableExtensions(void)
+checkForAvailableExtensions(const Obdn_InstanceParms* parms)
 {
     uint32_t availableCount;
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount, NULL);
-    VkExtensionProperties propertiesAvailable[availableCount];
+    VkExtensionProperties* propertiesAvailable = hell_Malloc(sizeof(VkExtensionProperties) * availableCount);
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount,
                                            propertiesAvailable);
-    obdn_Announce("%s\n", "Vulkan Instance extensions available:");
-    for (int i = 0; i < availableCount; i++)
+    const char* listAvailableExtensions = getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_EXTENSIONS");
+    if (listAvailableExtensions)
     {
-        hell_Print("%s\n", propertiesAvailable[i].extensionName);
+        obdn_Announce("%s\n", "Vulkan Instance extensions available:");
+        for (int i = 0; i < availableCount; i++)
+        {
+            hell_Print("%s\n", propertiesAvailable[i].extensionName);
+        }
+        hell_Print("\n");
     }
-    hell_Print("\n");
+    for (int i = 0; i < parms->enabledInstanceExentensionCount; i++)
+    {
+        bool matched = false;
+        const char* extensionName = parms->ppEnabledInstanceExtensionNames[i];
+        for (int j = 0; j < availableCount; j++)
+        {
+            if (strcmp(extensionName, propertiesAvailable[j].extensionName) == 0)
+            {
+                matched = true;
+            }
+        }
+        if (!matched)
+        {
+            obdn_Announce("WARNING: Requested Vulkan Instance Extension not available: %s\n", extensionName);
+        }
+    }
+    hell_Free(propertiesAvailable);
 }
 
 static uint32_t
@@ -92,7 +134,7 @@ getVkVersionAvailable(void)
 }
 
 static void
-initVkInstance(const bool enableValidation, VkInstance* instance)
+initVkInstance(const Obdn_InstanceParms* parms, VkInstance* instance)
 {
     uint32_t vulkver = getVkVersionAvailable();
     // uint32_t vulkver = VK_MAKE_VERSION(1, 2, 0);
@@ -109,54 +151,28 @@ initVkInstance(const bool enableValidation, VkInstance* instance)
         .apiVersion         = vulkver,
     };
 
-#if VERBOSE > 1
-    inspectAvailableLayers();
-    inspectAvailableExtensions();
-#endif
+    checkForAvailableLayers(parms);
+    checkForAvailableExtensions(parms);
 
-    // one for best practices
-    // second one is interesting, sounds like it allows
-    // V1_PRINT to be called from shaders.
-    const VkValidationFeatureEnableEXT valfeatures[] = {
-#ifndef NO_BEST_PRACTICE
-        VK_VALIDATION_FEATURE_ENABLE_BEST_PRACTICES_EXT,
-#endif
-        // VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT,
-        VK_VALIDATION_FEATURE_ENABLE_GPU_ASSISTED_EXT};
-
-    VkValidationFeaturesEXT extraValidation = {
+    VkValidationFeaturesEXT extraValidation = (VkValidationFeaturesEXT){
         .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
         .disabledValidationFeatureCount = 0,
-        .enabledValidationFeatureCount =
-            sizeof(valfeatures) / sizeof(VkValidationFeatureEnableEXT),
-        .pEnabledValidationFeatures = valfeatures};
+        .enabledValidationFeatureCount = parms->validationFeaturesCount,
+        .pEnabledValidationFeatures = parms->pValidationFeatures};
 
-    const char* enabledLayers[] = {"VK_LAYER_KHRONOS_validation",
-                                   "VK_LAYER_LUNARG_monitor"};
-
-    const char* enabledExtensions[] = {
-        "VK_KHR_surface",
-#ifdef UNIX
-        "VK_KHR_xcb_surface",
-#elif defined(WINDOWS)
-        "VK_KHR_win32_surface",
-#else
-#error Unsupported platform
-#endif
-        "VK_EXT_debug_report", "VK_EXT_debug_utils",
-        VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME};
+    VkValidationFeaturesEXT* pExtraValidation = parms->validationFeaturesCount ? &extraValidation : NULL;
 
     VkInstanceCreateInfo instanceInfo = {
-        .enabledLayerCount       = sizeof(enabledLayers) / sizeof(char*),
-        .enabledExtensionCount   = sizeof(enabledExtensions) / sizeof(char*),
-        .ppEnabledExtensionNames = enabledExtensions,
-        .ppEnabledLayerNames     = enabledLayers,
+        .enabledLayerCount       = parms->enabledInstanceLayerCount,
+        .enabledExtensionCount   = parms->enabledInstanceExentensionCount,
+        .ppEnabledExtensionNames = parms->ppEnabledInstanceExtensionNames,
+        .ppEnabledLayerNames     = parms->ppEnabledInstanceLayerNames,
         .pApplicationInfo        = &appInfo,
         .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-        .pNext                   = &extraValidation,
+        .pNext                   = pExtraValidation,
     };
 
-    if (!enableValidation)
+    if (parms->disableValidation)
     {
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
@@ -226,7 +242,7 @@ retrievePhysicalDevice(const VkInstance            instance,
 static void
 initDevice(
     const bool enableRayTracing, const uint32_t userExtCount,
-    const char*            userExtensions[userExtCount],
+    const char* const*           userExtensions,
     const VkPhysicalDevice physicalDevice, QueueFamily* graphicsQueueFamily,
     QueueFamily* computeQueueFamily, QueueFamily* transferQueueFamily,
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR*    rtProperties,
@@ -547,20 +563,52 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
 }
 
 void
-obdn_CreateInstance(bool enableValidation, bool enableRayTracing, const int extcount,
-                  const char* extensions[], Obdn_Instance* instance)
+obdn_CreateInstance(const Obdn_InstanceParms* baseparms, Obdn_Instance* instance)
 {
     memset(instance, 0, sizeof(Obdn_Instance));
-    initVkInstance(enableValidation, &instance->vkinstance);
-    if (enableValidation)
+    Obdn_InstanceParms parms = *baseparms; //make a copy because we may modify.
+    if (!parms.disableValidation) 
+    {
+        // requires us to add 1 instance layer and 2 instance extensions
+        uint32_t oldLayerCount     = parms.enabledInstanceLayerCount;
+        uint32_t oldExtensionCount = parms.enabledInstanceExentensionCount;
+        uint32_t newExtensionCount = oldExtensionCount + 1;
+        uint32_t newLayerCount     = oldLayerCount + 1;
+        const char**   newExtensionNames = hell_Malloc(sizeof(char*) * newExtensionCount);
+        const char**   newLayerNames     = hell_Malloc(sizeof(char*) * newLayerCount);
+        int i = 0;
+        for(; i < oldLayerCount; i++)
+            newLayerNames[i] = hell_CopyString(parms.ppEnabledInstanceLayerNames[i]); //allocates
+        newLayerNames[i] = hell_CopyString("VK_LAYER_KHRONOS_validation");
+        i = 0;
+        for(; i < oldExtensionCount; i++)
+            newExtensionNames[i] = hell_CopyString(parms.ppEnabledInstanceExtensionNames[i]); //allocates
+        newExtensionNames[i] = hell_CopyString(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+        
+        parms.enabledInstanceExentensionCount = newExtensionCount;
+        parms.enabledInstanceLayerCount       = newLayerCount;
+        parms.ppEnabledInstanceExtensionNames = newExtensionNames;
+        parms.ppEnabledInstanceLayerNames     = newLayerNames;
+    }
+    initVkInstance(&parms, &instance->vkinstance);
+    if (!parms.disableValidation)
+    {
         initDebugMessenger(instance->vkinstance, &instance->debugMessenger);
+        // clean up
+        for (int i = 0; i < parms.enabledInstanceExentensionCount; i++)
+            hell_Free((void*)parms.ppEnabledInstanceExtensionNames[i]);
+        for (int i = 0; i < parms.enabledInstanceLayerCount; i++)
+            hell_Free((void*)parms.ppEnabledInstanceLayerNames[i]);
+        hell_Free(parms.ppEnabledInstanceExtensionNames);
+        hell_Free(parms.ppEnabledInstanceLayerNames);
+    }
     instance->physicalDevice = retrievePhysicalDevice(
         instance->vkinstance, &instance->deviceProperties);
-    initDevice(enableRayTracing, extcount, extensions, instance->physicalDevice,
+    initDevice(parms.enableRayTracing, parms.enabledDeviceExtensionCount, parms.ppEnabledDeviceExtensionNames, instance->physicalDevice,
                &instance->graphicsQueueFamily, &instance->computeQueueFamily,
                &instance->transferQueueFamily, &instance->rtProperties,
                &instance->accelStructProperties, &instance->device);
-    if (enableRayTracing) // TODO not all functions have to do with
+    if (parms.enableRayTracing) // TODO not all functions have to do with
         obdn_v_LoadFunctions(instance->device);
     initQueues(instance->device, &instance->graphicsQueueFamily,
                &instance->computeQueueFamily, &instance->transferQueueFamily,

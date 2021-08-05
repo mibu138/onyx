@@ -2,6 +2,7 @@
 #include <hell/debug.h>
 #include <hell/window.h>
 #include <hell/cmd.h>
+#include <hell/len.h>
 #include <coal/coal.h>
 #include "obsidian/obsidian.h"
 
@@ -176,7 +177,15 @@ int main(int argc, char *argv[])
         .usageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         .format = depthFormat,
     };
-    obdn_CreateInstance(true, false, 0, NULL, oInstance);
+    const char* instanceExtensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        VK_KHR_XCB_SURFACE_EXTENSION_NAME
+    };
+    Obdn_InstanceParms ip = {
+        .enabledInstanceExentensionCount = LEN(instanceExtensions),
+        .ppEnabledInstanceExtensionNames = instanceExtensions
+    };
+    obdn_CreateInstance(&ip, oInstance);
     obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
     obdn_CreateSwapchain(oInstance, oMemory, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, &depthAov, swapchain);
     device = obdn_GetDevice(oInstance);

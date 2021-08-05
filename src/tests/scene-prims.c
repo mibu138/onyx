@@ -1,4 +1,5 @@
 #include <hell/hell.h>
+#include <hell/len.h>
 #include <obsidian/obsidian.h>
 
 Hell_Grimoire* grim;
@@ -20,7 +21,14 @@ int main(int argc, char *argv[])
     memory   = obdn_AllocMemory();
     scene     = obdn_AllocScene();
 
-    obdn_CreateInstance(true, false, 0, NULL, instance);
+    const char* instanceExtensions[] = {
+        VK_KHR_XCB_SURFACE_EXTENSION_NAME
+    };
+    Obdn_InstanceParms ip = {
+        .enabledInstanceExentensionCount = LEN(instanceExtensions),
+        .ppEnabledInstanceExtensionNames = instanceExtensions,
+    };
+    obdn_CreateInstance(&ip, instance);
     obdn_CreateMemory(instance, 100, 100, 100, 0, 0, memory);
     obdn_CreateScene(grim, memory, 0.01, 100, scene);
 
