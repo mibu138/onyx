@@ -421,6 +421,48 @@ Obdn_Geometry obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float
     return prim;
 }
 
+Obdn_Geometry obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const float y, const float width, const float height)
+{
+    Obdn_Geometry prim = {
+        .attrCount = 3,
+        .indexCount = 6,
+        .vertexCount = 4,
+        .attrNames = {POS_NAME, NORMAL_NAME, UV_NAME},
+        .attrSizes = {12, 12, 8}
+    };
+
+    initPrimBuffers(memory, &prim);
+
+    Vec3* pos = obdn_GetGeoAttribute(&prim, 0);
+    // upper left. x, y
+    pos[0] = (Vec3){x, y, 0};
+    pos[1] = (Vec3){x, y + height, 0};
+    pos[2] = (Vec3){x + width, y, 0};
+    pos[3] = (Vec3){x + width, y + height, 0};
+
+    Vec3* n = obdn_GetGeoAttribute(&prim, 1);
+    n[0] = (Vec3){0, 0, 1};
+    n[1] = (Vec3){0, 0, 1};
+    n[2] = (Vec3){0, 0, 1};
+    n[3] = (Vec3){0, 0, 1};
+
+    Vec2* uvs = obdn_GetGeoAttribute(&prim, 2);
+    uvs[0] = (Vec2){0, 0};
+    uvs[1] = (Vec2){0, 1};
+    uvs[2] = (Vec2){1, 0};
+    uvs[3] = (Vec2){1, 1};
+
+    Obdn_GeoIndex* index = obdn_GetGeoIndices(&prim);
+    index[0] = 0;
+    index[1] = 1;
+    index[2] = 2;
+    index[3] = 2;
+    index[4] = 1;
+    index[5] = 3;
+
+    return prim;
+}
+
 Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t indexCount, 
         const uint8_t attrCount, const uint8_t attrSizes[attrCount])
 {

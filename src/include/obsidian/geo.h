@@ -42,6 +42,8 @@ Obdn_Geometry  obdn_CreateCube(Obdn_Memory* memory, const bool isClockWise);
 Obdn_Geometry  obdn_CreatePoints(Obdn_Memory*, const uint32_t count);
 Obdn_Geometry  obdn_CreateCurve(Obdn_Memory*, const uint32_t vertCount, const uint32_t patchSize, const uint32_t restartOffset);
 Obdn_Geometry  obdn_CreateQuadNDC(Obdn_Memory*, const float x, const float y, const float width, const float height);
+// creates pos, normal, and uv attribute
+Obdn_Geometry obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const float y, const float width, const float height);
 #ifdef __cplusplus // no real reason to be doing this... other than documentation
 Obdn_Geometry obdn_CreatePrimitive(Obdn_Memory*, const uint32_t vertCount, const uint32_t indexCount, 
                                            const uint8_t attrCount, const uint8_t* attrSizes);
