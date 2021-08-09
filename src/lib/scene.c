@@ -427,6 +427,12 @@ void obdn_UpdatePrimXform(Scene* scene, PrimitiveHandle handle, const Mat4 delta
     scene->dirt |= OBDN_SCENE_XFORMS_BIT;
 }
 
+void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle handle, Mat4 newXform)
+{
+    PRIM(scene, handle).xform = newXform;
+    scene->dirt |= OBDN_SCENE_XFORMS_BIT;
+}
+
 void obdn_AddPrimToList(Obdn_PrimitiveHandle handle, Obdn_PrimitiveList* list)
 {
     list->primIds[list->primCount] = handle.id;

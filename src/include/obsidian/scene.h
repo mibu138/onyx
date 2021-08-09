@@ -146,6 +146,7 @@ void obdn_UpdateLightColor(Obdn_Scene* scene, Obdn_LightHandle id, float r, floa
 void obdn_UpdateLightIntensity(Obdn_Scene* scene, Obdn_LightHandle id, float i);
 void obdn_UpdateLightPos(Obdn_Scene* scene, Obdn_LightHandle id, float x, float y, float z);
 void obdn_UpdatePrimXform(Obdn_Scene* scene, const Obdn_PrimitiveHandle primId, const Mat4 delta);
+void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle primId, Mat4 newXform);
 
 Mat4 obdn_GetCameraView(const Obdn_Scene* scene);
 Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene);
