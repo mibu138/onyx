@@ -121,17 +121,18 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
     obdn_FreeBufferRegion(&scratchBufferRegion);
 }
 
-void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const AccelerationStructure blasses[count],
-        const Coal_Mat4 xforms[count],
+void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const AccelerationStructure blasses[],
+        const Coal_Mat4 xforms[],
         AccelerationStructure* tlas)
 {
     //// Mat4 transform = m_Ident_Mat4();
     // instance transform member is a 4x3 row-major matrix
     // transform = m_Transpose_Mat4(&transform); // we don't need to because its identity, but leaving here to impress the point
     assert(xforms);
+    assert(count > 0);
 
-    VkAccelerationStructureInstanceKHR instances[count];
-    memset(instances, 0, sizeof(instances));
+    VkAccelerationStructureInstanceKHR* instances = hell_Malloc(sizeof(VkAccelerationStructureInstanceKHR) * count);
+    memset(instances, 0, sizeof(instances[0]) * count);
     for (int i = 0; i < count; i++)
     {
         Mat4 xformT = xforms[i];
@@ -159,7 +160,8 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
             OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
     assert(instBuffer.hostData);
-    memcpy(instBuffer.hostData, instances, sizeof(instances));
+    memcpy(instBuffer.hostData, instances, sizeof(instances[0]) * count);
+    hell_Free(instances);
 
     const VkAccelerationStructureGeometryInstancesDataKHR instanceData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
@@ -255,7 +257,7 @@ void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCoun
     const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
     const uint32_t sbtSize = groupCount * baseAlignment; // 3 shader groups: raygen, miss, closest hit
 
-    uint8_t shaderHandleData[sbtSize];
+    void* shaderHandleData = hell_Malloc(sbtSize);
 
     DPRINT("ShaderGroup handle size: %d\n", groupHandleSize);
     DPRINT("ShaderGroup base alignment: %d\n", baseAlignment);
@@ -289,6 +291,8 @@ void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCoun
     sbt->hitTable.deviceAddress = bufferRegionAddress + baseAlignment * 2;
     sbt->hitTable.size          = baseAlignment;
     sbt->hitTable.stride        = baseAlignment;
+
+    hell_Free(shaderHandleData);
 
     DPRINT("Created shader binding table\n");
 }

@@ -11,13 +11,13 @@
 #include <hell/debug.h>
 #include <hell/hell.h>
 
-static inline void obdn_VulkanErrorMessage(VkResult result)
+static inline void obdn_VulkanErrorMessage(VkResult result, const char* filestr, int linenum, const char* funcstr)
 {
     if (result != VK_SUCCESS)
     {
         switch (result)
         {
-#define CASE_PRINT(r) case r: hell_DPrint(#r); hell_Print("\n"); break
+#define CASE_PRINT(r) case r: hell_Print("%s:%d:%s() :: ", filestr, linenum, funcstr); hell_Print(#r); hell_Print("\n"); break
             CASE_PRINT(VK_NOT_READY);
             CASE_PRINT(VK_TIMEOUT);
             CASE_PRINT(VK_EVENT_SET);
@@ -66,7 +66,7 @@ static inline void obdn_VulkanErrorMessage(VkResult result)
 
 // note VkResults >= 0 are considered success codes.
 #ifndef NDEBUG
-#define V_ASSERT(expr) ( obdn_VulkanErrorMessage(expr) )
+#define V_ASSERT(expr) ( obdn_VulkanErrorMessage(expr, __FILE__, __LINE__, __func__) )
 #else
 #define V_ASSERT(expr) (expr)
 #endif

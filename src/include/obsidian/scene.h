@@ -91,7 +91,9 @@ typedef struct {
     Obdn_TextureHandle padding;
 } Obdn_Material;
 
+#if UNIX
 _Static_assert(sizeof(Obdn_Material) == 32, "Changing material size and layout may conflict with shader uniforms");
+#endif
 
 typedef struct Obdn_Scene Obdn_Scene;
 

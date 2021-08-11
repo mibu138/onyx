@@ -8,8 +8,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if UNIX
 _Static_assert(sizeof(uint8_t) == sizeof(Obdn_GeoAttributeSize),
                "sizeof(Obdn_R_AttributeSize) must be 1");
+#endif
 
 typedef Obdn_FileGeo FPrim;
 
@@ -58,8 +60,8 @@ obdn_PrintFileGeo(const Obdn_FileGeo* prim)
 Obdn_FileGeo
 obdn_CreateFileGeo(const uint32_t vertexCount, const uint32_t indexCount,
                        const uint32_t             attrCount,
-                       const Obdn_GeoAttributeSize attrSizes[attrCount],
-                       const char attrNames[attrCount][OBDN_R_ATTR_NAME_LEN])
+                       const Obdn_GeoAttributeSize attrSizes[/*attrCount*/],
+                       const char attrNames[/*attrCount*/][OBDN_R_ATTR_NAME_LEN])
 {
     Obdn_FileGeo fprim = {.vertexCount = vertexCount,
                               .indexCount  = indexCount,
@@ -199,7 +201,7 @@ obdn_ReadFileGeo(const char* filename, Obdn_FileGeo* fprim)
 {
     FILE* file = fopen(filename, "rb");
     assert(file);
-    size_t r     UNUSED;
+    size_t r;
     const size_t headerSize = offsetof(Obdn_FileGeo, attrSizes);
     assert(headerSize == 16);
     r = fread(fprim, headerSize, 1, file);

@@ -33,7 +33,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureBuildSizesKHR(
     VkAccelerationStructureBuildSizesInfoKHR*   pSizeInfo)
 {
     assert(pfn_vkGetAccelerationStructureBuildSizesKHR);
-    return pfn_vkGetAccelerationStructureBuildSizesKHR(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo);
+    pfn_vkGetAccelerationStructureBuildSizesKHR(device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresKHR(
@@ -43,7 +43,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresKHR(
         const VkAccelerationStructureBuildRangeInfoKHR *const *ppRangeInfos)
 {
     assert(pfn_vkCmdBuildAccelerationStructuresKHR);
-    return pfn_vkCmdBuildAccelerationStructuresKHR(commandBuffer, infoCount, pInfos, ppRangeInfos);
+    pfn_vkCmdBuildAccelerationStructuresKHR(commandBuffer, infoCount, pInfos, ppRangeInfos);
 }
 
 VKAPI_ATTR void VKAPI_CALL vkDestroyAccelerationStructureKHR(
@@ -52,7 +52,7 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyAccelerationStructureKHR(
         const VkAllocationCallbacks *pAllocator)
 {
     assert(pfn_vkDestroyAccelerationStructureKHR);
-    return pfn_vkDestroyAccelerationStructureKHR(device, accelerationStructure, pAllocator);
+    pfn_vkDestroyAccelerationStructureKHR(device, accelerationStructure, pAllocator);
 }
 
 VKAPI_ATTR VkDeviceAddress VKAPI_CALL vkGetAccelerationStructureDeviceAddressKHR(
@@ -115,7 +115,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         uint32_t width, uint32_t height, uint32_t depth)
 {
     assert(pfn_vkCmdTraceRaysKHR);
-    return pfn_vkCmdTraceRaysKHR(commandBuffer,
+    pfn_vkCmdTraceRaysKHR(commandBuffer,
             pRaygenShaderBindingTable,
             pMissShaderBindingTable,
             pHitShaderBindingTable,

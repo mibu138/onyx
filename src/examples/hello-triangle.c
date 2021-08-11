@@ -154,7 +154,7 @@ void draw(void)
     frameCounter++;
 }
 
-int main(int argc, char *argv[])
+int hellmain()
 {
     eventQueue = hell_AllocEventQueue();
     grimoire   = hell_AllocGrimoire();
@@ -177,17 +177,24 @@ int main(int argc, char *argv[])
         .usageFlags = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
         .format = depthFormat,
     };
+    #if UNIX
     const char* instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
         VK_KHR_XCB_SURFACE_EXTENSION_NAME
     };
-    const char* ln[] = {"pooopy butt"};
+    #elif WIN32
+    const char* instanceExtensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+    };
+    #endif
     Obdn_InstanceParms ip = {
         .enabledInstanceExentensionCount = LEN(instanceExtensions),
         .ppEnabledInstanceExtensionNames = instanceExtensions,
-        .enabledInstanceLayerCount       = 1,
-        .ppEnabledInstanceLayerNames   = ln
     };
+    #if WIN32
+    obdn_SetRuntimeSpvPrefix("C:/dev/obsidian/build/shaders/");
+    #endif
     obdn_CreateInstance(&ip, oInstance);
     obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
     obdn_CreateSwapchain(oInstance, oMemory, eventQueue, window, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT, 1, &depthAov, swapchain);
@@ -196,3 +203,18 @@ int main(int argc, char *argv[])
     hell_Loop(hellmouth);
     return 0;
 }
+
+#ifdef WIN32
+int APIENTRY WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance,
+    _In_ PSTR lpCmdLine, _In_ int nCmdShow)
+{
+    hell_SetHinstance(hInstance);
+    hellmain();
+    return 0;
+}
+#elif UNIX
+int main(int argc, char* argv[])
+{
+    hellmain();
+}
+#endif

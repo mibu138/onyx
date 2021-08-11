@@ -422,7 +422,7 @@ Obdn_Geometry obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float
 }
 
 Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t indexCount, 
-        const uint8_t attrCount, const uint8_t attrSizes[attrCount])
+        const uint8_t attrCount, const uint8_t attrSizes[])
 {
     Obdn_Geometry prim = {
         .attrCount = attrCount,
@@ -442,7 +442,7 @@ Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, const uint32_t vertCount,
     return prim;
 }
 
-Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[attrCount])
+Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[])
 {
     assert(attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
     Obdn_VertexDescription desc = {
@@ -482,8 +482,8 @@ Obdn_GeoIndex* obdn_GetGeoIndices(const Obdn_Geometry* prim)
 
 void obdn_BindGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim)
 {
-    VkBuffer     vertBuffers[prim->attrCount];
-    VkDeviceSize attrOffsets[prim->attrCount];
+    VkBuffer     vertBuffers[OBDN_R_MAX_VERT_ATTRIBUTES];
+    VkDeviceSize attrOffsets[OBDN_R_MAX_VERT_ATTRIBUTES];
 
     for (int i = 0; i < prim->attrCount; i++) 
     {

@@ -312,7 +312,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     BufferRegion stagingBuffer = obdn_RequestBufferRegion(memory, image->size, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
 
-    DPRINT("%s loading image: width %d height %d channels %d\n", __PRETTY_FUNCTION__, w, h, channelCount);
+    DPRINT("loading image: width %d height %d channels %d\n", w, h, channelCount);
     DPRINT("Obdn_V_Image size: %ld\n", image->size);
     memcpy(stagingBuffer.hostData, data, w*h*channelCount);
 

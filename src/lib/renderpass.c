@@ -43,7 +43,7 @@ void obdn_CreateRenderPass(VkDevice device, const Obdn_R_RenderPassInfo *info, V
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO
     };
 
-    V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
+    V_ASSERT(vkCreateRenderPass(device, &ci, NULL, pRenderPass));
 }
 
 void obdn_CreateRenderPass_Color(VkDevice device, const VkImageLayout initialLayout, 

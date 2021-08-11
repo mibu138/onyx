@@ -14,8 +14,8 @@ Obdn_F_Primitive obdn_CreateFileGeo(const uint32_t vertexCount, const uint32_t i
 #else
 Obdn_FileGeo obdn_CreateFileGeo(const uint32_t vertexCount, const uint32_t indexCount, 
         const uint32_t attrCount, 
-        const Obdn_GeoAttributeSize attrSizes[attrCount], 
-        const char attrNames[attrCount][OBDN_R_ATTR_NAME_LEN]);
+        const Obdn_GeoAttributeSize attrSizes[/*attrCount*/], 
+        const char attrNames[/*attrCount*/][OBDN_R_ATTR_NAME_LEN]);
 #endif
 Obdn_FileGeo obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim);
 int               obdn_WriteFileGeo(const char* filename, const Obdn_FileGeo* fprim);

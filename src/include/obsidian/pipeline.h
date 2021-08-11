@@ -89,24 +89,24 @@ void obdn_DestroyDescription(VkDevice device, Obdn_R_Description*);
 void obdn_CreateDescriptorSetLayout(
     VkDevice device,
     const uint8_t                  bindingCount,
-    const Obdn_DescriptorBinding   bindings[bindingCount],
+    const Obdn_DescriptorBinding   bindings[/*bindingCount*/],
     VkDescriptorSetLayout*         layout);
 
-void obdn_CreateDescriptorSetLayouts(VkDevice, const uint8_t count, const Obdn_DescriptorSetInfo sets[count],
-        VkDescriptorSetLayout layouts[count]);
-void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[count], 
-        const VkDescriptorSetLayout layouts[count],
+void obdn_CreateDescriptorSetLayouts(VkDevice, const uint8_t count, const Obdn_DescriptorSetInfo sets[/*count*/],
+        VkDescriptorSetLayout layouts[/*count*/]);
+void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[/*count*/], 
+        const VkDescriptorSetLayout layouts[/*count*/],
         Obdn_R_Description* out);
-void obdn_CreatePipelineLayouts(VkDevice, const uint8_t count, const Obdn_PipelineLayoutInfo layoutInfos[static count], 
-        VkPipelineLayout pipelineLayouts[count]);
-void obdn_CreateGraphicsPipelines(VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[count], VkPipeline pipelines[count]);
+void obdn_CreatePipelineLayouts(VkDevice, const uint8_t count, const Obdn_PipelineLayoutInfo layoutInfos[/*static count*/], 
+        VkPipelineLayout pipelineLayouts[/*count*/]);
+void obdn_CreateGraphicsPipelines(VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[/*count*/], VkPipeline pipelines[/*count*/]);
 void obdn_CleanUpPipelines(void);
-void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[count], 
-        VkPipeline pipelines[count], Obdn_R_ShaderBindingTable shaderBindingTables[count]);
+void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[/*count*/], 
+        VkPipeline pipelines[/*count*/], Obdn_R_ShaderBindingTable shaderBindingTables[/*count*/]);
 
-void obdn_CreateDescriptionsAndLayouts(VkDevice, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[descSetCount], 
-        VkDescriptorSetLayout layouts[descSetCount], 
-        const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount]);
+void obdn_CreateDescriptionsAndLayouts(VkDevice, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[/*descSetCount*/], 
+        VkDescriptorSetLayout layouts[/*descSetCount*/], 
+        const uint32_t descriptionCount, Obdn_R_Description descriptions[/*descriptionCount*/]);
 
 // very simple pipeline. counter clockwise. only considers position attribute (3 floats).
 void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass renderPass,
@@ -125,7 +125,7 @@ void obdn_CreateDescriptorPool(VkDevice device,
                           VkDescriptorPool* pool);
 
 void obdn_AllocateDescriptorSets(VkDevice, VkDescriptorPool pool, uint32_t descSetCount,
-                            const VkDescriptorSetLayout layouts[descSetCount],
+                            const VkDescriptorSetLayout layouts[/*descSetCount*/],
                             VkDescriptorSet*      sets);
 
 void obdn_SetRuntimeSpvPrefix(const char* prefix);

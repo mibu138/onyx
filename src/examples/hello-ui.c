@@ -4,7 +4,6 @@
 #include <hell/cmd.h>
 #include <hell/len.h>
 #include <coal/coal.h>
-#include <alloca.h>
 #include "obsidian/obsidian.h"
 #include "obsidian/ui.h"
 
@@ -188,10 +187,17 @@ int main(int argc, char *argv[])
     oMemory   = obdn_AllocMemory();
     swapchain = obdn_AllocSwapchain();
     ui        = obdn_AllocUI();
+    #if UNIX
     const char* instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
         VK_KHR_XCB_SURFACE_EXTENSION_NAME
     };
+    #elif WIN32
+    const char* instanceExtensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+    };
+    #endif
     Obdn_InstanceParms ip = {
         .enabledInstanceExentensionCount = LEN(instanceExtensions),
         .ppEnabledInstanceExtensionNames = instanceExtensions
