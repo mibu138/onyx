@@ -15,7 +15,7 @@ include(FetchContent)
 FetchContent_Declare(
     cmake-common
     GIT_REPOSITORY ${git_base_url}/cmake-common
-    GIT_TAG win)
+    GIT_TAG master)
 FetchContent_GetProperties(cmake-common)
 if(NOT cmake-common_POPULATED)
     FetchContent_Populate(cmake-common)
@@ -26,12 +26,12 @@ list(APPEND CMAKE_MODULE_PATH ${cmake-common_SOURCE_DIR})
 FetchContent_Declare(
     hell 
     GIT_REPOSITORY ${git_base_url}/hell
-    GIT_TAG win)
+    GIT_TAG master)
 
 FetchContent_Declare(
     coal
     GIT_REPOSITORY ${git_base_url}/coal
-    GIT_TAG win)
+    GIT_TAG master)
 
 include(header)
 set(CMAKE_BUILD_TYPE DEBUG)
