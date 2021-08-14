@@ -51,7 +51,7 @@ Obdn_R_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, con
 #else
 Obdn_Geometry  obdn_CreateGeometry(Obdn_Memory*, const uint32_t vertCount, const uint32_t indexCount, 
                                            const uint8_t attrCount, const uint8_t* attrSizes);
-Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[attrCount]);
+Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[]);
 #endif
 void*              obdn_GetGeoAttribute(const Obdn_Geometry* prim, const uint32_t index);
 Obdn_GeoIndex*     obdn_GetGeoIndices(const Obdn_Geometry* prim);

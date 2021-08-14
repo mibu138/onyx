@@ -54,7 +54,7 @@ static VkExtent2D
 getCorrectedSwapchainDimensions(const VkSurfaceCapabilitiesKHR capabilities,
                                 VkExtent2D                     hint)
 {
-    VkExtent2D dim = {};
+    VkExtent2D dim = {0};
     if (capabilities.currentExtent.width != UINT32_MAX)
     {
         dim.width  = capabilities.currentExtent.width;
@@ -84,18 +84,19 @@ initSurfaceXcb(const VkInstance instance, const Hell_Window* window, VkSurfaceKH
 }
 #endif
 
-#ifdef WINDOWS
+#ifdef WIN32
 static void
 initSurfaceWin32(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* surface)
 {
-    const Win32Window*          w  = window->typeSpecificData;
+    HWND hwnd = *(HWND*)hell_GetHwndPtr(window);
+    HINSTANCE hinstance = *(HINSTANCE*)hell_GetHinstancePtr(window);
     VkWin32SurfaceCreateInfoKHR ci = {
         .sType     = VK_STRUCTURE_TYPE_WIN32_SURFACE_CREATE_INFO_KHR,
-        .hinstance = w->hinstance,
-        .hwnd      = w->hwnd};
+        .hinstance = hinstance,
+        .hwnd      = hwnd
+    };
 
-    V_ASSERT(
-        vkCreateWin32SurfaceKHR(instance, &ci, NULL, &surface));
+    V_ASSERT(vkCreateWin32SurfaceKHR(instance, &ci, NULL, surface));
 }
 #endif
 
@@ -105,7 +106,7 @@ initSurface(const VkInstance instance, const Hell_Window* window, VkSurfaceKHR* 
     assert(window);
 #ifdef UNIX
     initSurfaceXcb(instance, window, surface);
-#elif defined(WINDOWS)
+#elif defined(WIN32)
     initSurfaceWin32(instance, window, surface);
 #endif
     obdn_Announce("Vulkan Surface initialized.\n");
@@ -117,7 +118,7 @@ chooseFormat(const VkPhysicalDevice physicalDevice, const VkSurfaceKHR surface)
     uint32_t formatsCount;
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount,
                                          NULL);
-    VkSurfaceFormatKHR surfaceFormats[formatsCount];
+    VkSurfaceFormatKHR* surfaceFormats = hell_Malloc(sizeof(*surfaceFormats) * formatsCount);
     vkGetPhysicalDeviceSurfaceFormatsKHR(physicalDevice, surface, &formatsCount,
                                          surfaceFormats);
 
@@ -146,7 +147,8 @@ static void initSwapchainPresentMode(const VkPhysicalDevice physicalDevice,
     uint32_t presentModeCount;
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface,
                                               &presentModeCount, NULL);
-    VkPresentModeKHR presentModes[presentModeCount];
+    assert(presentModeCount < 10); 
+    VkPresentModeKHR presentModes[10];
     vkGetPhysicalDeviceSurfacePresentModesKHR(physicalDevice, surface,
                                               &presentModeCount, presentModes);
 
@@ -223,7 +225,7 @@ createSwapchainOffscreen(Obdn_Swapchain* swapchain,
 #define MAX_SWAPCHAIN_IMAGES 8
 
 static void
-createSwapchainFramebuffers(Obdn_Swapchain* swapchain, uint32_t aovCount, Obdn_AovInfo aovInfos[aovCount])
+createSwapchainFramebuffers(Obdn_Swapchain* swapchain, uint32_t aovCount, Obdn_AovInfo aovInfos[/*aovCount*/])
 {
     VkImage imageBuffer[MAX_SWAPCHAIN_IMAGES];
     V_ASSERT(vkGetSwapchainImagesKHR(swapchain->device, swapchain->swapchain, &swapchain->imageCount, NULL));
@@ -323,7 +325,7 @@ obdn_CreateSwapchain(const Obdn_Instance*  instance,
                    const Hell_Window*      hellWindow,
                    VkImageUsageFlags       usageFlags,
                    uint32_t                extraAovCount,
-                   Obdn_AovInfo            extraAovInfos[extraAovCount],
+                   Obdn_AovInfo            extraAovInfos[/*extraAovCount*/],
                    Obdn_Swapchain*         swapchain)
 {
     memset(swapchain, 0, sizeof(Obdn_Swapchain));

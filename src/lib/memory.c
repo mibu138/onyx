@@ -21,10 +21,12 @@ typedef Obdn_V_BufferRegion BufferRegion;
 //
 // static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 // __attribute__ ((unused));
+#if UNIX
 static void printBufferMemoryReqs(const VkMemoryRequirements* reqs)
     __attribute__((unused));
 static void printBlockChainInfo(const BlockChain* chain)
     __attribute__((unused));
+#endif
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_MEM, fmt, ##__VA_ARGS__)
 
@@ -227,8 +229,7 @@ findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain)
         cur = (cur + 1) % count;
         if (cur == init)
         {
-            DPRINT("%s: no suitable block found in chain %s\n",
-                   __PRETTY_FUNCTION__, chain->name);
+            DPRINT("no suitable block found in chain %s\n", chain->name);
             return -1;
         }
     }
@@ -336,7 +337,6 @@ requestBlock(const uint32_t size, const uint32_t alignment,
     if (curBlock->size == size &&
         (curBlock->offset % alignment == 0)) // just reuse this block;
     {
-        DPRINT("%s here %d\n", __PRETTY_FUNCTION__, curIndex);
         curBlock->inUse = true;
         chain->usedSize += curBlock->size;
         DPRINT(">> Re-using block %d of size %09zu from chain %s. %zu bytes "
@@ -414,12 +414,9 @@ obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphicsBuff
     DPRINT("Memory Heap Info:\n");
     for (int i = 0; i < memory->properties.memoryHeapCount; i++)
     {
-        DPRINT("Heap %d: Size %zu: %s local\n", i,
-               memory->properties.memoryHeaps[i].size,
-               memory->properties.memoryHeaps[i].flags &
-                       VK_MEMORY_HEAP_DEVICE_LOCAL_BIT
-                   ? "Device"
-                   : "Host");
+        const char* typestr = memory->properties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT ? "Device" : "Host";
+        //TODO This DPRINT causes a crash on windows... just debug info so not important but worth investigating at some point
+        //DPRINT("Heap %d: Size %zu: %s local\n", i, memory->properties.memoryHeaps[i].size, typestr);
         // note there are other possible flags, but seem to only deal with
         // multiple gpus
     }
@@ -547,7 +544,7 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
         alignment = chain->defaultAlignment;
     block = requestBlock(size, alignment, chain);
 
-    Obdn_V_BufferRegion region = {};
+    Obdn_V_BufferRegion region = {0};
     region.offset              = block->offset;
     region.memBlockId          = block->id;
     region.size                = block->size;

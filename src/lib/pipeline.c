@@ -73,7 +73,7 @@ static void initShaderModule(const VkDevice device, const char* filepath, VkShad
     size_t codeSize = ftell(fp);
     rewind(fp);
 
-    unsigned char code[codeSize];
+    unsigned char* code = hell_Malloc(codeSize);
     fread(code, 1, codeSize, fp);
     fclose(fp);
 
@@ -84,6 +84,7 @@ static void initShaderModule(const VkDevice device, const char* filepath, VkShad
     };
 
     V_ASSERT( vkCreateShaderModule(device, &shaderInfo, NULL, module) );
+    hell_Free(code);
 }
 
 #define SPVDIR "obsidian"
@@ -160,26 +161,27 @@ static const char* getResolvedSprivPath(const char* shaderName)
 #define MAX_GP_SHADER_STAGES 4
 #define MAX_ATTACHMENT_STATES 8
 
-void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[count], 
-        VkPipeline pipelines[count])
+void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[/*count*/], 
+        VkPipeline pipelines[/*count*/])
 {
-    VkPipelineShaderStageCreateInfo           shaderStages[count][MAX_GP_SHADER_STAGES];
-    VkPipelineVertexInputStateCreateInfo      vertexInputStates[count];
-    VkPipelineInputAssemblyStateCreateInfo    inputAssemblyStates[count];
-    VkPipelineTessellationStateCreateInfo     tessellationStates[count];
-    VkPipelineViewportStateCreateInfo         viewportStates[count];
-    VkPipelineRasterizationStateCreateInfo    rasterizationStates[count];
-    VkPipelineMultisampleStateCreateInfo      multisampleStates[count];
-    VkPipelineDepthStencilStateCreateInfo     depthStencilStates[count];
-    VkPipelineColorBlendStateCreateInfo       colorBlendStates[count];
-    VkPipelineDynamicStateCreateInfo          dynamicStates[count];
+    // worrisome amount of stack allocations here.. may want to transistion to dynamic allocations for these buffers.
+    VkPipelineShaderStageCreateInfo           shaderStages[OBDN_MAX_PIPELINES][MAX_GP_SHADER_STAGES];
+    VkPipelineVertexInputStateCreateInfo      vertexInputStates[OBDN_MAX_PIPELINES];
+    VkPipelineInputAssemblyStateCreateInfo    inputAssemblyStates[OBDN_MAX_PIPELINES];
+    VkPipelineTessellationStateCreateInfo     tessellationStates[OBDN_MAX_PIPELINES];
+    VkPipelineViewportStateCreateInfo         viewportStates[OBDN_MAX_PIPELINES];
+    VkPipelineRasterizationStateCreateInfo    rasterizationStates[OBDN_MAX_PIPELINES];
+    VkPipelineMultisampleStateCreateInfo      multisampleStates[OBDN_MAX_PIPELINES];
+    VkPipelineDepthStencilStateCreateInfo     depthStencilStates[OBDN_MAX_PIPELINES];
+    VkPipelineColorBlendStateCreateInfo       colorBlendStates[OBDN_MAX_PIPELINES];
+    VkPipelineDynamicStateCreateInfo          dynamicStates[OBDN_MAX_PIPELINES];
 
-    VkViewport viewports[count];
-    VkRect2D   scissors[count];
+    VkViewport viewports[OBDN_MAX_PIPELINES];
+    VkRect2D   scissors[OBDN_MAX_PIPELINES];
 
-    VkPipelineColorBlendAttachmentState attachmentStates[count][MAX_ATTACHMENT_STATES];
+    VkPipelineColorBlendAttachmentState attachmentStates[OBDN_MAX_PIPELINES][MAX_ATTACHMENT_STATES];
 
-    VkGraphicsPipelineCreateInfo createInfos[count];
+    VkGraphicsPipelineCreateInfo createInfos[OBDN_MAX_PIPELINES];
 
     for (int i = 0; i < count; i++) 
     {
@@ -396,17 +398,17 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
 
 #define MAX_RT_SHADER_COUNT 10
 
-void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[count], 
-        VkPipeline pipelines[count], Obdn_R_ShaderBindingTable shaderBindingTables[count])
+void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[/*count*/], 
+        VkPipeline pipelines[/*count*/], Obdn_R_ShaderBindingTable shaderBindingTables[/*count*/])
 {
     assert(count > 0);
     assert(count < OBDN_MAX_PIPELINES);
 
-    VkRayTracingPipelineCreateInfoKHR createInfos[count];
+    VkRayTracingPipelineCreateInfoKHR createInfos[OBDN_MAX_PIPELINES];
 
-    VkPipelineShaderStageCreateInfo               shaderStages[count][MAX_RT_SHADER_COUNT];
-    VkRayTracingShaderGroupCreateInfoKHR          shaderGroups[count][MAX_RT_SHADER_COUNT];
-    VkPipelineLibraryCreateInfoKHR                libraryInfos[count];
+    VkPipelineShaderStageCreateInfo               shaderStages[OBDN_MAX_PIPELINES][MAX_RT_SHADER_COUNT];
+    VkRayTracingShaderGroupCreateInfoKHR          shaderGroups[OBDN_MAX_PIPELINES][MAX_RT_SHADER_COUNT];
+    VkPipelineLibraryCreateInfoKHR                libraryInfos[OBDN_MAX_PIPELINES];
     //VkRayTracingPipelineInterfaceCreateInfoKHR    libraryInterfaces[count];
     //VkPipelineDynamicStateCreateInfo              dynamicStates[count];
     
@@ -429,9 +431,9 @@ void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const ui
         assert( missCount < 10 );
         assert( chitCount < 10 ); // make sure its in a reasonable range
 
-        VkShaderModule raygenSM[raygenCount];
-        VkShaderModule missSM[missCount];
-        VkShaderModule chitSM[chitCount];
+        VkShaderModule raygenSM[MAX_RT_SHADER_COUNT];
+        VkShaderModule missSM[MAX_RT_SHADER_COUNT];
+        VkShaderModule chitSM[MAX_RT_SHADER_COUNT];
 
         memset(raygenSM, 0, sizeof(raygenSM));
         memset(missSM, 0, sizeof(missSM));
@@ -529,8 +531,8 @@ void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const ui
     }
 }
 
-void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[count],
-        VkDescriptorSetLayout layouts[count])
+void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[/*count*/],
+        VkDescriptorSetLayout layouts[/*count*/])
 {
     // counters for different descriptors
     assert( count < OBDN_MAX_DESCRIPTOR_SETS);
@@ -539,8 +541,8 @@ void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const
         const Obdn_DescriptorSetInfo set = sets[i];
         assert(set.bindingCount > 0);
         assert(set.bindingCount <= OBDN_MAX_BINDINGS);
-        VkDescriptorBindingFlags bindFlags[set.bindingCount];
-        VkDescriptorSetLayoutBinding bindings[set.bindingCount];
+        VkDescriptorBindingFlags     bindFlags[OBDN_MAX_BINDINGS];
+        VkDescriptorSetLayoutBinding bindings[OBDN_MAX_BINDINGS];
         for (int b = 0; b < set.bindingCount; b++) 
         {
             const uint32_t dCount = set.bindings[b].descriptorCount;
@@ -574,8 +576,8 @@ void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const
     }
 }
 
-void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[count], 
-        const VkDescriptorSetLayout layouts[count],
+void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[/*count*/], 
+        const VkDescriptorSetLayout layouts[/*count*/],
         Obdn_R_Description* out)
 {
     // counters for different descriptors
@@ -654,8 +656,8 @@ void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, out->descriptorSets));
 }
 
-void obdn_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Obdn_PipelineLayoutInfo layoutInfos[static count], 
-        VkPipelineLayout pipelineLayouts[count])
+void obdn_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Obdn_PipelineLayoutInfo layoutInfos[/*static count*/], 
+        VkPipelineLayout pipelineLayouts[/*count*/])
 {
     assert(count < OBDN_MAX_PIPELINES);
     for (int i = 0; i < count; i++) 
@@ -682,7 +684,7 @@ void obdn_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Obdn
 
 void obdn_r_CleanUpPipelines()
 {
-    hell_DebugPrint(OBDN_DEBUG_TAG_PIPE, "%s called. no longer does anything\n", __PRETTY_FUNCTION__);
+    hell_DebugPrint(OBDN_DEBUG_TAG_PIPE, "called. no longer does anything\n");
 }
 
 void obdn_DestroyDescription(const VkDevice device, Obdn_R_Description* d)
@@ -691,9 +693,9 @@ void obdn_DestroyDescription(const VkDevice device, Obdn_R_Description* d)
     memset(d, 0, sizeof(*d));
 }
 
-void obdn_CreateDescriptionsAndLayouts(VkDevice device, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[descSetCount], 
-        VkDescriptorSetLayout layouts[descSetCount], 
-        const uint32_t descriptionCount, Obdn_R_Description descriptions[descSetCount])
+void obdn_CreateDescriptionsAndLayouts(VkDevice device, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[/*descSetCount*/], 
+        VkDescriptorSetLayout layouts[/*descSetCount*/], 
+        const uint32_t descriptionCount, Obdn_R_Description descriptions[/*descSetCount*/])
 {
     obdn_CreateDescriptorSetLayouts(device, descSetCount, sets, layouts);
     for (int i = 0; i < descriptionCount; i++)
@@ -728,7 +730,7 @@ void
 obdn_CreateDescriptorSetLayout(
     VkDevice device,
     const uint8_t                  bindingCount,
-    const Obdn_DescriptorBinding   bindings[bindingCount],
+    const Obdn_DescriptorBinding   bindings[/*bindingCount*/],
     VkDescriptorSetLayout*         layout)
 {
     assert(bindingCount <= MAX_BINDING_COUNT);
@@ -839,7 +841,7 @@ obdn_CreateDescriptorPool(VkDevice device,
 
 void
 obdn_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32_t descSetCount,
-                            const VkDescriptorSetLayout layouts[descSetCount],
+                            const VkDescriptorSetLayout layouts[/*descSetCount*/],
                             VkDescriptorSet*      sets)
 {
     VkDescriptorSetAllocateInfo allocInfo = {

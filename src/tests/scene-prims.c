@@ -20,10 +20,17 @@ int main(int argc, char *argv[])
     instance = obdn_AllocInstance();
     memory   = obdn_AllocMemory();
     scene     = obdn_AllocScene();
-
+    #if UNIX
     const char* instanceExtensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
         VK_KHR_XCB_SURFACE_EXTENSION_NAME
     };
+    #elif WIN32
+    const char* instanceExtensions[] = {
+        VK_KHR_SURFACE_EXTENSION_NAME,
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+    };
+    #endif
     Obdn_InstanceParms ip = {
         .enabledInstanceExentensionCount = LEN(instanceExtensions),
         .ppEnabledInstanceExtensionNames = instanceExtensions,

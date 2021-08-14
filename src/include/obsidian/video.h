@@ -55,9 +55,9 @@ void obdn_SubmitTransferCommand(const Obdn_Instance*, uint32_t queueIndex,
 void obdn_SubmitGraphicsCommand(const Obdn_Instance*, uint32_t queueIndex,
                                 VkPipelineStageFlags waitDstStageMask,
                                 uint32_t                   waitCount,
-                                VkSemaphore waitSemephores[waitCount],
+                                VkSemaphore waitSemephores[],
                                 uint32_t          signalCount,
-                                VkSemaphore signalSemphores[signalCount],
+                                VkSemaphore signalSemphores[],
                                 VkFence fence, VkCommandBuffer cmdBuf);
 
 uint32_t obdn_GetQueueFamilyIndex(const Obdn_Instance*, Obdn_V_QueueType type);

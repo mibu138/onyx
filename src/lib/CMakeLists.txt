@@ -36,11 +36,16 @@ target_link_libraries(obsidianObj
     PRIVATE   thirdparty 
     PUBLIC ${DEPS} Hell::HellObj Coal::CoalObj)
 target_link_libraries(obsidian PUBLIC Hell::Hell Coal::Coal obsidianObj)
+if(WIN32)
+set_target_properties(obsidian PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+endif()
 add_library(Obsidian::ObsidianObj ALIAS obsidianObj)
 add_library(Obsidian::Obsidian ALIAS obsidian)
 
-if(DEFINED UNIX)
+if(UNIX)
     target_compile_definitions(obsidianObj PUBLIC UNIX)
+elseif(WIN32)
+    target_compile_definitions(obsidianObj PUBLIC WIN32)
 else()
     message(FATAL_ERROR "Need additional platform checks if not on unix.")
 endif()

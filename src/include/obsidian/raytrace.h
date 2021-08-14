@@ -20,8 +20,8 @@ typedef struct {
 } Obdn_R_ShaderBindingTable;
 
 void obdn_BuildBlas(Obdn_Memory*, const Obdn_Geometry* prim, Obdn_R_AccelerationStructure* blas);
-void obdn_BuildTlas(Obdn_Memory*, const uint32_t count, const Obdn_R_AccelerationStructure blasses[count],
-        const Coal_Mat4 xforms[count],
+void obdn_BuildTlas(Obdn_Memory*, const uint32_t count, const Obdn_R_AccelerationStructure blasses[],
+        const Coal_Mat4 xforms[],
         Obdn_R_AccelerationStructure* tlas);
 void obdn_CreateShaderBindingTable(Obdn_Memory*, const uint32_t groupCount, const VkPipeline pipeline, Obdn_R_ShaderBindingTable* sbt);
 void obdn_DestroyAccelerationStruct(VkDevice device, Obdn_R_AccelerationStructure* as);

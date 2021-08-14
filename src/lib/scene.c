@@ -272,7 +272,7 @@ void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, 
     scene->materials = hell_Malloc(scene->materialCapacity * sizeof(scene->materials[0]));
     scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
 
-    Texture tex = {};
+    Texture tex = {0};
     createDefaultTexture(memory, &tex);
     TextureHandle texhandle = addTexture(scene, tex);
     obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);

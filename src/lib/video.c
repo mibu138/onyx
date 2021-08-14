@@ -17,8 +17,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <unistd.h>
-
 #define DPRINT_VK(fmt, ...)                                                    \
     hell_DebugPrint(OBDN_DEBUG_TAG_VK, fmt, ##__VA_ARGS__)
 
@@ -52,8 +50,8 @@ checkForAvailableLayers(const Obdn_InstanceParms* parms)
         for (int i = 0; i < availableCount; i++)
         {
             const char*      name   = propertiesAvailable[i].layerName;
-            const char* desc UNUSED = propertiesAvailable[i].description;
-            const int pad    UNUSED = padding - strlen(name);
+            const char* desc = propertiesAvailable[i].description;
+            const int pad    = padding - strlen(name);
             hell_Print("%s%*s\n", name, pad, desc);
             for (int i = 0; i < padding; i++)
             {
@@ -124,9 +122,9 @@ getVkVersionAvailable(void)
 {
     uint32_t v;
     vkEnumerateInstanceVersion(&v);
-    uint32_t major UNUSED = VK_VERSION_MAJOR(v);
-    uint32_t minor UNUSED = VK_VERSION_MINOR(v);
-    uint32_t patch UNUSED = VK_VERSION_PATCH(v);
+    uint32_t major = VK_VERSION_MAJOR(v);
+    uint32_t minor = VK_VERSION_MINOR(v);
+    uint32_t patch = VK_VERSION_PATCH(v);
     obdn_Announce("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
     return v;
 }
@@ -194,7 +192,8 @@ initDebugMessenger(const VkInstance          instance,
         .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT |
                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT,
-        .pfnUserCallback = debugCallback,
+        .pfnUserCallback = (PFN_vkDebugUtilsMessengerCallbackEXT)debugCallback,
+
     };
 
     PFN_vkVoidFunction fn;
@@ -215,9 +214,10 @@ retrievePhysicalDevice(const VkInstance            instance,
 {
     uint32_t physdevcount;
     V_ASSERT(vkEnumeratePhysicalDevices(instance, &physdevcount, NULL));
-    VkPhysicalDevice devices[physdevcount];
+    assert(physdevcount < 6); //TODO make robust
+    VkPhysicalDevice devices[6];
     V_ASSERT(vkEnumeratePhysicalDevices(instance, &physdevcount, devices));
-    VkPhysicalDeviceProperties props[physdevcount];
+    VkPhysicalDeviceProperties props[6];
     DPRINT_VK("Physical device count: %d\n", physdevcount);
     DPRINT_VK("Physical device names:\n");
     int nvidiaCardIndex = -1;
@@ -253,8 +253,8 @@ initDevice(
     uint32_t qfcount;
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, NULL);
-
-    VkQueueFamilyProperties qfprops[qfcount];
+    assert(qfcount < 10); //TODO make robust
+    VkQueueFamilyProperties qfprops[10];
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, qfprops);
 
@@ -344,7 +344,7 @@ initDevice(
     uint32_t propCount;
     V_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, NULL,
                                                   &propCount, NULL));
-    VkExtensionProperties properties[propCount];
+    VkExtensionProperties* properties = hell_Malloc(sizeof(*properties) * propCount);
     V_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, NULL,
                                                   &propCount, properties));
 
@@ -500,14 +500,15 @@ initDevice(
     }
 
     int  extCount = userExtCount + defExtCount;
-    char extNamesData[extCount][VK_MAX_EXTENSION_NAME_SIZE];
+    assert(extCount < 8); //TODO make robust
+    char extNamesData[8][VK_MAX_EXTENSION_NAME_SIZE];
 
     for (int i = 0; i < defExtCount; i++)
         strcpy(extNamesData[i], defaultExtNames[i]);
     for (int i = 0; i < userExtCount; i++)
         strcpy(extNamesData[i + defExtCount], userExtensions[i]);
 
-    const char* extNames[extCount];
+    const char* extNames[8];
     for (int i = 0; i < extCount; i++)
     {
         extNames[i] = extNamesData[i];
@@ -533,6 +534,8 @@ initDevice(
 
     V_ASSERT(vkCreateDevice(physicalDevice, &dci, NULL, device));
     obdn_Announce("Vulkan Device created successfully.\n");
+
+    hell_Free(properties);
 }
 
 static void
@@ -704,9 +707,9 @@ obdn_SubmitGraphicsCommand(const Obdn_Instance*       instance,
                            const uint32_t             queueIndex,
                            const VkPipelineStageFlags waitDstStageMask,
                            uint32_t                   waitCount,
-                           VkSemaphore                waitSemephores[waitCount],
+                           VkSemaphore                waitSemephores[/*waitCount*/],
                            uint32_t                   signalCount,
-                           VkSemaphore signalSemphores[signalCount],
+                           VkSemaphore signalSemphores[/*signalCount*/],
                            VkFence fence, const VkCommandBuffer cmdBuf)
 {
     VkPipelineStageFlags waitDstStageMasks[] = {waitDstStageMask, waitDstStageMask, waitDstStageMask, waitDstStageMask}; // hack...

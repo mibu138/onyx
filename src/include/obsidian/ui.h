@@ -27,7 +27,7 @@ const VkFence     obdn_GetUIFence(Obdn_UI* ui, uint32_t frameIndex);
 void obdn_CreateUI(Obdn_Memory* memory, Hell_EventQueue* queue, Hell_Window* window,
               const VkFormat imageFormat, const VkImageLayout inputLayout,
               const VkImageLayout finalLayout, const uint32_t imageViewCount,
-              const VkImageView views[imageViewCount], Obdn_UI* ui);
+              const VkImageView views[/*imageViewCount*/], Obdn_UI* ui);
 void obdn_DestroyUI(Obdn_UI*, const uint32_t imgCount);
 
 void obdn_RenderUI(Obdn_UI* ui, const uint32_t frameIndex, const uint32_t width,
@@ -36,6 +36,6 @@ void obdn_RenderUI(Obdn_UI* ui, const uint32_t frameIndex, const uint32_t width,
 void
 obdn_RecreateSwapchainDependentUI(Obdn_UI*, const uint32_t width, const uint32_t height,
                                   const uint32_t    imageViewCount,
-                                  const VkImageView views[imageViewCount]);
+                                  const VkImageView views[/*imageViewCount*/]);
 
 #endif /* end of include guard: OBDN_U_UI_H */
