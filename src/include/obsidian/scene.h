@@ -3,7 +3,7 @@
 
 #include "geo.h"
 #include "types.h"
-#include <coal/coal.h>
+#include <coal/types.h>
 #include <hell/cmd.h>
 
 //#define OBDN_S_MAX_PRIMS     256
@@ -41,9 +41,9 @@ typedef enum {
 typedef Obdn_Flags Obdn_SceneDirtyFlags;
 
 typedef struct {
-    Mat4 xform;
-    Mat4 view; //xform inverted
-    Mat4 proj;
+    Coal_Mat4 xform;
+    Coal_Mat4 view; //xform inverted
+    Coal_Mat4 proj;
 } Obdn_Camera;
 
 typedef enum {
@@ -52,11 +52,11 @@ typedef enum {
 } Obdn_LightType;
 
 typedef struct {
-    Vec3 pos;
+    Coal_Vec3 pos;
 } Obdn_PointLight;
 
 typedef struct {
-    Vec3 dir;
+    Coal_Vec3 dir;
 } Obdn_DirectionLight;
 
 typedef struct {
@@ -73,7 +73,7 @@ typedef union {
 typedef struct {
     Obdn_LightStructure  structure;
     float                  intensity;
-    Vec3                   color;
+    Coal_Vec3                   color;
     Obdn_LightType       type;
 } Obdn_Light;
 
@@ -83,7 +83,7 @@ typedef struct {
 } Obdn_Texture;
 
 typedef struct {
-    Vec3              color;
+    Coal_Vec3              color;
     float             roughness;
     Obdn_TextureHandle textureAlbedo;
     Obdn_TextureHandle textureRoughness;
@@ -108,8 +108,8 @@ Obdn_Scene* obdn_AllocScene(void);
 void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, float farClip, Obdn_Scene* scene);
 
 // will update camera as well as target.
-void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home);
-void obdn_UpdateCamera_LookAt(Obdn_Scene* scene, Vec3 pos, Vec3 target, Vec3 up);
+void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Coal_Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home);
+void obdn_UpdateCamera_LookAt(Obdn_Scene* scene, Coal_Vec3 pos, Coal_Vec3 target, Coal_Vec3 up);
 void obdn_CreateEmptyScene(Obdn_Scene* scene);
 void obdn_UpdateLight(Obdn_Scene* scene, Obdn_LightHandle handle, float intensity);
 void obdn_BindPrimToMaterial(Obdn_Scene* scene, const Obdn_PrimitiveHandle Obdn_PrimitiveHandle, const Obdn_MaterialHandle matId);
@@ -133,10 +133,10 @@ bool obdn_PrimExists(const Obdn_Scene* s, Obdn_PrimitiveHandle id);
 void             obdn_RemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle id);
 Obdn_PrimitiveHandle obdn_AddPrim(Obdn_Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform, Obdn_MaterialHandle mat);
 Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, const uint8_t channelCount);
-Obdn_LightHandle   obdn_CreateDirectionLight(Obdn_Scene* scene, const Vec3 color, const Vec3 direction);
-Obdn_LightHandle   obdn_CreatePointLight(Obdn_Scene* scene, const Vec3 color, const Vec3 position);
+Obdn_LightHandle   obdn_CreateDirectionLight(Obdn_Scene* scene, const Coal_Vec3 color, const Coal_Vec3 direction);
+Obdn_LightHandle   obdn_CreatePointLight(Obdn_Scene* scene, const Coal_Vec3 color, const Coal_Vec3 position);
 // a texture id of 0 means no texture will be used
-Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
+Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Coal_Vec3 color, float roughness, 
         Obdn_TextureHandle albedoId, 
         Obdn_TextureHandle roughnessId,
         Obdn_TextureHandle normalId);
@@ -147,11 +147,11 @@ Obdn_Geometry obdn_SwapRPrim(Obdn_Scene* scene, const Obdn_Geometry* newRprim, c
 void obdn_UpdateLightColor(Obdn_Scene* scene, Obdn_LightHandle id, float r, float g, float b);
 void obdn_UpdateLightIntensity(Obdn_Scene* scene, Obdn_LightHandle id, float i);
 void obdn_UpdateLightPos(Obdn_Scene* scene, Obdn_LightHandle id, float x, float y, float z);
-void obdn_UpdatePrimXform(Obdn_Scene* scene, const Obdn_PrimitiveHandle primId, const Mat4 delta);
-void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle primId, Mat4 newXform);
+void obdn_UpdatePrimXform(Obdn_Scene* scene, const Obdn_PrimitiveHandle primId, const Coal_Mat4 delta);
+void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle primId, Coal_Mat4 newXform);
 
-Mat4 obdn_GetCameraView(const Obdn_Scene* scene);
-Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene);
+Coal_Mat4 obdn_GetCameraView(const Obdn_Scene* scene);
+Coal_Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene);
 
 void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4);
 void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4);
@@ -165,7 +165,7 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene*);
 // sets dirt flags to 0
 void obdn_SceneClearDirt(Obdn_Scene*);
 
-void obdn_SceneAddCube(Obdn_Scene* s, Mat4 xform, Obdn_MaterialHandle mathandle, bool clockwise);
+void obdn_SceneAddCube(Obdn_Scene* s, Coal_Mat4 xform, Obdn_MaterialHandle mathandle, bool clockwise);
 
 Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene* scene, Obdn_V_Image image);
 

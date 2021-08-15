@@ -1,3 +1,4 @@
+#define COAL_SIMPLE_TYPE_NAMES
 #include "ui.h"
 #include "common.h"
 #include "dtags.h"

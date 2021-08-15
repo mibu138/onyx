@@ -1,3 +1,4 @@
+#define COAL_SIMPLE_TYPE_NAMES
 #include "geo.h"
 #include "render.h"
 #include "memory.h"

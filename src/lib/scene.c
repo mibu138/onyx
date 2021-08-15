@@ -1,6 +1,8 @@
+#define COAL_SIMPLE_TYPE_NAMES
 #include "scene.h"
 #include "file.h"
 #include "coal/util.h"
+#include "coal/linalg.h"
 #include "hell/common.h"
 #include <hell/ds.h>
 #include "dtags.h"

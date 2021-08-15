@@ -3,7 +3,6 @@
 
 #include "memory.h"
 #include <stdint.h>
-#include <coal/coal.h>
 
 #define OBDN_R_MAX_VERT_ATTRIBUTES 8
 #define OBDN_R_ATTR_NAME_LEN 4

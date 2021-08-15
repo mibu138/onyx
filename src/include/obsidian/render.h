@@ -2,7 +2,6 @@
 #define OBDN_R_INIT_H
 
 #include "memory.h"
-#include <coal/coal.h>
 #include "command.h"
 #include "scene.h"
 

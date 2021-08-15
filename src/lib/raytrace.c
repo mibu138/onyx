@@ -1,5 +1,5 @@
+#define COAL_SIMPLE_TYPE_NAMES
 #include "raytrace.h"
-#include "coal/linalg.h"
 #include "video.h"
 #include "render.h"
 #include "memory.h"
@@ -10,6 +10,8 @@
 #include <hell/debug.h>
 #include "dtags.h"
 #include "private.h"
+#include "coal/types.h"
+#include "coal/linalg.h"
 
 typedef Obdn_V_BufferRegion          BufferRegion;
 typedef Obdn_R_AccelerationStructure AccelerationStructure;
@@ -155,7 +157,7 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
     }
 
 
-    BufferRegion instBuffer = obdn_RequestBufferRegion(memory, sizeof(instances),
+    BufferRegion instBuffer = obdn_RequestBufferRegion(memory, sizeof(*instances) * count,
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
             OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
 
