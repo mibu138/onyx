@@ -190,6 +190,8 @@ void obdn_SceneFreeGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 
 bool obdn_SceneHasGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 
+const Obdn_Camera* obdn_SceneGetCamera(const Obdn_Scene* scene);
+
 Obdn_Primitive* 
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
 

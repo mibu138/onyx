@@ -680,7 +680,14 @@ bool obdn_SceneHasGeoDirect(Obdn_Scene* s, u32 directIndex)
 void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4 m)
 {
     scene->camera.view = m;
+    scene->camera.xform = coal_Invert4x4(m);
     scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+}
+
+const Obdn_Camera* 
+obdn_SceneGetCamera(const Obdn_Scene* scene)
+{
+    return &scene->camera;
 }
 
 void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4 m)
