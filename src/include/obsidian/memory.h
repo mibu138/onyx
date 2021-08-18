@@ -98,5 +98,6 @@ const VkDeviceMemory obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_
 const VkDeviceSize   obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_V_MemoryType memType);
 
 bool obdn_GetExternalMemoryFd(const Obdn_Memory* memory, int* fd, uint64_t* size);
+bool obdn_GetExternalMemoryWin32Handle(const Obdn_Memory* memory, HANDLE* handle, uint64_t* size);
 
 #endif /* end of include guard: V_MEMORY_H */

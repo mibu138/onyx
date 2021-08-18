@@ -13,6 +13,7 @@ static PFN_vkCreateRayTracingPipelinesKHR                  pfn_vkCreateRayTracin
 static PFN_vkGetRayTracingShaderGroupHandlesKHR            pfn_vkGetRayTracingShaderGroupHandlesKHR;
 static PFN_vkCmdTraceRaysKHR                               pfn_vkCmdTraceRaysKHR;
 static PFN_vkGetMemoryFdKHR                                pfn_vkGetMemoryFdKHR;
+static PFN_vkGetMemoryWin32HandleKHR                       pfn_vkGetMemoryWin32HandleKHR;
 static PFN_vkGetSemaphoreFdKHR                             pfn_vkGetSemaphoreFdKHR;
 
 VKAPI_ATTR VkResult VKAPI_CALL vkCreateAccelerationStructureKHR(
@@ -106,6 +107,15 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSemaphoreFdKHR(
     return pfn_vkGetSemaphoreFdKHR(device, pGetFdInfo, pFd);
 }
 
+VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryWin32HandleKHR(
+    VkDevice                                    device,
+    const VkMemoryGetWin32HandleInfoKHR*        pGetWin32HandleInfo,
+    HANDLE*                                     pHandle)
+{
+    assert(pfn_vkGetMemoryWin32HandleKHR);
+    return pfn_vkGetMemoryWin32HandleKHR(device, pGetWin32HandleInfo, pHandle);
+}
+
 VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         VkCommandBuffer commandBuffer, 
         const VkStridedDeviceAddressRegionKHR *pRaygenShaderBindingTable, 
@@ -145,5 +155,7 @@ void obdn_v_LoadFunctions(const VkDevice device)
         vkGetDeviceProcAddr(device, "vkGetMemoryFdKHR");
     pfn_vkGetSemaphoreFdKHR = (PFN_vkGetSemaphoreFdKHR)
         vkGetDeviceProcAddr(device, "vkGetSemaphoreFdKHR");
+    pfn_vkGetMemoryWin32HandleKHR = (PFN_vkGetMemoryWin32HandleKHR)
+        vkGetDeviceProcAddr(device, "vkGetMemoryWin32HandleKHR");
     hell_DebugPrint(OBDN_DEBUG_TAG_VK, "======= Vulkan Functions loaded ===== \n");
 }
