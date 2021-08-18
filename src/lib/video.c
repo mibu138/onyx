@@ -500,15 +500,16 @@ initDevice(
     }
 
     int  extCount = userExtCount + defExtCount;
-    assert(extCount < 8); //TODO make robust
-    char extNamesData[8][VK_MAX_EXTENSION_NAME_SIZE];
+    #define MAX_EXT 16
+    assert(extCount < MAX_EXT); //TODO make robust
+    char extNamesData[MAX_EXT][VK_MAX_EXTENSION_NAME_SIZE];
 
     for (int i = 0; i < defExtCount; i++)
         strcpy(extNamesData[i], defaultExtNames[i]);
     for (int i = 0; i < userExtCount; i++)
         strcpy(extNamesData[i + defExtCount], userExtensions[i]);
 
-    const char* extNames[8];
+    const char* extNames[MAX_EXT];
     for (int i = 0; i < extCount; i++)
     {
         extNames[i] = extNamesData[i];
