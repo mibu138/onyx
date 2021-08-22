@@ -56,6 +56,12 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
         const VkStridedDeviceAddressRegionKHR* pCallableShaderBindingTable, 
         uint32_t width, uint32_t height, uint32_t depth);
 
+#ifdef WIN32
+VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryWin32HandleKHR(
+    VkDevice                                    device,
+    const VkMemoryGetWin32HandleInfoKHR*        pGetWin32HandleInfo,
+    HANDLE*                                     pHandle);
+#else
 VKAPI_ATTR VkResult VKAPI_CALL vkGetMemoryFdKHR(
     VkDevice                                    device,
     const VkMemoryGetFdInfoKHR*                 pGetFdInfo,
@@ -65,6 +71,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSemaphoreFdKHR(
     VkDevice                                    device,
     const VkSemaphoreGetFdInfoKHR*              pGetFdInfo,
     int*                                        pFd);
+#endif
 
 void obdn_v_LoadFunctions(const VkDevice device);
 
