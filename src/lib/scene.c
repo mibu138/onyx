@@ -63,6 +63,7 @@ typedef struct {
 typedef struct Obdn_Scene {
     Obdn_SceneDirtyFlags dirt;
     Obdn_Memory*         memory;
+    Hell_Stack           dirtyPrims;
     obint                primCount;
     obint                lightCount;
     obint                materialCount;
@@ -81,6 +82,16 @@ typedef struct Obdn_Scene {
     ObjectMap            matMap;
     ObjectMap            texMap;
 } Obdn_Scene;
+
+static void addPrimToDirtyPrims(Obdn_Scene* s, PrimitiveHandle handle)
+{
+    PrimitiveHandle* prims = s->dirtyPrims.elems;
+    for (int i = 0; i < s->dirtyPrims.count; i++)
+    {
+        if (prims[i].id == handle.id) return; // handle already in set
+    }
+    hell_StackPush(&s->dirtyPrims, &handle);
+}
 
 static void createObjectMap(u32 initObjectCap, u32 initIdStackCap, ObjectMap* map)
 {
@@ -135,6 +146,8 @@ static PrimitiveHandle addPrim(Scene* s, Obdn_Primitive prim)
 {
     obint id = addSceneObject(&prim, s->prims, &s->primCount, &s->primCapacity, sizeof(prim), &s->primMap);
     PrimitiveHandle handle = {id};
+    addPrimToDirtyPrims(s, handle);
+    PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_ADDED;
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
     return handle;
 }
@@ -167,6 +180,8 @@ static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
 {
     assert(handle.id < s->primCapacity);
     obdn_FreeGeo(&PRIM(s, handle).geo);
+    PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_REMOVED;
+    addPrimToDirtyPrims(s, handle);
     removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
@@ -274,10 +289,18 @@ void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, 
     scene->materials = hell_Malloc(scene->materialCapacity * sizeof(scene->materials[0]));
     scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
 
+    // 8 is arbitrary initial capacity
+    hell_CreateStack(8, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &scene->dirtyPrims);
+
+    // create defaults
     Texture tex = {0};
     createDefaultTexture(memory, &tex);
     TextureHandle texhandle = addTexture(scene, tex);
-    obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
+    MaterialHandle defaultMat = obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
+    PrimitiveHandle defaultCube = obdn_SceneAddCube(scene, COAL_MAT4_IDENT, defaultMat, false);
+    PRIM(scene, defaultCube).flags |= OBDN_PRIM_INVISIBLE_BIT;
+
+
     scene->dirt = -1; // dirty everything
 
     if (grim)
@@ -311,7 +334,9 @@ Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const C
         .material = mat
     };
     prim.xform = xform;
-    return addPrim(scene, prim);
+    PrimitiveHandle handle = addPrim(scene, prim);
+      
+    return handle;
 }
 
 Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform, MaterialHandle mat)
@@ -461,9 +486,10 @@ void obdn_CleanUpScene(Obdn_Scene* scene)
     memset(scene, 0, sizeof(*scene));
 }
 
-void obdn_RemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
+void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
 {
     removePrim(s, handle);
+    hell_StackPush(&s->dirtyPrims, &handle);
 }
 
 void obdn_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
@@ -476,7 +502,7 @@ void obdn_SceneAddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float int
     addPointLight(s, pos, color, intensity);
 }
 
-void obdn_RemoveLight(Scene* s, LightHandle id)
+void obdn_SceneRemoveLight(Scene* s, LightHandle id)
 {
     removeLight(s, id);
 }
@@ -596,15 +622,22 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene* s)
     return s->dirt;
 }
 
-void obdn_SceneClearDirt(Obdn_Scene* s)
+void obdn_SceneEndFrame(Obdn_Scene* s)
 {
     s->dirt = 0;
+    uint32_t c = s->dirtyPrims.count;
+    const PrimitiveHandle* dp = s->dirtyPrims.elems;
+    for (int i = 0; i < c; i++)
+    {
+        PRIM(s, dp[i]).dirt = 0;
+    }
+    s->dirtyPrims.count = 0;
 }
 
-void obdn_SceneAddCube(Obdn_Scene* s, Mat4 xform, MaterialHandle mathandle, bool clockwise)
+PrimitiveHandle obdn_SceneAddCube(Obdn_Scene* s, Mat4 xform, MaterialHandle mathandle, bool clockwise)
 {
     Obdn_Geometry cube = obdn_CreateCube(s->memory, clockwise);
-    obdn_AddPrim(s, cube, xform, mathandle);
+    return obdn_AddPrim(s, cube, xform, mathandle);
 }
 
 Obdn_Texture* obdn_GetTexture(const Obdn_Scene* s, Obdn_TextureHandle handle)
@@ -700,6 +733,8 @@ obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry 
 {
     Obdn_Geometry old = PRIM(s, handle).geo;
     PRIM(s, handle).geo = newgeo;
+    addPrimToDirtyPrims(s, handle);
+    PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_TOPOLOGY_CHANGED;
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
     return old;
 }
@@ -707,4 +742,10 @@ obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry 
 void obdn_SceneDirtyAll(Obdn_Scene* s)
 {
     s->dirt = -1;
+}
+
+const Obdn_Primitive* obdn_SceneGetDirtyPrims(const Obdn_Scene* s, uint32_t* count)
+{
+    *count = s->dirtyPrims.count;
+    return s->dirtyPrims.elems;
 }
