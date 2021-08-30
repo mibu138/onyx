@@ -182,7 +182,6 @@ static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
     obdn_FreeGeo(&PRIM(s, handle).geo);
     PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_REMOVED;
     addPrimToDirtyPrims(s, handle);
-    removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
 
@@ -489,7 +488,6 @@ void obdn_CleanUpScene(Obdn_Scene* scene)
 void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
 {
     removePrim(s, handle);
-    hell_StackPush(&s->dirtyPrims, &handle);
 }
 
 void obdn_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
@@ -629,7 +627,17 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
     const PrimitiveHandle* dp = s->dirtyPrims.elems;
     for (int i = 0; i < c; i++)
     {
-        PRIM(s, dp[i]).dirt = 0;
+        PrimitiveHandle handle = dp[i];
+        // remove prims at the end of the frame so scene consumers can react to the prim 
+        // having the remove bit set
+        if (PRIM(s, handle).dirt & OBDN_PRIM_UPDATE_REMOVED)
+        {
+            removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
+        }
+        else 
+        {
+            PRIM(s, dp[i]).dirt = 0;
+        }
     }
     s->dirtyPrims.count = 0;
 }
