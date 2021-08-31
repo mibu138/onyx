@@ -179,6 +179,7 @@ static MaterialHandle addMaterial(Scene* s, Obdn_Material material)
 static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
 {
     assert(handle.id < s->primCapacity);
+    assert(handle.id > 0); //cant remove the default prim
     obdn_FreeGeo(&PRIM(s, handle).geo);
     PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_REMOVED;
     addPrimToDirtyPrims(s, handle);
