@@ -5,16 +5,14 @@ project(Obsidian LANGUAGES C VERSION 0.1.0)
 option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
 
-if(UNIX)
-set(git_base_url /home/michaelb/dev)
-elseif(WIN32)
-set(git_base_url C:/dev)
+if(NOT DEFINED GIT_BASE_URL)
+    set(GIT_BASE_URL https://github.com/mokchira)
 endif()
 
 include(FetchContent)
 FetchContent_Declare(
     cmake-common
-    GIT_REPOSITORY ${git_base_url}/cmake-common
+    GIT_REPOSITORY ${GIT_BASE_URL}/cmake-common
     GIT_TAG master)
 FetchContent_GetProperties(cmake-common)
 if(NOT cmake-common_POPULATED)
@@ -25,12 +23,12 @@ list(APPEND CMAKE_MODULE_PATH ${cmake-common_SOURCE_DIR})
 
 FetchContent_Declare(
     hell 
-    GIT_REPOSITORY ${git_base_url}/hell
+    GIT_REPOSITORY ${GIT_BASE_URL}/hell
     GIT_TAG master)
 
 FetchContent_Declare(
     coal
-    GIT_REPOSITORY ${git_base_url}/coal
+    GIT_REPOSITORY ${GIT_BASE_URL}/coal
     GIT_TAG master)
 
 include(header)
