@@ -7,11 +7,11 @@
 
 typedef struct {
     VkAccelerationStructureKHR handle;
-    Obdn_V_BufferRegion        bufferRegion;
+    Obdn_BufferRegion        bufferRegion;
 } Obdn_R_AccelerationStructure;
 
 typedef struct {
-    Obdn_V_BufferRegion             bufferRegion;
+    Obdn_BufferRegion             bufferRegion;
     uint32_t                        groupCount;
     VkStridedDeviceAddressRegionKHR raygenTable;
     VkStridedDeviceAddressRegionKHR missTable;

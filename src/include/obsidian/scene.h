@@ -99,8 +99,8 @@ typedef struct {
 } Obdn_Light;
 
 typedef struct {
-    Obdn_V_Image        devImage;
-    Obdn_V_BufferRegion hostBuffer;
+    Obdn_Image        devImage;
+    Obdn_BufferRegion hostBuffer;
 } Obdn_Texture;
 
 typedef struct {
@@ -216,7 +216,7 @@ Obdn_PrimitiveHandle obdn_SceneAddCube(Obdn_Scene* s, Coal_Mat4 xform,
                        Obdn_MaterialHandle mathandle, bool clockwise);
 
 Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene*  scene,
-                                           Obdn_V_Image image);
+                                           Obdn_Image image);
 
 Obdn_Material* obdn_GetMaterial(const Obdn_Scene*   s,
                                 Obdn_MaterialHandle handle);

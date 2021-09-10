@@ -8,7 +8,7 @@
 #include "types.h"
 #include <hell/window.h>
 
-typedef Obdn_V_Image   Obdn_R_Frame;
+typedef Obdn_Image   Obdn_R_Frame;
 
 typedef void (*Obdn_R_SwapchainRecreationFn)(void);
 typedef struct Obdn_Swapchain Obdn_Swapchain;

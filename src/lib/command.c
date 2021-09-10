@@ -2,14 +2,14 @@
 #include "video.h"
 #include "private.h"
 
-void obdn_SubmitAndWait(Obdn_V_Command* cmd, const uint32_t queueIndex)
+void obdn_SubmitAndWait(Obdn_Command* cmd, const uint32_t queueIndex)
 {
     obdn_SubmitToQueueWait(cmd->instance, &cmd->buffer, cmd->queueFamily, queueIndex);
 }
 
-Obdn_V_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_QueueType queueFamilyType)
+Obdn_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_QueueType queueFamilyType)
 {
-    Obdn_V_Command cmd = {
+    Obdn_Command cmd = {
         .queueFamily = obdn_GetQueueFamilyIndex(instance, queueFamilyType),
         .instance = instance
     };
@@ -92,14 +92,14 @@ void obdn_WaitForFenceNoReset(VkDevice device, VkFence* fence)
     vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
 }
 
-void obdn_DestroyCommand(Obdn_V_Command cmd)
+void obdn_DestroyCommand(Obdn_Command cmd)
 {
     vkDestroyCommandPool(cmd.instance->device, cmd.pool, NULL);
     vkDestroyFence(cmd.instance->device, cmd.fence, NULL);
     vkDestroySemaphore(cmd.instance->device, cmd.semaphore, NULL);
 }
 
-void obdn_ResetCommand(Obdn_V_Command* cmd)
+void obdn_ResetCommand(Obdn_Command* cmd)
 {
     vkResetCommandPool(cmd->instance->device, cmd->pool, 0);
 }

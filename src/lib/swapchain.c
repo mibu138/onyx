@@ -272,7 +272,7 @@ createSwapchainFramebuffers(Obdn_Swapchain* swapchain, uint32_t aovCount, Obdn_A
                 swapchain->memory, swapchain->width, swapchain->height,
                 aovInfos[i].format, aovInfos[i].usageFlags,
                 aovInfos[i].aspectFlags, VK_SAMPLE_COUNT_1_BIT, 1,
-                OBDN_V_MEMORY_DEVICE_TYPE);
+                OBDN_MEMORY_DEVICE_TYPE);
         }
 
         fb->index = i;

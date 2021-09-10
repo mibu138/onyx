@@ -95,7 +95,7 @@ static void initFT(const size_t fontSize)
     initialized = true;
 }
 
-Obdn_V_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, const size_t height, 
+Obdn_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text)
 {
@@ -104,19 +104,19 @@ Obdn_V_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, con
         initFT(fontSize);
     }
 
-    Obdn_V_Image image = obdn_CreateImageAndSampler(memory, width, height, VK_FORMAT_R8_UINT, 
+    Obdn_Image image = obdn_CreateImageAndSampler(memory, width, height, VK_FORMAT_R8_UINT, 
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
             1,
             VK_FILTER_NEAREST,
-            OBDN_V_MEMORY_DEVICE_TYPE);
+            OBDN_MEMORY_DEVICE_TYPE);
 
     obdn_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 
-    Obdn_V_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
+    Obdn_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 
@@ -127,14 +127,14 @@ Obdn_V_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, con
     return image;
 }
 
-void obdn_t_UpdateTextImage(Obdn_Memory* memory, const size_t x, const size_t y, const char* text, Obdn_V_Image* image)
+void obdn_t_UpdateTextImage(Obdn_Memory* memory, const size_t x, const size_t y, const char* text, Obdn_Image* image)
 {
     const size_t width  = image->extent.width;
     const size_t height = image->extent.height;
 
-    Obdn_V_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
+    Obdn_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 

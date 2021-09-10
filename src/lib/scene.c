@@ -236,7 +236,7 @@ static void createDefaultTexture(Obdn_Memory* memory, Texture* texture)
 {
     texture->hostBuffer = obdn_RequestBufferRegion(
         memory, 4 * DEFAULT_TEX_DIM * DEFAULT_TEX_DIM /* 4 components, 1 byte each*/,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
     u8* pxcomponent = texture->hostBuffer.hostData;
     for (int i = 0; i < (DEFAULT_TEX_DIM * DEFAULT_TEX_DIM * 4); i++)
     {
@@ -247,7 +247,7 @@ static void createDefaultTexture(Obdn_Memory* memory, Texture* texture)
         memory, DEFAULT_TEX_DIM, DEFAULT_TEX_DIM, VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, VK_FILTER_LINEAR,
-        OBDN_V_MEMORY_DEVICE_TYPE);
+        OBDN_MEMORY_DEVICE_TYPE);
 
     obdn_CopyBufferToImage(&texture->hostBuffer, &texture->devImage);
 
@@ -368,7 +368,7 @@ Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, con
     obdn_LoadImage(scene->memory, filePath, channelCount, format,
             VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
-            1, VK_FILTER_LINEAR, OBDN_V_MEMORY_DEVICE_TYPE, 
+            1, VK_FILTER_LINEAR, OBDN_MEMORY_DEVICE_TYPE, 
             VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
 
     return addTexture(scene, texture);
@@ -659,7 +659,7 @@ Obdn_Material* obdn_GetMaterial(const Obdn_Scene* s, Obdn_MaterialHandle handle)
     return &MATERIAL(s, handle);
 }
 
-Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene* scene, Obdn_V_Image image)
+Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene* scene, Obdn_Image image)
 {
     Obdn_Texture tex = {0};
     tex.devImage = image;
