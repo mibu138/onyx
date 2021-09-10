@@ -33,7 +33,19 @@ FetchContent_Declare(
 
 include(header)
 set(CMAKE_BUILD_TYPE DEBUG)
-find_package(Vulkan 1.2.162 REQUIRED FATAL_ERROR)
+find_package(Vulkan 1.2.162)
+if (NOT Vulkan_FOUND)
+    FetchContent_Declare(
+        vulkan_headers
+        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers
+        GIT_TAG c5b7a2fa18750e435e91e06a50cdc5451c5b9abd)
+
+    FetchContent_Declare(
+        vulkan_loader
+        GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Loader
+        GIT_TAG 90fd66f60fa7de10c91030f8c88b2a5c7c377784)
+    FetchContent_MakeAvailable(vulkan_headers vulkan_loader)
+endif()
 find_package(Freetype)
 
 FetchContent_MakeAvailable(hell coal)
