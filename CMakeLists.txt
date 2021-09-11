@@ -4,7 +4,7 @@ project(Obsidian LANGUAGES C VERSION 0.1.0)
 
 option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
-option(OBSIDIAN_BUILD_GLC   "Build glslc executable" OFF)
+option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
 
 if(NOT DEFINED GIT_BASE_URL)
     set(GIT_BASE_URL https://github.com/mokchira)
@@ -43,10 +43,10 @@ if (NOT Vulkan_FOUND)
     FetchContent_MakeAvailable(vulkan_headers vulkan_loader)
 endif()
 
-if (NOT DEFINED GLC OR GLC STREQUAL "GLC-NOTFOUND")
-    find_program(GLC glslc)
-    if (GLC STREQUAL "GLC-NOTFOUND")
-        if (OBSIDIAN_BUILD_GLC)
+if (NOT DEFINED GLC)
+    find_program(GLSLC glslc)
+    if (GLSLC STREQUAL "GLSLC-NOTFOUND")
+        if (OBSIDIAN_BUILD_GLSLC)
             FetchContent_Declare(
                 glslang
                 GIT_REPOSITORY https://github.com/KhronosGroup/glslang
@@ -79,17 +79,15 @@ if (NOT DEFINED GLC OR GLC STREQUAL "GLC-NOTFOUND")
             set(SHADERC_SKIP_INSTALL ON)
 
             FetchContent_MakeAvailable(glslang spirv_headers spirv_tools shaderc)
-
-            set(GLC glslc_exe)
-	    
         else()
-            message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLC=ON to build it.")
+            message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLSLC=ON to build it.")
         endif()
     else()
-        message("Using system glslc ${GLC}")
+        message("Using system glslc ${GLSLC}")
+        add_executable(glslc_exe IMPORTED GLOBAL)
+        set_target_properties(glslc_exe IMPORTED_LOCATION ${GLSLC})
     endif()
-else()
-    message("Using GLC found: ${GLC}")
+    set(GLC glslc_exe)
 endif()
 
 find_package(Freetype)
