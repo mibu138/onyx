@@ -4,6 +4,7 @@ project(Obsidian LANGUAGES C VERSION 0.1.0)
 
 option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
+option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
 
 if(NOT DEFINED GIT_BASE_URL)
     set(GIT_BASE_URL https://github.com/mokchira)
@@ -46,6 +47,55 @@ if (NOT Vulkan_FOUND)
         GIT_TAG 90fd66f60fa7de10c91030f8c88b2a5c7c377784)
     FetchContent_MakeAvailable(vulkan_headers vulkan_loader)
 endif()
+
+if (NOT DEFINED GLC)
+    find_program(GLC glslc)
+    if (NOT DEFINED GLC)
+        if (OBSIDIAN_BUILD_GLSLC)
+            FetchContent_Declare(
+                glslang
+                GIT_REPOSITORY https://github.com/KhronosGroup/glslang
+                GIT_TAG c94ec9356f1a12876ae959409ec67eddb8a90c16)
+            set(SKIP_GLSLANG_INSTALL ON)
+
+            FetchContent_Declare(
+                spirv_headers
+                GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers
+                GIT_TAG e7b49d7fb59808a650618e0a4008d4bae927e112)
+            set(SPIRV_HEADERS_SKIP_EXAMPLES ON)
+            set(SPIRV_HEADERS_SKIP_INSTALL ON)
+
+            FetchContent_Declare(
+                spirv_tools 
+                GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools
+                GIT_TAG 5737dbb068da91274de9728aab8b4bf27c52f38d)
+            set(SPIRV_BUILD_FUZZER OFF)
+            set(SKIP_SPIRV_TOOLS_INSTALL ON)
+            set(SPIRV_COLOR_TERMINAL OFF)
+            set(SPIRV_SKIP_TESTS ON)
+            set(SPIRV_SKIP_EXECUTABLES ON)
+
+            FetchContent_Declare(
+                shaderc 
+                GIT_REPOSITORY https://github.com/google/shaderc
+                GIT_TAG fadb0edb247a1daa74f9a206a27e9a1c0417ce49)
+            set(SHADERC_SKIP_TESTS ON)
+            set(SHADERC_SKIP_EXAMPLES ON)
+            set(SHADERC_SKIP_INSTALL ON)
+
+            FetchContent_MakeAvailable(glslang spirv_headers spirv_tools shaderc)
+
+            set(GLC glslc_exe)
+        else()
+            message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLSLC=ON to build it.")
+        endif()
+    else()
+        message("Using system glslc ${GLC}")
+    endif()
+else()
+    message("Using GLC found: ${GLC}")
+endif()
+
 find_package(Freetype)
 
 FetchContent_MakeAvailable(hell coal)
