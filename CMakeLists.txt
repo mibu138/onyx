@@ -4,23 +4,15 @@ project(Obsidian LANGUAGES C VERSION 0.1.0)
 
 option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
-option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
+option(OBSIDIAN_BUILD_GLC   "Build glslc executable" OFF)
 
 if(NOT DEFINED GIT_BASE_URL)
     set(GIT_BASE_URL https://github.com/mokchira)
 endif()
 
 include(FetchContent)
-FetchContent_Declare(
-    cmake-common
-    GIT_REPOSITORY ${GIT_BASE_URL}/cmake-common
-    GIT_TAG master)
-FetchContent_GetProperties(cmake-common)
-if(NOT cmake-common_POPULATED)
-    FetchContent_Populate(cmake-common)
-endif()
 
-list(APPEND CMAKE_MODULE_PATH ${cmake-common_SOURCE_DIR})
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 
 FetchContent_Declare(
     hell 
@@ -32,7 +24,10 @@ FetchContent_Declare(
     GIT_REPOSITORY ${GIT_BASE_URL}/coal
     GIT_TAG master)
 
-include(header)
+include(GNUInstallDirs)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+enable_testing()
+
 set(CMAKE_BUILD_TYPE DEBUG)
 find_package(Vulkan 1.2.162)
 if (NOT Vulkan_FOUND)
@@ -48,10 +43,10 @@ if (NOT Vulkan_FOUND)
     FetchContent_MakeAvailable(vulkan_headers vulkan_loader)
 endif()
 
-if (NOT DEFINED GLC)
+if (NOT DEFINED GLC OR GLC STREQUAL "GLC-NOTFOUND")
     find_program(GLC glslc)
-    if (NOT DEFINED GLC)
-        if (OBSIDIAN_BUILD_GLSLC)
+    if (GLC STREQUAL "GLC-NOTFOUND")
+        if (OBSIDIAN_BUILD_GLC)
             FetchContent_Declare(
                 glslang
                 GIT_REPOSITORY https://github.com/KhronosGroup/glslang
@@ -86,8 +81,9 @@ if (NOT DEFINED GLC)
             FetchContent_MakeAvailable(glslang spirv_headers spirv_tools shaderc)
 
             set(GLC glslc_exe)
+	    
         else()
-            message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLSLC=ON to build it.")
+            message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLC=ON to build it.")
         endif()
     else()
         message("Using system glslc ${GLC}")

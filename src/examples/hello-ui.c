@@ -48,7 +48,7 @@ static void createSurfaceDependent(void)
     depthImage = obdn_CreateImage(oMemory, dim.width, dim.height,
                        depthFormat, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT,
                        VK_IMAGE_ASPECT_DEPTH_BIT, VK_SAMPLE_COUNT_1_BIT, 1,
-                       OBDN_V_MEMORY_DEVICE_TYPE);
+                       OBDN_MEMORY_DEVICE_TYPE);
     VkImageView attachments_0[2] = {obdn_GetSwapchainImageView(swapchain, 0), depthImage.view};
     VkImageView attachments_1[2] = {obdn_GetSwapchainImageView(swapchain, 1), depthImage.view};
     obdn_CreateFramebuffer(oInstance, 2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
