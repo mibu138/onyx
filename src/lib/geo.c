@@ -39,10 +39,10 @@ static void initPrimBuffers(Obdn_Memory* memory, Obdn_Geometry* prim)
     }
 
     prim->vertexRegion = obdn_RequestBufferRegion(memory, vertexBufferSize, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     prim->indexRegion = obdn_RequestBufferRegion(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
 static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_Geometry* prim, const uint32_t offsetAlignment)
@@ -64,10 +64,10 @@ static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_Geometry* prim, con
     }
 
     prim->vertexRegion = obdn_RequestBufferRegionAligned(memory, vertexBufferSize, 
-            offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            offsetAlignment, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     prim->indexRegion = obdn_RequestBufferRegionAligned(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
-            offsetAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            offsetAlignment, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
 static void printPrim(const Prim* prim)
@@ -328,7 +328,7 @@ Obdn_Geometry obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
     prim.vertexRegion = obdn_RequestBufferRegion(memory,
             12 * prim.attrCount * prim.vertexCount, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     const uint32_t posOffset = 0 * prim.vertexCount * 12;
     const uint32_t colOffset = 1 * prim.vertexCount * 12;

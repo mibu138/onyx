@@ -13,9 +13,9 @@
 #include "coal/types.h"
 #include "coal/linalg.h"
 
-typedef Obdn_V_BufferRegion          BufferRegion;
+typedef Obdn_BufferRegion          BufferRegion;
 typedef Obdn_R_AccelerationStructure AccelerationStructure;
-typedef Obdn_V_Command               Command;
+typedef Obdn_Command               Command;
 typedef Obdn_R_ShaderBindingTable    ShaderBindingTable;
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_RAYTRACE, fmt, ##__VA_ARGS__)
@@ -70,7 +70,7 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     blas->bufferRegion = obdn_RequestBufferRegion(memory, buildSizes.accelerationStructureSize, 
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
-            OBDN_V_MEMORY_DEVICE_TYPE);
+            OBDN_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR accelStructInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -89,9 +89,9 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProps = obdn_GetPhysicalDeviceAccelerationStructureProperties(memory->instance);
 
-    Obdn_V_BufferRegion scratchBufferRegion = obdn_RequestBufferRegionAligned(memory, buildSizes.buildScratchSize, 
+    Obdn_BufferRegion scratchBufferRegion = obdn_RequestBufferRegionAligned(memory, buildSizes.buildScratchSize, 
             accelStructProps.minAccelerationStructureScratchOffsetAlignment,
-            OBDN_V_MEMORY_DEVICE_TYPE);
+            OBDN_MEMORY_DEVICE_TYPE);
 
     buildAS.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildAS.dstAccelerationStructure = blas->handle;
@@ -159,7 +159,7 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     BufferRegion instBuffer = obdn_RequestBufferRegion(memory, sizeof(*instances) * count,
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     assert(instBuffer.hostData);
     memcpy(instBuffer.hostData, instances, sizeof(instances[0]) * count);
@@ -196,7 +196,7 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     tlas->bufferRegion = obdn_RequestBufferRegion(memory, buildSizes.accelerationStructureSize, 
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            OBDN_V_MEMORY_DEVICE_TYPE);
+            OBDN_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR asCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -212,7 +212,7 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     BufferRegion scratchBuffer = obdn_RequestBufferRegion(memory, buildSizes.buildScratchSize,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            OBDN_V_MEMORY_DEVICE_TYPE);
+            OBDN_MEMORY_DEVICE_TYPE);
 
     topAsInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     topAsInfo.dstAccelerationStructure = tlas->handle;
@@ -268,7 +268,7 @@ void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCoun
     VkResult r;
     r = vkGetRayTracingShaderGroupHandlesKHR(memory->instance->device, pipeline, 0, groupCount, sbtSize, shaderHandleData);
     assert( VK_SUCCESS == r );
-    sbt->bufferRegion = obdn_RequestBufferRegionAligned(memory, sbtSize, baseAlignment, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+    sbt->bufferRegion = obdn_RequestBufferRegionAligned(memory, sbtSize, baseAlignment, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
     sbt->groupCount = groupCount;
 
     uint8_t* pSrc    = shaderHandleData;

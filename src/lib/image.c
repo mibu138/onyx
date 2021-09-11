@@ -14,10 +14,10 @@
 
 #define IMG_OUT_DIR "/out/images/"
 
-typedef Obdn_V_Command      Command;
-typedef Obdn_V_Barrier      Barrier;
-typedef Obdn_V_BufferRegion BufferRegion;
-typedef Obdn_V_Image        Image;
+typedef Obdn_Command      Command;
+typedef Obdn_Barrier      Barrier;
+typedef Obdn_BufferRegion BufferRegion;
+typedef Obdn_Image        Image;
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_IMG, fmt, ##__VA_ARGS__)
 
@@ -112,7 +112,7 @@ static void createMipMaps(const Obdn_Instance* intstance, const VkFilter filter,
     image->layout = finalLayout;
 }
 
-Obdn_V_Image obdn_CreateImageAndSampler(
+Obdn_Image obdn_CreateImageAndSampler(
     Obdn_Memory* memory,
     const uint32_t width, 
     const uint32_t height,
@@ -122,9 +122,9 @@ Obdn_V_Image obdn_CreateImageAndSampler(
     const VkSampleCountFlags sampleCount,
     const uint32_t mipLevels,
     const VkFilter filter,
-    const Obdn_V_MemoryType memType)
+    const Obdn_MemoryType memType)
 {
-    Obdn_V_Image image = obdn_CreateImage(memory, width, height, format, usageFlags, aspectMask, sampleCount, mipLevels, memType);
+    Obdn_Image image = obdn_CreateImage(memory, width, height, format, usageFlags, aspectMask, sampleCount, mipLevels, memType);
 
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
@@ -175,8 +175,8 @@ void obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Barrier b
             barrier.dstStageFlags, 0, 0, NULL, 0, NULL, 1, &imgBarrier);
 }
 
-void obdn_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel, const Obdn_V_BufferRegion* region,
-        Obdn_V_Image* image)
+void obdn_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel, const Obdn_BufferRegion* region,
+        Obdn_Image* image)
 {
     const VkImageSubresourceLayers subRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -206,7 +206,7 @@ void obdn_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel, const 
 }
 
 void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
-        const Obdn_V_Image* image, Obdn_V_BufferRegion* region)
+        const Obdn_Image* image, Obdn_BufferRegion* region)
 {
     assert( miplevel < image->mipLevels);
     const VkImageSubresourceLayers subRes = {.aspectMask     = image->aspectMask,
@@ -225,7 +225,7 @@ void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
                            region->buffer, 1, &imgCopy);
 }
 
-void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_V_Image* image)
+void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayout newLayout, Obdn_Image* image)
 {
     Command cmd = obdn_CreateCommand(image->pChain->memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
@@ -249,8 +249,8 @@ void obdn_TransitionImageLayout(const VkImageLayout oldLayout, const VkImageLayo
     image->layout = newLayout;
 }
 
-void obdn_CopyBufferToImage(const Obdn_V_BufferRegion* region,
-        Obdn_V_Image* image)
+void obdn_CopyBufferToImage(const Obdn_BufferRegion* region,
+        Obdn_Image* image)
 {
     Command cmd = obdn_CreateCommand(image->pChain->memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
@@ -310,7 +310,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     *image = obdn_CreateImageAndSampler(memory, w, h, format, usageFlags, aspectMask, sampleCount, mipLevels, filter, queueFamilyIndex);
 
     BufferRegion stagingBuffer = obdn_RequestBufferRegion(memory, image->size, 
-            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
+            VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here
 
     DPRINT("loading image: width %d height %d channels %d\n", w, h, channelCount);
     DPRINT("Obdn_V_Image size: %ld\n", image->size);
@@ -356,10 +356,10 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
         createMipMaps(memory->instance, VK_FILTER_LINEAR, layout, image);
 }
 
-void obdn_SaveImage(Obdn_Memory* memory, Obdn_V_Image* image, Obdn_V_ImageFileType fileType, const char* filename)
+void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename)
 {
-    Obdn_V_BufferRegion region = obdn_RequestBufferRegion(memory, 
-            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, OBDN_V_MEMORY_HOST_TRANSFER_TYPE);
+    Obdn_BufferRegion region = obdn_RequestBufferRegion(memory, 
+            image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, OBDN_MEMORY_HOST_TRANSFER_TYPE);
 
     VkImageLayout origLayout = image->layout;
     obdn_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
@@ -391,7 +391,7 @@ void obdn_SaveImage(Obdn_Memory* memory, Obdn_V_Image* image, Obdn_V_ImageFileTy
         .bufferRowLength = 0
     };
 
-    Obdn_V_Command cmd = obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Obdn_Command cmd = obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
     obdn_BeginCommandBuffer(cmd.buffer);
 
@@ -444,9 +444,9 @@ void obdn_SaveImage(Obdn_Memory* memory, Obdn_V_Image* image, Obdn_V_ImageFileTy
     obdn_Announce("Image saved to %s!\n", strbuf);
 }
 
-void obdn_v_ClearColorImage(Obdn_V_Image* image)
+void obdn_v_ClearColorImage(Obdn_Image* image)
 {
-    Obdn_V_Command cmd = obdn_CreateCommand(image->pChain->memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Obdn_Command cmd = obdn_CreateCommand(image->pChain->memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
     obdn_BeginCommandBuffer(cmd.buffer);
 

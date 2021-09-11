@@ -5,6 +5,7 @@ video.c
 #define OBDN_V_VIDEO_H
 
 #include "def.h"
+#include "types.h"
 
 typedef enum {
     OBDN_V_QUEUE_GRAPHICS_TYPE,
@@ -34,7 +35,7 @@ typedef struct Obdn_InstanceParms {
     const char**                        ppEnabledDeviceExtensionNames;
 } Obdn_InstanceParms;
 
-void obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance);
+Obdn_Result obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance);
 const VkInstance* obdn_GetVkInstance(const Obdn_Instance*);
 void obdn_SubmitToQueue(const Obdn_Instance*, const VkCommandBuffer* buffer,
                         Obdn_V_QueueType, uint32_t queueIndex);

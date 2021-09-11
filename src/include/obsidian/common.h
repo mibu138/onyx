@@ -2,13 +2,9 @@
 #define OBSIDIAN_COMMON_H
 
 #include "vulkan.h"
-#include "image.h"
-#include "command.h"
+#include "video.h"
 
 struct Hell_Window;
-
-typedef Obdn_V_Image   Obdn_Image;
-typedef Obdn_V_Command Obdn_Command;
 
 #define OBDN_CVAR_NAME_HOST_GRAPHICS_BUFFER_MEMORY_SIZE                        \
     "hstGraphicsBufferMemorySize"

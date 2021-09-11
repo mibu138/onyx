@@ -129,7 +129,7 @@ getVkVersionAvailable(void)
     return v;
 }
 
-static void
+static Obdn_Result
 initVkInstance(const Obdn_InstanceParms* parms, VkInstance* instance)
 {
     uint32_t vulkver = getVkVersionAvailable();
@@ -173,8 +173,15 @@ initVkInstance(const Obdn_InstanceParms* parms, VkInstance* instance)
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
 
-    V_ASSERT(vkCreateInstance(&instanceInfo, NULL, instance));
-    obdn_Announce("Vulkan Instance initilized.\n");
+    VkResult r = vkCreateInstance(&instanceInfo, NULL, instance);
+    if (r != VK_SUCCESS)
+    {
+        if (r == VK_ERROR_EXTENSION_NOT_PRESENT)
+            return OBDN_ERROR_INSTANCE_EXTENSION_NOT_PRESENT;
+        else 
+            return OBDN_ERROR_GENERIC;
+    }
+    return OBDN_SUCCESS;
 }
 
 static void
@@ -237,7 +244,7 @@ retrievePhysicalDevice(const VkInstance            instance,
     return devices[selected];
 }
 
-static void
+static Obdn_Result
 initDevice(
     const bool enableRayTracing, const uint32_t userExtCount,
     const char* const*           userExtensions,
@@ -533,10 +540,19 @@ initDevice(
         .queueCreateInfoCount    = LEN(qci),
     };
 
-    V_ASSERT(vkCreateDevice(physicalDevice, &dci, NULL, device));
-    obdn_Announce("Vulkan Device created successfully.\n");
-
+    VkResult r = vkCreateDevice(physicalDevice, &dci, NULL, device);
     hell_Free(properties);
+    if (r != VK_SUCCESS)
+    {
+        if (r == VK_ERROR_EXTENSION_NOT_PRESENT)
+        {
+            return OBDN_ERROR_DEVICE_EXTENSION_NOT_PRESENT;
+        }
+        else 
+            return OBDN_ERROR_GENERIC;
+    }
+
+    return OBDN_SUCCESS;
 }
 
 static void
@@ -564,7 +580,7 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
     obdn_Announce("Obsidian: Queues Initialized\n");
 }
 
-void
+Obdn_Result 
 obdn_CreateInstance(const Obdn_InstanceParms* baseparms, Obdn_Instance* instance)
 {
     memset(instance, 0, sizeof(Obdn_Instance));
@@ -592,7 +608,13 @@ obdn_CreateInstance(const Obdn_InstanceParms* baseparms, Obdn_Instance* instance
         parms.ppEnabledInstanceExtensionNames = newExtensionNames;
         parms.ppEnabledInstanceLayerNames     = newLayerNames;
     }
-    initVkInstance(&parms, &instance->vkinstance);
+    Obdn_Result r = initVkInstance(&parms, &instance->vkinstance);
+    if (r != OBDN_SUCCESS)
+    {
+        hell_Print("Could not initialize Vulkan instance");
+        return r;
+    }
+    obdn_Announce("Vulkan Instance initilized.\n");
     if (!parms.disableValidation)
     {
         initDebugMessenger(instance->vkinstance, &instance->debugMessenger);
@@ -606,16 +628,23 @@ obdn_CreateInstance(const Obdn_InstanceParms* baseparms, Obdn_Instance* instance
     }
     instance->physicalDevice = retrievePhysicalDevice(
         instance->vkinstance, &instance->deviceProperties);
-    initDevice(parms.enableRayTracing, parms.enabledDeviceExtensionCount, parms.ppEnabledDeviceExtensionNames, instance->physicalDevice,
+    r = initDevice(parms.enableRayTracing, parms.enabledDeviceExtensionCount, parms.ppEnabledDeviceExtensionNames, instance->physicalDevice,
                &instance->graphicsQueueFamily, &instance->computeQueueFamily,
                &instance->transferQueueFamily, &instance->rtProperties,
                &instance->accelStructProperties, &instance->device);
+    if (r != OBDN_SUCCESS)
+    {
+        hell_Print("Could not initialize Vulkan device");
+        return r;
+    }
+    obdn_Announce("Vulkan device initilized.\n");
     if (parms.enableRayTracing) // TODO not all functions have to do with
         obdn_v_LoadFunctions(instance->device);
     initQueues(instance->device, &instance->graphicsQueueFamily,
                &instance->computeQueueFamily, &instance->transferQueueFamily,
                &instance->presentQueue);
     obdn_Announce("Initialized Obsidian Instance.\n");
+    return OBDN_SUCCESS;
 }
 
 void
@@ -732,7 +761,7 @@ obdn_SubmitTransferCommand(const Obdn_Instance*       instance,
                            const uint32_t             queueIndex,
                            const VkPipelineStageFlags waitDstStageMask,
                            const VkSemaphore* pWaitSemephore, VkFence fence,
-                           const Obdn_V_Command* cmd)
+                           const Obdn_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,

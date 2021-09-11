@@ -7,7 +7,7 @@
 #define OBDN_MAX_AOVS 8
 
 typedef struct Obdn_Framebuffer {
-    Obdn_V_Image aovs[OBDN_MAX_AOVS];
+    Obdn_Image aovs[OBDN_MAX_AOVS];
     uint32_t   width;
     uint32_t   height;
     bool       dirty;

@@ -97,8 +97,8 @@ obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
         rprim->vertexCount, rprim->indexCount, rprim->attrCount,
         rprim->attrSizes, rprim->attrNames);
 
-    Obdn_V_BufferRegion hostVertRegion;
-    Obdn_V_BufferRegion hostIndexRegion;
+    Obdn_BufferRegion hostVertRegion;
+    Obdn_BufferRegion hostIndexRegion;
 
     size_t attrDataSize = 0;
     for (int i = 0; i < rprim->attrCount; i++)
@@ -112,10 +112,10 @@ obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
     {
         // must copy data to host
         hostVertRegion = obdn_RequestBufferRegion(
-            memory, attrDataSize, 0, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            memory, attrDataSize, 0, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
         hostIndexRegion = obdn_RequestBufferRegion(
             memory, rprim->indexCount * sizeof(Obdn_GeoIndex), 0,
-            OBDN_V_MEMORY_HOST_GRAPHICS_TYPE);
+            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
         obdn_CopyBufferRegion(&rprim->vertexRegion, &hostVertRegion);
         obdn_CopyBufferRegion(&rprim->indexRegion, &hostIndexRegion);
     }

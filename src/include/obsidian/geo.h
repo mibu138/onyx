@@ -21,8 +21,8 @@ typedef struct Obdn_Geometry {
     uint32_t              vertexCount;
     uint32_t              indexCount;
     uint32_t              attrCount;
-    Obdn_V_BufferRegion  vertexRegion;
-    Obdn_V_BufferRegion  indexRegion;
+    Obdn_BufferRegion  vertexRegion;
+    Obdn_BufferRegion  indexRegion;
     char                  attrNames[OBDN_R_MAX_VERT_ATTRIBUTES][OBDN_R_ATTR_NAME_LEN];
     Obdn_GeoAttributeSize attrSizes[OBDN_R_MAX_VERT_ATTRIBUTES]; // individual element sizes
     VkDeviceSize          attrOffsets[OBDN_R_MAX_VERT_ATTRIBUTES];

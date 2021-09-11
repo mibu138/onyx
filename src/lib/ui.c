@@ -26,7 +26,7 @@
 #define MAX_IMAGE_COUNT 8
 
 typedef Obdn_U_Widget Widget;
-typedef Obdn_V_Image  Image;
+typedef Obdn_Image  Image;
 
 typedef struct {
     int i0;

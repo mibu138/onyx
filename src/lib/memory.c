@@ -17,7 +17,7 @@
 
 #define MB 0x100000
 
-typedef Obdn_V_BufferRegion BufferRegion;
+typedef Obdn_BufferRegion BufferRegion;
 //
 // static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 // __attribute__ ((unused));
@@ -69,7 +69,7 @@ findMemoryType(const Obdn_Memory* memory, uint32_t memoryTypeBitsRequirement)
 }
 
 static void
-initBlockChain(Obdn_Memory* memory, const Obdn_V_MemoryType memType,
+initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
                const VkDeviceSize memorySize, const uint32_t memTypeIndex,
                const VkBufferUsageFlags bufferUsageFlags, const bool mapBuffer,
                const char* name, struct BlockChain* chain)
@@ -105,7 +105,7 @@ initBlockChain(Obdn_Memory* memory, const Obdn_V_MemoryType memType,
 
     VkExportMemoryAllocateInfo exportMemoryAllocInfo;
     const void*                pNext = NULL;
-    if (memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE)
+    if (memType == OBDN_MEMORY_EXTERNAL_DEVICE_TYPE)
     {
         exportMemoryAllocInfo.sType =
             VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
@@ -141,16 +141,16 @@ initBlockChain(Obdn_Memory* memory, const Obdn_V_MemoryType memType,
         uint32_t queueFamilyIndex;
         switch (memType)
         {
-        case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:
+        case OBDN_MEMORY_HOST_GRAPHICS_TYPE:
             queueFamilyIndex = memory->instance->graphicsQueueFamily.index;
             break;
-        case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:
+        case OBDN_MEMORY_HOST_TRANSFER_TYPE:
             queueFamilyIndex = memory->instance->transferQueueFamily.index;
             break;
-        case OBDN_V_MEMORY_DEVICE_TYPE:
+        case OBDN_MEMORY_DEVICE_TYPE:
             queueFamilyIndex = memory->instance->graphicsQueueFamily.index;
             break;
-        case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:
+        case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
             queueFamilyIndex = memory->instance->graphicsQueueFamily.index;
             break;
         default:
@@ -493,34 +493,34 @@ obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphicsBuff
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     DPRINT("Obsidian: Initializing memory block chains...\n");
-    initBlockChain(memory, OBDN_V_MEMORY_HOST_GRAPHICS_TYPE,
+    initBlockChain(memory, OBDN_MEMORY_HOST_GRAPHICS_TYPE,
                    hostGraphicsBufferMB * MB,
                    memory->hostVisibleCoherentTypeIndex, hostGraphicsFlags,
                    true, "hstGraphBuffer",
                    &memory->blockChainHostGraphicsBuffer);
-    initBlockChain(memory, OBDN_V_MEMORY_HOST_TRANSFER_TYPE,
+    initBlockChain(memory, OBDN_MEMORY_HOST_TRANSFER_TYPE,
                    hostTransferBufferMB * MB,
                    memory->hostVisibleCoherentTypeIndex, hostTransferFlags,
                    true, "hstTransBuffer",
                    &memory->blockChainHostTransferBuffer);
-    initBlockChain(memory, OBDN_V_MEMORY_DEVICE_TYPE,
+    initBlockChain(memory, OBDN_MEMORY_DEVICE_TYPE,
                    deviceGraphicsBufferMB * MB,
                    memory->deviceLocalTypeIndex, devBufFlags, false,
                    "devBuffer", &memory->blockChainDeviceGraphicsBuffer);
-    initBlockChain(memory, OBDN_V_MEMORY_DEVICE_TYPE,
+    initBlockChain(memory, OBDN_MEMORY_DEVICE_TYPE,
                    deviceGraphicsImageMB * MB,
                    memory->deviceLocalTypeIndex, 0, false, "devImage",
                    &memory->blockChainDeviceGraphicsImage);
-    initBlockChain(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE,
+    initBlockChain(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE,
                    deviceExternalGraphicsImageMB * MB,
                    memory->deviceLocalTypeIndex, 0, false, "devExtImage",
                    &memory->blockChainExternalDeviceGraphicsImage);
 }
 
-Obdn_V_BufferRegion
+Obdn_BufferRegion
 obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
                                 uint32_t                alignment,
-                                const Obdn_V_MemoryType memType)
+                                const Obdn_MemoryType memType)
 {
     assert(size > 0);
     if (size % 4 != 0) // only allow for word-sized blocks
@@ -531,13 +531,13 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     struct BlockChain* chain = NULL;
     switch (memType)
     {
-    case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:
+    case OBDN_MEMORY_HOST_GRAPHICS_TYPE:
         chain = &memory->blockChainHostGraphicsBuffer;
         break;
-    case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:
+    case OBDN_MEMORY_HOST_TRANSFER_TYPE:
         chain = &memory->blockChainHostTransferBuffer;
         break;
-    case OBDN_V_MEMORY_DEVICE_TYPE:
+    case OBDN_MEMORY_DEVICE_TYPE:
         chain = &memory->blockChainDeviceGraphicsBuffer;
         break;
     default:
@@ -549,7 +549,7 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
         alignment = chain->defaultAlignment;
     block = requestBlock(size, alignment, chain);
 
-    Obdn_V_BufferRegion region = {0};
+    Obdn_BufferRegion region = {0};
     region.offset              = block->offset;
     region.memBlockId          = block->id;
     region.size                = block->size;
@@ -560,8 +560,8 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     // to a mask with flags for the different requirements. One bit for host or
     // device, one bit for transfer capabale, one bit for external, one bit for
     // image or buffer
-    if (memType == OBDN_V_MEMORY_HOST_TRANSFER_TYPE ||
-        memType == OBDN_V_MEMORY_HOST_GRAPHICS_TYPE)
+    if (memType == OBDN_MEMORY_HOST_TRANSFER_TYPE ||
+        memType == OBDN_MEMORY_HOST_GRAPHICS_TYPE)
         region.hostData = chain->hostData + block->offset;
     else
         region.hostData = NULL;
@@ -569,10 +569,10 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     return region;
 }
 
-Obdn_V_BufferRegion
+Obdn_BufferRegion
 obdn_RequestBufferRegion(Obdn_Memory* memory, const size_t size,
                          const VkBufferUsageFlags flags,
-                         const Obdn_V_MemoryType  memType)
+                         const Obdn_MemoryType  memType)
 {
     uint32_t alignment = 16;
     if (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
@@ -610,17 +610,17 @@ obdn_GetMemoryType(const Obdn_Memory* memory, uint32_t typeBits,
     return ~0u;
 }
 
-Obdn_V_Image
+Obdn_Image
 obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
                  const uint32_t height, const VkFormat format,
                  const VkImageUsageFlags  usageFlags,
                  const VkImageAspectFlags aspectMask,
                  const VkSampleCountFlags sampleCount, const uint32_t mipLevels,
-                 const Obdn_V_MemoryType memType)
+                 const Obdn_MemoryType memType)
 {
     assert(mipLevels > 0);
-    assert(memType == OBDN_V_MEMORY_DEVICE_TYPE ||
-           memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
+    assert(memType == OBDN_MEMORY_DEVICE_TYPE ||
+           memType == OBDN_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(memory->deviceProperties->limits.framebufferColorSampleCounts >=
            sampleCount);
@@ -630,7 +630,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
     void* pNext = NULL;
 
     VkExternalMemoryImageCreateInfo externalImageInfo;
-    if (memType == OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE)
+    if (memType == OBDN_MEMORY_EXTERNAL_DEVICE_TYPE)
     {
         externalImageInfo.sType =
             VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
@@ -656,7 +656,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
                                    .pQueueFamilyIndices   = &queueFamilyIndex,
                                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
-    Obdn_V_Image image = {0};
+    Obdn_Image image = {0};
 
     V_ASSERT(vkCreateImage(memory->instance->device, &imageInfo, NULL, &image.handle));
 
@@ -679,10 +679,10 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
 
     switch (memType)
     {
-    case OBDN_V_MEMORY_DEVICE_TYPE:
+    case OBDN_MEMORY_DEVICE_TYPE:
         image.pChain = &memory->blockChainDeviceGraphicsImage;
         break;
-    case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
         image.pChain = &memory->blockChainExternalDeviceGraphicsImage;
         break;
     default:
@@ -718,7 +718,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
 }
 
 void
-obdn_FreeImage(Obdn_V_Image* image)
+obdn_FreeImage(Obdn_Image* image)
 {
     assert(image->size != 0);
     if (image->sampler != VK_NULL_HANDLE)
@@ -728,24 +728,24 @@ obdn_FreeImage(Obdn_V_Image* image)
     vkDestroyImageView(image->pChain->memory->instance->device, image->view, NULL);
     vkDestroyImage(image->pChain->memory->instance->device, image->handle, NULL);
     freeBlock(image->pChain, image->memBlockId);
-    memset(image, 0, sizeof(Obdn_V_Image));
+    memset(image, 0, sizeof(Obdn_Image));
 }
 
 void
-obdn_FreeBufferRegion(Obdn_V_BufferRegion* pRegion)
+obdn_FreeBufferRegion(Obdn_BufferRegion* pRegion)
 {
     assert(pRegion->size != 0);
     freeBlock(pRegion->pChain, pRegion->memBlockId);
     if (pRegion->hostData)
         memset(pRegion->hostData, 0, pRegion->size);
-    memset(pRegion, 0, sizeof(Obdn_V_BufferRegion));
+    memset(pRegion, 0, sizeof(Obdn_BufferRegion));
 }
 
 void
-obdn_CopyBufferRegion(const Obdn_V_BufferRegion* src,
-                        Obdn_V_BufferRegion*       dst)
+obdn_CopyBufferRegion(const Obdn_BufferRegion* src,
+                        Obdn_BufferRegion*       dst)
 {
-    Obdn_V_Command cmd =
+    Obdn_Command cmd =
         obdn_CreateCommand(src->pChain->memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE); // arbitrary index;
 
     obdn_BeginCommandBuffer(cmd.buffer);
@@ -765,21 +765,21 @@ obdn_CopyBufferRegion(const Obdn_V_BufferRegion* src,
 }
 
 void
-obdn_v_CopyImageToBufferRegion(const Obdn_V_Image*  image,
-                               Obdn_V_BufferRegion* bufferRegion)
+obdn_v_CopyImageToBufferRegion(const Obdn_Image*  image,
+                               Obdn_BufferRegion* bufferRegion)
 {
     // TODO
 }
 
 void
-obdn_TransferToDevice(Obdn_Memory* memory, Obdn_V_BufferRegion* pRegion)
+obdn_TransferToDevice(Obdn_Memory* memory, Obdn_BufferRegion* pRegion)
 {
-    const Obdn_V_BufferRegion srcRegion = *pRegion;
+    const Obdn_BufferRegion srcRegion = *pRegion;
     assert(srcRegion.pChain ==
            &memory->blockChainHostGraphicsBuffer); // only chain it makes sense
                                                    // to transfer from
-    Obdn_V_BufferRegion destRegion = obdn_RequestBufferRegion(memory, 
-        srcRegion.size, 0, OBDN_V_MEMORY_DEVICE_TYPE);
+    Obdn_BufferRegion destRegion = obdn_RequestBufferRegion(memory, 
+        srcRegion.size, 0, OBDN_MEMORY_DEVICE_TYPE);
 
     obdn_CopyBufferRegion(&srcRegion, &destRegion);
 
@@ -809,22 +809,22 @@ void
 obdn_CreateUnmanagedBuffer(Obdn_Memory*             memory,
                            const VkBufferUsageFlags bufferUsageFlags,
                            const uint32_t           memorySize,
-                           const Obdn_V_MemoryType  type,
+                           const Obdn_MemoryType  type,
                            VkDeviceMemory* pMemory, VkBuffer* pBuffer)
 {
     uint32_t typeIndex;
     switch (type)
     {
-    case OBDN_V_MEMORY_HOST_GRAPHICS_TYPE:
+    case OBDN_MEMORY_HOST_GRAPHICS_TYPE:
         typeIndex = memory->hostVisibleCoherentTypeIndex;
         break;
-    case OBDN_V_MEMORY_HOST_TRANSFER_TYPE:
+    case OBDN_MEMORY_HOST_TRANSFER_TYPE:
         typeIndex = memory->hostVisibleCoherentTypeIndex;
         break;
-    case OBDN_V_MEMORY_DEVICE_TYPE:
+    case OBDN_MEMORY_DEVICE_TYPE:
         typeIndex = memory->deviceLocalTypeIndex;
         break;
-    case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
         typeIndex = memory->deviceLocalTypeIndex;
         break;
     }
@@ -849,11 +849,11 @@ obdn_CreateUnmanagedBuffer(Obdn_Memory*             memory,
 }
 
 const VkDeviceMemory
-obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_V_MemoryType memType)
+obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_MemoryType memType)
 {
     switch (memType)
     {
-    case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
         return memory->blockChainExternalDeviceGraphicsImage.vkmemory;
     default:
         assert(0); // TODO
@@ -862,11 +862,11 @@ obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_V_MemoryType memType)
 }
 
 const VkDeviceSize
-obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_V_MemoryType memType)
+obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_MemoryType memType)
 {
     switch (memType)
     {
-    case OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
         return memory->blockChainExternalDeviceGraphicsImage.totalSize;
     default:
         assert(0); // TODO
@@ -896,13 +896,13 @@ bool obdn_GetExternalMemoryFd(const Obdn_Memory* memory, int* fd, uint64_t* size
     // fast path
     VkMemoryGetFdInfoKHR fdInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
-        .memory = obdn_GetDeviceMemory(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE),
+        .memory = obdn_GetDeviceMemory(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE),
         .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
     };
 
     V_ASSERT( vkGetMemoryFdKHR(obdn_GetDevice(memory->instance), &fdInfo, fd) );
 
-    *size = obdn_GetMemorySize(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
+    *size = obdn_GetMemorySize(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(*size);
     return true;
