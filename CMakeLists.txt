@@ -92,6 +92,8 @@ endif()
 
 find_package(Freetype)
 
+add_executable(Obsidian::glslc ALIAS glslc_exe)
+
 FetchContent_MakeAvailable(hell coal)
 add_library(thirdparty INTERFACE)
 target_include_directories(thirdparty INTERFACE "thirdparty")

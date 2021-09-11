@@ -1,5 +1,5 @@
 include(author_shaders)
-author_shaders(obsidian_shaders obsidian obsidian_spvs
+author_shaders(obsidian_shaders obsidian Obsidian::glslc 
     SOURCES
     default.frag
     default.vert

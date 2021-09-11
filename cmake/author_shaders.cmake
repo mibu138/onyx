@@ -1,12 +1,11 @@
-function(author_shaders target_name output_dir out_spvs)
+function(author_shaders target_name output_dir glslc)
     set(options)
     set(oneValueArgs)
     set(multiValueArgs SOURCES)
     cmake_parse_arguments(S "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
-    if(NOT DEFINED GLC)
-        set(GLC glslc)
-    else() 
+    if (NOT DEFINED glslc)
+        message(FATAL_ERROR "Shader compiler not given")
     endif()
     set(GLCFLAGS "--target-env=vulkan1.2")
     set(DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -20,7 +19,7 @@ function(author_shaders target_name output_dir out_spvs)
     foreach(SRC ${S_SOURCES})
         get_filename_component(FILE_NAME ${SRC} NAME)
         set(SPV "${BUILD_DIR}/${FILE_NAME}.spv")
-        set(CMD ${GLC} ${GLCFLAGS} ${DIR}/${SRC} -o ${SPV})
+        set(CMD ${glslc} ${GLCFLAGS} ${DIR}/${SRC} -o ${SPV})
         add_custom_command(
             OUTPUT  ${SPV}
             COMMAND ${CMD}
@@ -40,5 +39,4 @@ function(author_shaders target_name output_dir out_spvs)
     endif()
     install(FILES ${SPVS}
         DESTINATION ${SHADER_INSTALL_DIR})
-    set(${out_spvs} ${SPVS} PARENT_SCOPE)
 endfunction()
