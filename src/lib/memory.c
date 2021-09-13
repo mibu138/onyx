@@ -68,6 +68,26 @@ findMemoryType(const Obdn_Memory* memory, uint32_t memoryTypeBitsRequirement)
     return -1;
 }
 
+static uint32_t
+alignmentForBufferUsage(const Obdn_Memory* memory, VkBufferUsageFlags flags)
+{
+    uint32_t alignment = 16; // arbitrary default alignment for all allocations. should test lower values.
+    if (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
+        alignment = MAX(
+            memory->deviceProperties->limits.minStorageBufferOffsetAlignment,
+            alignment);
+    if (VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags)
+        alignment = MAX(
+            memory->deviceProperties->limits.minUniformBufferOffsetAlignment,
+            alignment);
+    if (VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR & flags)
+        alignment =
+            MAX(256,
+                alignment); // 256 comes from spec for
+                            // VkAccelerationStructureCreateInfoKHR - see offset
+    return alignment;
+}
+
 static void
 initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
                const VkDeviceSize memorySize, const uint32_t memTypeIndex,
@@ -574,23 +594,25 @@ obdn_RequestBufferRegion(Obdn_Memory* memory, const size_t size,
                          const VkBufferUsageFlags flags,
                          const Obdn_MemoryType  memType)
 {
-    uint32_t alignment = 16;
-    if (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
-        alignment = MAX(
-            memory->deviceProperties->limits.minStorageBufferOffsetAlignment,
-            alignment);
-    if (VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT & flags)
-        alignment = MAX(
-            memory->deviceProperties->limits.minUniformBufferOffsetAlignment,
-            alignment);
-    if (VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR & flags)
-        alignment =
-            MAX(256,
-                alignment); // 256 comes from spec for
-                            // VkAccelerationStructureCreateInfoKHR - see offset
+    uint32_t alignment = alignmentForBufferUsage(memory, flags);
     return obdn_RequestBufferRegionAligned(memory, 
         size, alignment,
         memType); // TODO: fix this. find the maximum alignment and choose that
+}
+
+Obdn_BufferRegion
+obdn_RequestBufferRegionArray(Obdn_Memory* memory, uint32_t elemSize, uint32_t elemCount,
+                              VkBufferUsageFlags flags,
+                              Obdn_MemoryType  memType)
+{
+    // calculate the size needed and call requestBufferRegionAligned.
+    // make sure to set the stride.
+    uint32_t alignment = alignmentForBufferUsage(memory, flags);
+    uint32_t stride    = hell_Align(elemSize, alignment);
+    uint64_t size      = stride * elemCount;
+    Obdn_BufferRegion region = obdn_RequestBufferRegionAligned(memory, size, alignment, memType);
+    region.stride = stride;
+    return region;
 }
 
 uint32_t

@@ -26,6 +26,7 @@ typedef struct {
     VkBuffer           buffer;
     uint8_t*           hostData; // if hostData not null, its mapped
     uint32_t           memBlockId;
+    uint32_t           stride; // if bufferregion stores an array this is the stride between elements. otherwise its 0. if the elements need to satify an alignment this stride will satisfy that
     struct BlockChain* pChain;
 } Obdn_BufferRegion;
 
@@ -56,6 +57,14 @@ void obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphic
 Obdn_BufferRegion obdn_RequestBufferRegion(Obdn_Memory*, size_t size,
                                              const VkBufferUsageFlags,
                                              const Obdn_MemoryType);
+
+// Returns a buffer region with enough space for elemCount elements of elemSize size. 
+// The stride member set to the size of the space between
+// elements, which might be different from elemSize if physicalDevice requirements demand it.
+Obdn_BufferRegion
+obdn_RequestBufferRegionArray(Obdn_Memory* memory, uint32_t elemSize, uint32_t elemCount,
+                              VkBufferUsageFlags flags,
+                              Obdn_MemoryType  memType);
 
 Obdn_BufferRegion obdn_RequestBufferRegionAligned(Obdn_Memory*, const size_t size,
                                                     uint32_t     alignment,
