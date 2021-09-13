@@ -148,10 +148,11 @@ obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
 }
 
 Obdn_Geometry
-obdn_CreateGeoFromFileGeo(Obdn_Memory* memory, const Obdn_FileGeo* fprim)
+obdn_CreateGeoFromFileGeo(Obdn_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags,
+ const Obdn_FileGeo* fprim)
 {
     Obdn_Geometry rprim =
-        obdn_CreateGeometry(memory, fprim->vertexCount, fprim->indexCount,
+        obdn_CreateGeometry(memory, extraBufferUsageFlags, fprim->vertexCount, fprim->indexCount,
                              fprim->attrCount, fprim->attrSizes);
     const size_t indexDataSize = fprim->indexCount * sizeof(Obdn_GeoIndex);
     for (int i = 0; i < fprim->attrCount; i++)
@@ -234,14 +235,14 @@ obdn_ReadFileGeo(const char* filename, Obdn_FileGeo* fprim)
 }
 
 Obdn_Geometry
-obdn_LoadGeo(Obdn_Memory* memory, const char* filename,
+obdn_LoadGeo(Obdn_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags, const char* filename,
                  const bool transferToDevice)
 {
     Obdn_FileGeo fprim;
     int              r;
     r = obdn_ReadFileGeo(filename, &fprim);
     assert(r);
-    Obdn_Geometry rprim = obdn_CreateGeoFromFileGeo(memory, &fprim);
+    Obdn_Geometry rprim = obdn_CreateGeoFromFileGeo(memory, extraBufferUsageFlags, &fprim);
     obdn_FreeFileGeo(&fprim);
     if (transferToDevice)
     {

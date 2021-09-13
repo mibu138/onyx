@@ -82,11 +82,6 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     V_ASSERT( vkCreateAccelerationStructureKHR(memory->instance->device, &accelStructInfo, NULL, &blas->handle) );
 
-    //Obdn_V_BufferRegion scratchBufferRegion = obdn_v_RequestBufferRegion(buildSizes.buildScratchSize, 
-    //        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT, 
-    //        OBDN_V_MEMORY_DEVICE_TYPE);
-
-
     VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProps = obdn_GetPhysicalDeviceAccelerationStructureProperties(memory->instance);
 
     Obdn_BufferRegion scratchBufferRegion = obdn_RequestBufferRegionAligned(memory, buildSizes.buildScratchSize, 
@@ -113,8 +108,6 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
     vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &buildAS, ranges);
 
     obdn_EndCommandBuffer(cmd.buffer);
-
-    hell_DPrint("HERE!\n");
 
     obdn_SubmitAndWait(&cmd, 0);
 

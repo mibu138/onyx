@@ -75,7 +75,7 @@ static void onSwapchainRecreate(void)
 void init(void)
 {
     uint8_t attrSize = 3 * sizeof(float);
-    triangle = obdn_CreateGeometry(oMemory, 3, 4, 1, &attrSize);
+    triangle = obdn_CreateGeometry(oMemory, 0x0, 3, 4, 1, &attrSize);
     Coal_Vec3* verts = (Coal_Vec3*)triangle.vertexRegion.hostData;
     verts[0].x =  0.0;
     verts[0].y = -1.0;

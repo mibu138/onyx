@@ -23,7 +23,8 @@ int               obdn_WriteFileGeo(const char* filename, const Obdn_FileGeo* fp
 int               obdn_ReadFileGeo(const char* filename, Obdn_FileGeo* fprim);
 void              obdn_FreeFileGeo(Obdn_FileGeo* fprim);
 void              obdn_PrintFileGeo(const Obdn_FileGeo* prim);
-Obdn_Geometry obdn_CreateGeoFromFileGeo(Obdn_Memory* memory, const Obdn_FileGeo *fprim);
-Obdn_Geometry obdn_LoadGeo(Obdn_Memory* memory, const char* filename, const bool transferToDevice);
+Obdn_Geometry obdn_CreateGeoFromFileGeo(Obdn_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags, const Obdn_FileGeo *fprim);
+Obdn_Geometry obdn_LoadGeo(Obdn_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags, const char* filename,
+                 const bool transferToDevice);
 
 #endif /* end of include guard: OBDN_F_FILE_H */

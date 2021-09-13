@@ -21,7 +21,7 @@ typedef enum {
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
-static void initPrimBuffers(Obdn_Memory* memory, Obdn_Geometry* prim)
+static void initPrimBuffers(Obdn_Memory* memory, VkBufferUsageFlags extraFlags, Obdn_Geometry* prim)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
@@ -39,35 +39,10 @@ static void initPrimBuffers(Obdn_Memory* memory, Obdn_Geometry* prim)
     }
 
     prim->vertexRegion = obdn_RequestBufferRegion(memory, vertexBufferSize, 
-            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraFlags, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
     prim->indexRegion = obdn_RequestBufferRegion(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
-            VK_BUFFER_USAGE_INDEX_BUFFER_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
-}
-
-static void initPrimBuffersAligned(Obdn_Memory* memory, Obdn_Geometry* prim, const uint32_t offsetAlignment)
-{
-    assert(prim->attrCount > 0);
-    assert(prim->vertexCount > 0);
-    assert(prim->indexCount > 0);
-    assert(prim->attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
-    assert(offsetAlignment != 0);
-
-    size_t vertexBufferSize = 0;
-    for (int i = 0; i < prim->attrCount; i++) 
-    {
-        const AttrSize attrSize = prim->attrSizes[i];
-        assert(attrSize > 0);
-        const size_t attrRegionSize = hell_Align(prim->vertexCount * attrSize, offsetAlignment);
-        prim->attrOffsets[i] = vertexBufferSize;
-        vertexBufferSize += attrRegionSize;
-    }
-
-    prim->vertexRegion = obdn_RequestBufferRegionAligned(memory, vertexBufferSize, 
-            offsetAlignment, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
-
-    prim->indexRegion = obdn_RequestBufferRegionAligned(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
-            offsetAlignment, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+            VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraFlags, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 }
 
 static void printPrim(const Prim* prim)
@@ -139,7 +114,7 @@ Obdn_Geometry obdn_CreateTriangle(Obdn_Memory* memory)
         .attrSizes = {12, 12}
     };
 
-    initPrimBuffers(memory, &prim);
+    initPrimBuffers(memory, 0x0, &prim);
 
     Vec3 positions[] = {
         {0.0, 0.5, 0.0},
@@ -179,7 +154,7 @@ Obdn_Geometry obdn_CreateCube(Obdn_Memory* memory, const bool isClockWise)
         .attrSizes = {12, 12, 8}
     };
 
-    initPrimBuffers(memory, &prim);
+    initPrimBuffers(memory, 0x0, &prim);
 
     const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME, UV_NAME};
     for (int i = 0; i < attrCount; i++) 
@@ -360,7 +335,7 @@ Obdn_Geometry obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount, co
         .vertexCount = vertCount,
     };
 
-    initPrimBuffers(memory, &prim);
+    initPrimBuffers(memory, 0x0, &prim);
 
     Vec3* positions = obdn_GetGeoAttribute(&prim, 0);
     Vec3* colors    = obdn_GetGeoAttribute(&prim, 1);
@@ -396,7 +371,7 @@ Obdn_Geometry obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float
         .attrSizes = {12, 12}
     };
 
-    initPrimBuffers(memory, &prim);
+    initPrimBuffers(memory, 0x0, &prim);
 
     Vec3* pos = obdn_GetGeoAttribute(&prim, 0);
     // upper left. x, y
@@ -432,7 +407,7 @@ Obdn_Geometry obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const flo
         .attrSizes = {12, 12, 8}
     };
 
-    initPrimBuffers(memory, &prim);
+    initPrimBuffers(memory, 0x0, &prim);
 
     Vec3* pos = obdn_GetGeoAttribute(&prim, 0);
     // upper left. x, y
@@ -464,7 +439,9 @@ Obdn_Geometry obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const flo
     return prim;
 }
 
-Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, const uint32_t vertCount, const uint32_t indexCount, 
+Obdn_Geometry 
+obdn_CreateGeometry(Obdn_Memory* memory, VkBufferUsageFlags extraBufferFlags, 
+        const uint32_t vertCount, const uint32_t indexCount, 
         const uint8_t attrCount, const uint8_t attrSizes[])
 {
     Obdn_Geometry prim = {
@@ -480,7 +457,7 @@ Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, const uint32_t vertCount,
         prim.attrSizes[i] = attrSizes[i];
     }
 
-    initPrimBuffersAligned(memory, &prim, obdn_GetPhysicalDeviceProperties(memory->instance)->limits.minStorageBufferOffsetAlignment); // for use in compute / rt shaders
+    initPrimBuffers(memory, extraBufferFlags, &prim);
 
     return prim;
 }

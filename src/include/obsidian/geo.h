@@ -43,15 +43,14 @@ Obdn_Geometry  obdn_CreateCurve(Obdn_Memory*, const uint32_t vertCount, const ui
 Obdn_Geometry  obdn_CreateQuadNDC(Obdn_Memory*, const float x, const float y, const float width, const float height);
 // creates pos, normal, and uv attribute
 Obdn_Geometry obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const float y, const float width, const float height);
-#ifdef __cplusplus // no real reason to be doing this... other than documentation
-Obdn_Geometry obdn_CreatePrimitive(Obdn_Memory*, const uint32_t vertCount, const uint32_t indexCount, 
-                                           const uint8_t attrCount, const uint8_t* attrSizes);
-Obdn_R_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_R_AttributeSize* attrSizes);
-#else
-Obdn_Geometry  obdn_CreateGeometry(Obdn_Memory*, const uint32_t vertCount, const uint32_t indexCount, 
-                                           const uint8_t attrCount, const uint8_t* attrSizes);
-Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[]);
-#endif
+
+// if the geometry is going to be used for compute or raytracing must pass storage buffer usage bit
+// if the geometry is going to be used for acceleration structure creation must pass
+// acceleration structure build usage flag
+Obdn_Geometry obdn_CreateGeometry(Obdn_Memory* memory, VkBufferUsageFlags extraBufferFlags, 
+        const uint32_t vertCount, const uint32_t indexCount, 
+        const uint8_t attrCount, const uint8_t attrSizes[/*attrCount*/]);
+Obdn_VertexDescription obdn_GetVertexDescription(const uint32_t attrCount, const Obdn_GeoAttributeSize attrSizes[/*attrCount*/]);
 void*              obdn_GetGeoAttribute(const Obdn_Geometry* prim, const uint32_t index);
 Obdn_GeoIndex*     obdn_GetGeoIndices(const Obdn_Geometry* prim);
 void obdn_BindGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim);

@@ -248,7 +248,7 @@ obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
 
 Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath,
                                    const Coal_Mat4     xform,
-                                   Obdn_MaterialHandle mat);
+                                   Obdn_MaterialHandle mat, VkBufferUsageFlags extraBufferUsageFlags);
 
 // replaces geo on a prim with new geo. returns the geo that was there ( to be
 // potentially freed )
