@@ -25,10 +25,8 @@ FetchContent_Declare(
     GIT_TAG master)
 
 include(GNUInstallDirs)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 enable_testing()
 
-set(CMAKE_BUILD_TYPE DEBUG)
 find_package(Vulkan 1.2.162)
 if (NOT Vulkan_FOUND)
     FetchContent_Declare(
