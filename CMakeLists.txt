@@ -12,7 +12,7 @@ endif()
 
 include(FetchContent)
 
-list(APPEND CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 FetchContent_Declare(
     hell 
