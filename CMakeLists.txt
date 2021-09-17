@@ -6,8 +6,12 @@ option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
 option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
 
-if(NOT DEFINED GIT_BASE_URL)
-    set(GIT_BASE_URL https://github.com/mokchira)
+if(NOT DEFINED HELL_URL)
+    set(HELL_URL https://github.com/mokchira/hell)
+endif()
+
+if(NOT DEFINED COAL_URL)
+    set(COAL_URL https://github.com/mokchira/coal)
 endif()
 
 include(FetchContent)
@@ -16,12 +20,12 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 FetchContent_Declare(
     hell 
-    GIT_REPOSITORY ${GIT_BASE_URL}/hell
+    GIT_REPOSITORY ${HELL_URL}
     GIT_TAG master)
 
 FetchContent_Declare(
     coal
-    GIT_REPOSITORY ${GIT_BASE_URL}/coal
+    GIT_REPOSITORY ${COAL_URL}
     GIT_TAG master)
 
 include(GNUInstallDirs)
