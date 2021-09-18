@@ -1,1 +1,0 @@
-gcc tntinfo.c -o tntinfo -I/home/michaelb/dev -L/home/michaelb/lib -lm -lcoal -ltanto -lvulkan -lxcb -lxcb-keysyms -lfreetype -lcoal
