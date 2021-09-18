@@ -55,6 +55,26 @@ static void setBlendModeErase(VkPipelineColorBlendAttachmentState* state)
     state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
+static void setBlendModeOverPremultR32(VkPipelineColorBlendAttachmentState* state)
+{
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    state->colorBlendOp = VK_BLEND_OP_ADD;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    state->alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
+static void setBlendModeOverStraightR32(VkPipelineColorBlendAttachmentState* state)
+{
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    state->colorBlendOp = VK_BLEND_OP_ADD;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    state->alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
 static void initShaderModule(const VkDevice device, const char* filepath, VkShaderModule* module)
 {
     int fr;
@@ -321,9 +341,10 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
 
         switch (rasterInfo->blendMode)
         {
-            case OBDN_R_BLEND_MODE_OVER:          setBlendModeOverPremult(&attachmentStates[i][0]); break;
-            case OBDN_R_BLEND_MODE_OVER_STRAIGHT: setBlendModeOverStraight(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_OVER:          setBlendModeOverPremultR32(&attachmentStates[i][0]); break;
+            case OBDN_R_BLEND_MODE_OVER_STRAIGHT: setBlendModeOverStraightR32(&attachmentStates[i][0]); break;
             case OBDN_R_BLEND_MODE_ERASE:         setBlendModeErase(&attachmentStates[i][0]); break;
+//            case OBDN_R_BLEND_MODE_32ADD:         setBlendModeAddR32(&attachmentStates[i][0]); break;
             default: break;
         }
 

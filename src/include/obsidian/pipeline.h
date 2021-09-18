@@ -48,6 +48,7 @@ typedef enum {
     OBDN_R_BLEND_MODE_OVER,
     OBDN_R_BLEND_MODE_OVER_STRAIGHT, //no premultiply
     OBDN_R_BLEND_MODE_ERASE,
+    OBDN_R_BLEND_MODE_32ADD
 } Obdn_R_BlendMode;
 
 typedef struct {
