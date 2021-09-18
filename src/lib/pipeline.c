@@ -57,7 +57,7 @@ static void setBlendModeErase(VkPipelineColorBlendAttachmentState* state)
 
 static void setBlendModeOverPremultR32(VkPipelineColorBlendAttachmentState* state)
 {
-    state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_COLOR;
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
     state->colorBlendOp = VK_BLEND_OP_ADD;
     state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
