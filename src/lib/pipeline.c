@@ -25,7 +25,7 @@ void obdn_SetRuntimeSpvPrefix(const char* prefix)
     runtimeSpvPrefix = hell_CopyString(prefix);
 }
 
-static void setBlendModeOverPremult(VkPipelineColorBlendAttachmentState* state)
+static void setBlendModeOver(VkPipelineColorBlendAttachmentState* state)
 {
     state->srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -35,7 +35,7 @@ static void setBlendModeOverPremult(VkPipelineColorBlendAttachmentState* state)
     state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
-static void setBlendModeOverStraight(VkPipelineColorBlendAttachmentState* state)
+static void setBlendModeOverNoPremul(VkPipelineColorBlendAttachmentState* state)
 {
     state->srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
@@ -55,7 +55,7 @@ static void setBlendModeErase(VkPipelineColorBlendAttachmentState* state)
     state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
-static void setBlendModeOverPremultR32(VkPipelineColorBlendAttachmentState* state)
+static void setBlendModeOverMonochrome(VkPipelineColorBlendAttachmentState* state)
 {
     state->srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
@@ -65,7 +65,7 @@ static void setBlendModeOverPremultR32(VkPipelineColorBlendAttachmentState* stat
     state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
-static void setBlendModeOverStraightR32(VkPipelineColorBlendAttachmentState* state)
+static void setBlendModeOverNoPremulMonochrome(VkPipelineColorBlendAttachmentState* state)
 {
     state->srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
     state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
@@ -335,16 +335,17 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
                     VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
                                                                             write anything to the
                                                                             framebuffer */
-                .blendEnable = (rasterInfo->blendMode == OBDN_R_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
+                .blendEnable = (rasterInfo->blendMode == OBDN_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
             };
         }
 
         switch (rasterInfo->blendMode)
         {
-            case OBDN_R_BLEND_MODE_OVER:          setBlendModeOverPremultR32(&attachmentStates[i][0]); break;
-            case OBDN_R_BLEND_MODE_OVER_STRAIGHT: setBlendModeOverStraightR32(&attachmentStates[i][0]); break;
-            case OBDN_R_BLEND_MODE_ERASE:         setBlendModeErase(&attachmentStates[i][0]); break;
-//            case OBDN_R_BLEND_MODE_32ADD:         setBlendModeAddR32(&attachmentStates[i][0]); break;
+            case OBDN_BLEND_MODE_OVER:                      setBlendModeOver(&attachmentStates[i][0]); break;
+            case OBDN_BLEND_MODE_OVER_NO_PREMUL:            setBlendModeOverNoPremul(&attachmentStates[i][0]); break;
+            case OBDN_BLEND_MODE_ERASE:                     setBlendModeErase(&attachmentStates[i][0]); break;
+            case OBDN_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&attachmentStates[i][0]); break;
+            case OBDN_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&attachmentStates[i][0]); break;
             default: break;
         }
 
