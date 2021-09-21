@@ -903,13 +903,13 @@ bool obdn_GetExternalMemoryWin32Handle(const Obdn_Memory* memory, HANDLE* handle
 {
     VkMemoryGetWin32HandleInfoKHR handleInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
-        .memory = obdn_GetDeviceMemory(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE),
+        .memory = obdn_GetDeviceMemory(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE),
         .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT,
     };
 
     V_ASSERT( vkGetMemoryWin32HandleKHR(obdn_GetDevice(memory->instance), &handleInfo, handle) );
 
-    *size = obdn_GetMemorySize(memory, OBDN_V_MEMORY_EXTERNAL_DEVICE_TYPE);
+    *size = obdn_GetMemorySize(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(*size);
     return true;
