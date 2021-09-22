@@ -13,6 +13,7 @@ list(APPEND SRCS
 	scene.c      
 	file.c       
 	common.c       
+    util.c
 	locations.c)
 list(APPEND DEPS 
     Vulkan::Vulkan)

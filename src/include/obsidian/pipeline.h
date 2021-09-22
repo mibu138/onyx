@@ -44,11 +44,14 @@ typedef enum {
 } Obdn_R_PipelineType;
 
 typedef enum {
-    OBDN_R_BLEND_MODE_NONE,
-    OBDN_R_BLEND_MODE_OVER,
-    OBDN_R_BLEND_MODE_OVER_STRAIGHT, //no premultiply
-    OBDN_R_BLEND_MODE_ERASE,
-} Obdn_R_BlendMode;
+    OBDN_BLEND_MODE_NONE,
+    OBDN_BLEND_MODE_OVER,
+    OBDN_BLEND_MODE_OVER_NO_PREMUL, 
+    OBDN_BLEND_MODE_ERASE,
+    OBDN_BLEND_MODE_OVER_MONOCHROME,
+    OBDN_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME,
+    OBDN_BLEND_MODE_ERASE_MONOCHROME,
+} Obdn_BlendMode;
 
 typedef struct {
     VkRenderPass              renderPass;
@@ -59,7 +62,7 @@ typedef struct {
     VkCullModeFlags           cullMode; // a value of 0 will default to culling the back faces
     VkFrontFace               frontFace;
     VkSampleCountFlags        sampleCount;
-    Obdn_R_BlendMode          blendMode;
+    Obdn_BlendMode          blendMode;
     VkExtent2D                viewportDim;
     uint32_t                  attachmentCount;
     uint32_t                  tesselationPatchPoints;
