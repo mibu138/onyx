@@ -75,6 +75,16 @@ static void setBlendModeOverNoPremulMonochrome(VkPipelineColorBlendAttachmentSta
     state->alphaBlendOp = VK_BLEND_OP_ADD;
 }
 
+static void setBlendModeEraseMonochrome(VkPipelineColorBlendAttachmentState* state)
+{
+    state->srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
+    state->dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    state->colorBlendOp = VK_BLEND_OP_ADD;
+    state->srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    state->dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+    state->alphaBlendOp = VK_BLEND_OP_ADD;
+}
+
 static void initShaderModule(const VkDevice device, const char* filepath, VkShaderModule* module)
 {
     int fr;
@@ -346,7 +356,8 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
             case OBDN_BLEND_MODE_ERASE:                     setBlendModeErase(&attachmentStates[i][0]); break;
             case OBDN_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&attachmentStates[i][0]); break;
             case OBDN_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&attachmentStates[i][0]); break;
-            default: break;
+            case OBDN_BLEND_MODE_ERASE_MONOCHROME:          setBlendModeEraseMonochrome(&attachmentStates[i][0]); break;
+            case OBDN_BLEND_MODE_NONE: break;
         }
 
         colorBlendStates[i] = (VkPipelineColorBlendStateCreateInfo){
