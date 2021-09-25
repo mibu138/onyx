@@ -126,6 +126,10 @@ typedef struct {
     Obdn_SceneObjectInt* primIds;
 } Obdn_PrimitiveList;
 
+// New paradigm: scene does not own any gpu resources. Images, geo, anything backed by gpu memory
+// Those things should be created and destroyed independently
+// This allows us to avoid confusion when multiple entities are sharing a scene and hopefully 
+// avoid double-freeing reources.
 Obdn_Scene* obdn_AllocScene(void);
 void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip,
                       float farClip, Obdn_Scene* scene);
@@ -153,7 +157,7 @@ void obdn_AddPrimToList(const Obdn_PrimitiveHandle, Obdn_PrimitiveList*);
 void obdn_AddDirectionLight(Obdn_Scene* s, Coal_Vec3 dir, Coal_Vec3 color,
                             float intensity);
 void obdn_ClearPrimList(Obdn_PrimitiveList*);
-void obdn_CleanUpScene(Obdn_Scene* scene);
+void obdn_DestroyScene(Obdn_Scene* scene);
 void obdn_AddPointLight(Obdn_Scene* s, Coal_Vec3 pos, Coal_Vec3 color,
                         float intensity);
 void obdn_PrintLightInfo(const Obdn_Scene* s);
@@ -165,12 +169,12 @@ void obdn_SceneRemoveLight(Obdn_Scene* s, Obdn_LightHandle id);
 const Obdn_PrimitiveHandle* obdn_SceneGetDirtyPrimitives(const Obdn_Scene*,
                                                          uint32_t* count);
 
+void obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex);
+
 void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle id);
 Obdn_PrimitiveHandle obdn_AddPrim(Obdn_Scene* scene, const Obdn_Geometry geo,
                                   const Coal_Mat4     xform,
                                   Obdn_MaterialHandle mat);
-Obdn_TextureHandle   obdn_LoadTexture(Obdn_Scene* scene, const char* filePath,
-                                      const uint8_t channelCount);
 Obdn_LightHandle     obdn_CreateDirectionLight(Obdn_Scene*     scene,
                                                const Coal_Vec3 color,
                                                const Coal_Vec3 direction);
@@ -215,7 +219,7 @@ void obdn_SceneEndFrame(Obdn_Scene*);
 Obdn_PrimitiveHandle obdn_SceneAddCube(Obdn_Scene* s, Coal_Mat4 xform,
                        Obdn_MaterialHandle mathandle, bool clockwise);
 
-Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene*  scene,
+Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene*  scene,
                                            Obdn_Image image);
 
 Obdn_Material* obdn_GetMaterial(const Obdn_Scene*   s,
@@ -245,10 +249,6 @@ const Obdn_Camera* obdn_SceneGetCamera(const Obdn_Scene* scene);
 
 Obdn_Primitive* 
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
-
-Obdn_PrimitiveHandle obdn_LoadPrim(Obdn_Scene* scene, const char* filePath,
-                                   const Coal_Mat4     xform,
-                                   Obdn_MaterialHandle mat, VkBufferUsageFlags extraBufferUsageFlags);
 
 // replaces geo on a prim with new geo. returns the geo that was there ( to be
 // potentially freed )

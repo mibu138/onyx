@@ -180,7 +180,6 @@ static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
 {
     assert(handle.id < s->primCapacity);
     assert(handle.id > 0); //cant remove the default prim
-    obdn_FreeGeo(&PRIM(s, handle).geo);
     PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_REMOVED;
     addPrimToDirtyPrims(s, handle);
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
@@ -196,7 +195,6 @@ static void removeLight(Scene* s, Obdn_LightHandle handle)
 static void removeTexture(Scene* s, Obdn_TextureHandle handle)
 {
     assert(handle.id < s->textureCapacity);
-    obdn_FreeImage(&TEXTURE(s, handle).devImage);
     removeSceneObject(handle.id, s->textures, &s->textureCount, sizeof(s->textures[0]), &s->texMap);
     s->dirt |= OBDN_SCENE_TEXTURES_BIT;
 }
@@ -339,41 +337,6 @@ Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const C
     return handle;
 }
 
-Obdn_PrimitiveHandle obdn_LoadPrim(Scene* scene, const char* filePath, const Coal_Mat4 xform, MaterialHandle mat, VkBufferUsageFlags extraBufferUsageFlags)
-{
-    Obdn_FileGeo fprim;
-    int r = obdn_ReadFileGeo(filePath, &fprim);
-    assert(r);
-    Obdn_Geometry prim = obdn_CreateGeoFromFileGeo(scene->memory, extraBufferUsageFlags, &fprim);
-    obdn_TransferGeoToDevice(scene->memory, &prim);
-    obdn_FreeFileGeo(&fprim);
-    obdn_Announce("Loaded prim at %s\n", filePath);
-    return obdn_AddPrim(scene, prim, xform, mat);
-}
-
-Obdn_TextureHandle obdn_LoadTexture(Obdn_Scene* scene, const char* filePath, const uint8_t channelCount)
-{
-    Texture texture = {0};
-
-    VkFormat format;
-
-    switch (channelCount) 
-    {
-        case 1: format = VK_FORMAT_R8_UNORM; break;
-        case 3: format = VK_FORMAT_R8G8B8A8_UNORM; break;
-        case 4: format = VK_FORMAT_R8G8B8A8_UNORM; break;
-        default: DPRINT("ChannelCount %d not support.\n", channelCount); return NULL_TEXTURE;
-    }
-
-    obdn_LoadImage(scene->memory, filePath, channelCount, format,
-            VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, 
-            VK_IMAGE_ASPECT_COLOR_BIT, 
-            1, VK_FILTER_LINEAR, OBDN_MEMORY_DEVICE_TYPE, 
-            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, true, &texture.devImage);
-
-    return addTexture(scene, texture);
-}
-
 Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
         Obdn_TextureHandle albedoId, Obdn_TextureHandle roughnessId, Obdn_TextureHandle normalId)
 {
@@ -471,18 +434,8 @@ void obdn_ClearPrimList(Obdn_PrimitiveList* list)
     list->primCount = 0;
 }
 
-void obdn_CleanUpScene(Obdn_Scene* scene)
+void obdn_DestroyScene(Obdn_Scene* scene)
 {
-    for (int i = 0; i < scene->primCount; i++)
-    {
-        obdn_FreeGeo(&scene->prims[i].geo);
-    }
-    for (int i = 1; i <= scene->textureCount; i++) // remember 1 is the first valid texture index
-    {
-        obdn_FreeImage(&scene->textures[i].devImage);   
-        if (scene->textures[i].hostBuffer.hostData)
-            obdn_FreeBufferRegion(&scene->textures[i].hostBuffer);
-    }
     memset(scene, 0, sizeof(*scene));
 }
 
@@ -659,11 +612,17 @@ Obdn_Material* obdn_GetMaterial(const Obdn_Scene* s, Obdn_MaterialHandle handle)
     return &MATERIAL(s, handle);
 }
 
-Obdn_TextureHandle obdn_SceneCreateTexture(Obdn_Scene* scene, Obdn_Image image)
+Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene* scene, Obdn_Image image)
 {
     Obdn_Texture tex = {0};
     tex.devImage = image;
     return addTexture(scene, tex);
+}
+
+void 
+obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex)
+{
+    removeTexture(scene, tex);
 }
 
 uint32_t obdn_SceneGetTextureCount(const Obdn_Scene* s)
