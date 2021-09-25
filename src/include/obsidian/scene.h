@@ -216,9 +216,6 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene*);
 // sets dirt flags to 0 and resets dirty prim set
 void obdn_SceneEndFrame(Obdn_Scene*);
 
-Obdn_PrimitiveHandle obdn_SceneAddCube(Obdn_Scene* s, Coal_Mat4 xform,
-                       Obdn_MaterialHandle mathandle, bool clockwise);
-
 Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene*  scene,
                                            Obdn_Image image);
 

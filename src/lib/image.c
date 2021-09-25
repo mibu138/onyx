@@ -290,13 +290,13 @@ void obdn_CopyBufferToImage(const Obdn_BufferRegion* region,
 }
 
 void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t channelCount, const VkFormat format,
-    const VkImageUsageFlags usageFlags,
+    VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
     const VkFilter filter,
-    const uint32_t queueFamilyIndex, 
     const VkImageLayout layout,
     const bool createMips,
+    Obdn_MemoryType memoryType,
     Image* image)
 {
     assert(channelCount < 5);
@@ -307,7 +307,11 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     assert(image->size == 0);
     const uint32_t mipLevels = createMips ? floor(log2(fmax(w, h))) + 1 : 1;
 
-    *image = obdn_CreateImageAndSampler(memory, w, h, format, usageFlags, aspectMask, sampleCount, mipLevels, filter, queueFamilyIndex);
+    usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT; //to copy buffer to it 
+    if (createMips) 
+        usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+
+    *image = obdn_CreateImageAndSampler(memory, w, h, format, usageFlags, aspectMask, sampleCount, mipLevels, filter, memoryType);
 
     BufferRegion stagingBuffer = obdn_RequestBufferRegion(memory, image->size, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE); //TODO: support transfer queue here

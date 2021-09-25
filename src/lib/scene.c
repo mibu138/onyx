@@ -295,9 +295,12 @@ void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, 
     createDefaultTexture(memory, &tex);
     TextureHandle texhandle = addTexture(scene, tex);
     MaterialHandle defaultMat = obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
-    PrimitiveHandle defaultCube = obdn_SceneAddCube(scene, COAL_MAT4_IDENT, defaultMat, false);
-    PRIM(scene, defaultCube).flags |= OBDN_PRIM_INVISIBLE_BIT;
-
+    Obdn_Primitive prim = {};
+    prim.geo = obdn_CreateCube(memory, false);
+    prim.xform = COAL_MAT4_IDENT;
+    prim.material = defaultMat;
+    prim.flags = OBDN_PRIM_INVISIBLE_BIT;
+    addPrim(scene, prim);
 
     scene->dirt = -1; // dirty everything
 
@@ -594,12 +597,6 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
         }
     }
     s->dirtyPrims.count = 0;
-}
-
-PrimitiveHandle obdn_SceneAddCube(Obdn_Scene* s, Mat4 xform, MaterialHandle mathandle, bool clockwise)
-{
-    Obdn_Geometry cube = obdn_CreateCube(s->memory, clockwise);
-    return obdn_AddPrim(s, cube, xform, mathandle);
 }
 
 Obdn_Texture* obdn_GetTexture(const Obdn_Scene* s, Obdn_TextureHandle handle)

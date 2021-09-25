@@ -19,7 +19,7 @@ Obdn_Image obdn_CreateImageAndSampler(
     const uint32_t width, 
     const uint32_t height,
     const VkFormat format,
-    const VkImageUsageFlags usageFlags,
+    VkImageUsageFlags extraUsageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
     const uint32_t mipLevels,
@@ -40,14 +40,19 @@ void obdn_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, uint32_t mipLevel, 
 void obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf, const Obdn_Barrier barrier, 
         const VkImageLayout oldLayout, const VkImageLayout newLayout, const uint32_t mipLevels, VkImage image);
 
-void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t channelCount, const VkFormat format,
-    const VkImageUsageFlags usageFlags,
+// Does not check for existence of file at filepath.
+// all images created on the graphic queue. for now.
+// extraUsageFlags are additional usage flags that will be set on 
+// top of the ones that are needed such as TRANSFER_DST and 
+// TRANSFER_SRC if mip maps are needed. No harm in over specifying.
+void obdn_LoadImage(Obdn_Memory* memory, const char* filepath, const uint8_t channelCount, const VkFormat format,
+    VkImageUsageFlags extraUsageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
     const VkFilter filter,
-    const uint32_t queueFamilyIndex, 
     const VkImageLayout layout,
     const bool createMips,
+    Obdn_MemoryType memoryType,
     Obdn_Image* image);
 
 void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename);
