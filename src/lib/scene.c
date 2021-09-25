@@ -716,17 +716,6 @@ obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
     return &PRIM(s, handle);
 }
 
-Obdn_Geometry* 
-obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry* newgeo)
-{
-    Obdn_Geometry* old = PRIM(s, handle).geo;
-    PRIM(s, handle).geo = newgeo;
-    addPrimToDirtyPrims(s, handle);
-    PRIM(s, handle).dirt |= OBDN_PRIM_TOPOLOGY_CHANGED_BIT;
-    s->dirt |= OBDN_SCENE_PRIMS_BIT;
-    return old;
-}
-
 void obdn_SceneDirtyAll(Obdn_Scene* s)
 {
     s->dirt = -1;

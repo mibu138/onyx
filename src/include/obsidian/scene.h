@@ -251,17 +251,13 @@ const Obdn_Camera* obdn_SceneGetCamera(const Obdn_Scene* scene);
 
 // Writeable access to the geo held by the prim. 
 // Must pass flags to indicate how the geo will be modified.
+// Can return NULL indicating prim has no geo yet.
 Obdn_Geometry* obdn_SceneGetPrimGeo(Obdn_Scene*          scene,
                                     Obdn_PrimitiveHandle prim,
                                     Obdn_PrimDirtyFlags  flags);
 
 Obdn_Primitive* 
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
-
-// replaces geo on a prim with new geo. returns the geo that was there ( to be
-// potentially freed )
-Obdn_Geometry* obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle,
-                                    Obdn_Geometry* newgeo);
 
 void obdn_SceneDirtyAll(Obdn_Scene* s);
 
