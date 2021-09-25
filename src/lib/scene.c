@@ -77,6 +77,8 @@ typedef struct Obdn_Scene {
     Obdn_Texture*        textures;
     obint                lightCapacity;
     Obdn_Light*          lights;
+    Obdn_Geometry        defaultGeo;
+    Obdn_Image           defaultImage;
     ObjectMap            primMap;
     ObjectMap            lightMap;
     ObjectMap            matMap;
@@ -230,26 +232,30 @@ static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 
 
 #define DEFAULT_TEX_DIM 4
 
-static void createDefaultTexture(Obdn_Memory* memory, Texture* texture)
+static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* texture)
 {
-    texture->hostBuffer = obdn_RequestBufferRegion(
+    Obdn_BufferRegion hostBuffer = obdn_RequestBufferRegion(
         memory, 4 * DEFAULT_TEX_DIM * DEFAULT_TEX_DIM /* 4 components, 1 byte each*/,
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
-    u8* pxcomponent = texture->hostBuffer.hostData;
+    u8* pxcomponent = hostBuffer.hostData;
     for (int i = 0; i < (DEFAULT_TEX_DIM * DEFAULT_TEX_DIM * 4); i++)
     {
         *pxcomponent++ = UINT8_MAX; // should be full white, hopefully
     }
 
-    texture->devImage = obdn_CreateImageAndSampler(
+    scene->defaultImage = obdn_CreateImageAndSampler(
         memory, DEFAULT_TEX_DIM, DEFAULT_TEX_DIM, VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, VK_FILTER_LINEAR,
         OBDN_MEMORY_DEVICE_TYPE);
 
-    obdn_CopyBufferToImage(&texture->hostBuffer, &texture->devImage);
+    obdn_CopyBufferToImage(&hostBuffer, &scene->defaultImage);
 
-    obdn_TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &texture->devImage);
+    obdn_TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &scene->defaultImage);
+
+    obdn_FreeBufferRegion(&hostBuffer);
+
+    texture->devImage = &scene->defaultImage;
 }
 
 static void printPrimInfoCmd(const Hell_Grimoire* grim, void* scene)
@@ -292,11 +298,12 @@ void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, 
 
     // create defaults
     Texture tex = {0};
-    createDefaultTexture(memory, &tex);
+    createDefaultTexture(scene, memory, &tex);
     TextureHandle texhandle = addTexture(scene, tex);
     MaterialHandle defaultMat = obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
     Obdn_Primitive prim = {};
-    prim.geo = obdn_CreateCube(memory, false);
+    scene->defaultGeo = obdn_CreateCube(memory, false);
+    prim.geo = &scene->defaultGeo;
     prim.xform = COAL_MAT4_IDENT;
     prim.material = defaultMat;
     prim.flags = OBDN_PRIM_INVISIBLE_BIT;
@@ -327,7 +334,7 @@ void obdn_BindPrimToMaterialDirect(Scene* scene, uint32_t directIndex, Obdn_Mate
     scene->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
 
-Obdn_PrimitiveHandle obdn_AddPrim(Scene* scene, const Obdn_Geometry geo, const Coal_Mat4 xform, MaterialHandle mat)
+Obdn_PrimitiveHandle obdn_SceneAddPrim(Scene* scene, Obdn_Geometry* geo, const Coal_Mat4 xform, MaterialHandle mat)
 {
     Obdn_Primitive prim = {
         .geo = geo,
@@ -489,7 +496,7 @@ void obdn_PrintTextureInfo(const Scene* s)
     for (int i = 0; i < s->textureCount; i++)
     {
         const Texture* tex = &s->textures[i];
-        const Obdn_Image* img = &tex->devImage;
+        const Obdn_Image* img = tex->devImage;
         hell_Print("Texture index %d\n", i); 
         hell_Print("Width %d Height %d Size %d \n", img->extent.width, img->extent.height, img->size);
         hell_Print("Format %d \n", img->format);
@@ -609,7 +616,7 @@ Obdn_Material* obdn_GetMaterial(const Obdn_Scene* s, Obdn_MaterialHandle handle)
     return &MATERIAL(s, handle);
 }
 
-Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene* scene, Obdn_Image image)
+Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene* scene, Obdn_Image* image)
 {
     Obdn_Texture tex = {0};
     tex.devImage = image;
@@ -657,7 +664,7 @@ void obdn_SceneDirtyTextures(Obdn_Scene* s)
     s->dirt |= OBDN_SCENE_TEXTURES_BIT;
 }
 
-void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, u32 directIndex)
+void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry* geo, u32 directIndex)
 {
     s->prims[directIndex].geo = geo;
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
@@ -665,13 +672,14 @@ void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo, u32 directIndex)
 
 void obdn_SceneFreeGeoDirect(Obdn_Scene* s, u32 directIndex)
 {
-    obdn_FreeGeo(&s->prims[directIndex].geo);
-    memset(&s->prims[directIndex].geo, 0, sizeof(s->prims[directIndex].geo));;
+    obdn_FreeGeo(s->prims[directIndex].geo);
+    memset(s->prims[directIndex].geo, 0, sizeof(*s->prims[directIndex].geo));;
+    s->prims[directIndex].geo = NULL;
 }
 
 bool obdn_SceneHasGeoDirect(Obdn_Scene* s, u32 directIndex)
 {
-    if (s->prims[0].geo.vertexCount) return true;
+    if (s->prims[0].geo) return true;
     return false;
 }
 
@@ -700,10 +708,10 @@ obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
     return &PRIM(s, handle);
 }
 
-Obdn_Geometry 
-obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry newgeo)
+Obdn_Geometry* 
+obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry* newgeo)
 {
-    Obdn_Geometry old = PRIM(s, handle).geo;
+    Obdn_Geometry* old = PRIM(s, handle).geo;
     PRIM(s, handle).geo = newgeo;
     addPrimToDirtyPrims(s, handle);
     PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_TOPOLOGY_CHANGED;

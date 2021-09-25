@@ -79,7 +79,7 @@ typedef struct {
 } Obdn_DirectionLight;
 
 typedef struct {
-    Obdn_Geometry       geo;
+    Obdn_Geometry*      geo;
     Obdn_Xform          xform;
     Obdn_MaterialHandle material;
     Obdn_PrimDirtyFlags dirt;
@@ -99,8 +99,7 @@ typedef struct {
 } Obdn_Light;
 
 typedef struct {
-    Obdn_Image        devImage;
-    Obdn_BufferRegion hostBuffer;
+    Obdn_Image*       devImage;
 } Obdn_Texture;
 
 typedef struct {
@@ -171,10 +170,14 @@ const Obdn_PrimitiveHandle* obdn_SceneGetDirtyPrimitives(const Obdn_Scene*,
 
 void obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex);
 
+// Does not free geo
 void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle id);
-Obdn_PrimitiveHandle obdn_AddPrim(Obdn_Scene* scene, const Obdn_Geometry geo,
+
+// Does not own the geo. Will not free if prim is removed.
+Obdn_PrimitiveHandle obdn_SceneAddPrim(Obdn_Scene* scene, Obdn_Geometry* geo,
                                   const Coal_Mat4     xform,
                                   Obdn_MaterialHandle mat);
+
 Obdn_LightHandle     obdn_CreateDirectionLight(Obdn_Scene*     scene,
                                                const Coal_Vec3 color,
                                                const Coal_Vec3 direction);
@@ -216,8 +219,9 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene*);
 // sets dirt flags to 0 and resets dirty prim set
 void obdn_SceneEndFrame(Obdn_Scene*);
 
+// Does not own the image
 Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene*  scene,
-                                           Obdn_Image image);
+                                           Obdn_Image* image);
 
 Obdn_Material* obdn_GetMaterial(const Obdn_Scene*   s,
                                 Obdn_MaterialHandle handle);
@@ -235,7 +239,8 @@ Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s);
 
 // a bit of a hack for dali
 void obdn_SceneDirtyTextures(Obdn_Scene* s);
-void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry geo,
+
+void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry* geo,
                             uint32_t directIndex);
 
 void obdn_SceneFreeGeoDirect(Obdn_Scene* s, uint32_t directIndex);
@@ -249,8 +254,8 @@ obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
 
 // replaces geo on a prim with new geo. returns the geo that was there ( to be
 // potentially freed )
-Obdn_Geometry obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle,
-                                    Obdn_Geometry newgeo);
+Obdn_Geometry* obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle,
+                                    Obdn_Geometry* newgeo);
 
 void obdn_SceneDirtyAll(Obdn_Scene* s);
 
