@@ -149,7 +149,7 @@ static PrimitiveHandle addPrim(Scene* s, Obdn_Primitive prim)
     obint id = addSceneObject(&prim, s->prims, &s->primCount, &s->primCapacity, sizeof(prim), &s->primMap);
     PrimitiveHandle handle = {id};
     addPrimToDirtyPrims(s, handle);
-    PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_ADDED;
+    PRIM(s, handle).dirt |= OBDN_PRIM_ADDED_BIT;
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
     return handle;
 }
@@ -182,7 +182,7 @@ static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
 {
     assert(handle.id < s->primCapacity);
     assert(handle.id > 0); //cant remove the default prim
-    PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_REMOVED;
+    PRIM(s, handle).dirt |= OBDN_PRIM_REMOVED_BIT;
     addPrimToDirtyPrims(s, handle);
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
 }
@@ -594,7 +594,7 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
         PrimitiveHandle handle = dp[i];
         // remove prims at the end of the frame so scene consumers can react to the prim 
         // having the remove bit set
-        if (PRIM(s, handle).dirt & OBDN_PRIM_UPDATE_REMOVED)
+        if (PRIM(s, handle).dirt & OBDN_PRIM_REMOVED_BIT)
         {
             removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
         }
@@ -702,6 +702,14 @@ void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4 m)
     scene->dirt |= OBDN_SCENE_CAMERA_PROJ_BIT;
 }
 
+Obdn_Geometry* obdn_SceneGetPrimGeo(Obdn_Scene* scene, PrimitiveHandle prim, Obdn_PrimDirtyFlags flags)
+{
+    addPrimToDirtyPrims(scene, prim);
+    PRIM(scene, prim).dirt |= flags;
+    scene->dirt |= OBDN_SCENE_PRIMS_BIT;
+    return PRIM(scene, prim).geo;
+}
+
 Obdn_Primitive* 
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
 {
@@ -714,7 +722,7 @@ obdn_SceneSwapPrimGeo(Obdn_Scene* s, Obdn_PrimitiveHandle handle, Obdn_Geometry*
     Obdn_Geometry* old = PRIM(s, handle).geo;
     PRIM(s, handle).geo = newgeo;
     addPrimToDirtyPrims(s, handle);
-    PRIM(s, handle).dirt |= OBDN_PRIM_UPDATE_TOPOLOGY_CHANGED;
+    PRIM(s, handle).dirt |= OBDN_PRIM_TOPOLOGY_CHANGED_BIT;
     s->dirt |= OBDN_SCENE_PRIMS_BIT;
     return old;
 }

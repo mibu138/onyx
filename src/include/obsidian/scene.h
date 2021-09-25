@@ -48,9 +48,9 @@ typedef enum {
 typedef Obdn_Flags Obdn_SceneDirtyFlags;
 
 typedef enum {
-    OBDN_PRIM_UPDATE_ADDED            = 1 << 0,
-    OBDN_PRIM_UPDATE_REMOVED          = 1 << 1,
-    OBDN_PRIM_UPDATE_TOPOLOGY_CHANGED = 1 << 2,
+    OBDN_PRIM_ADDED_BIT            = 1 << 0,
+    OBDN_PRIM_REMOVED_BIT          = 1 << 1,
+    OBDN_PRIM_TOPOLOGY_CHANGED_BIT = 1 << 2,
 } Obdn_PrimDirtyFlagBits;
 typedef Obdn_Flags Obdn_PrimDirtyFlags;
 
@@ -248,6 +248,12 @@ void obdn_SceneFreeGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 bool obdn_SceneHasGeoDirect(Obdn_Scene* s, uint32_t directIndex);
 
 const Obdn_Camera* obdn_SceneGetCamera(const Obdn_Scene* scene);
+
+// Writeable access to the geo held by the prim. 
+// Must pass flags to indicate how the geo will be modified.
+Obdn_Geometry* obdn_SceneGetPrimGeo(Obdn_Scene*          scene,
+                                    Obdn_PrimitiveHandle prim,
+                                    Obdn_PrimDirtyFlags  flags);
 
 Obdn_Primitive* 
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
