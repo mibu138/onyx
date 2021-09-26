@@ -578,7 +578,7 @@ obdn_CreateUI(Obdn_Memory* memory, Hell_EventQueue* queue, Hell_Window* window,
     ui->rootWidget = addWidget(ui, 0, 0, ex.width, ex.height, rfnPassThrough,
                                NULL, NULL, NULL);
 
-    hell_Subscribe(queue, HELL_EVENT_MASK_MOUSE_BIT | HELL_EVENT_MASK_KEY_BIT,
+    hell_Subscribe(queue, HELL_EVENT_MASK_POINTER_BIT | HELL_EVENT_MASK_KEY_BIT,
                    hell_GetWindowID(window), responder, ui);
     obdn_Announce("UI initialized.\n");
 }
