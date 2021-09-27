@@ -414,6 +414,13 @@ void obdn_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int 
     scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
 }
 
+void obdn_SceneUpdateCamera_Pos(Obdn_Scene* scene, float dx, float dy, float dz)
+{
+    scene->camera.xform = coal_Translate_Mat4((Vec3){dx, dy, dz}, scene->camera.xform);
+    scene->camera.view  = coal_Invert4x4(scene->camera.xform);
+    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+}
+
 void obdn_UpdateLight(Scene* scene, LightHandle handle, float intensity)
 {
     LIGHT(scene, handle).intensity = intensity;

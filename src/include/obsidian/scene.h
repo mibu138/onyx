@@ -140,6 +140,7 @@ void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Coal_Vec3* target,
                                bool tumbling, bool zooming, bool home);
 void obdn_UpdateCamera_LookAt(Obdn_Scene* scene, Coal_Vec3 pos,
                               Coal_Vec3 target, Coal_Vec3 up);
+void obdn_SceneUpdateCamera_Pos(Obdn_Scene* scene, float dx, float dy, float dz);
 void obdn_CreateEmptyScene(Obdn_Scene* scene);
 void obdn_UpdateLight(Obdn_Scene* scene, Obdn_LightHandle handle,
                       float intensity);
