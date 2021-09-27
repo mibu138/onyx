@@ -21,7 +21,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 FetchContent_Declare(
     hell 
     GIT_REPOSITORY ${HELL_URL}
-    GIT_TAG pressureSupport)
+    GIT_TAG master)
 
 FetchContent_Declare(
     coal
