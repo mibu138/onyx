@@ -268,7 +268,25 @@ static void printTexInfoCmd(const Hell_Grimoire* grim, void* scene)
     obdn_PrintTextureInfo(scene);
 }
 
-void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, float farClip, Scene* scene)
+static Coal_Mat4 
+projectionMatrix(float w, float h, float n, float f)
+{
+    float p = 2 * n / w;
+    float q = 2 * n / h;
+    float A = f / (n - f);
+    float B = f * n / (n - f);
+    Mat4 m = {
+        p,   0,  0,  0,
+        0,  -q,  0,  0,
+        0,   0,  A,  -1,
+        0,   0,  B,  0
+    };
+    return m;
+}
+
+void
+obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearWidth,
+                 float nearHeight, float nearDepth, float farClip, Scene* scene)
 {
     memset(scene, 0, sizeof(*scene));
     scene->memory = memory;
@@ -277,7 +295,7 @@ void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip, 
     Mat4 m = coal_LookAt((Vec3){1, 1, 2}, (Vec3){0, 0, 0}, (Vec3){0, 1, 0});
     scene->camera.xform = m;
     scene->camera.view = coal_Invert4x4(m);
-    scene->camera.proj = coal_BuildPerspective(nearClip, farClip);
+    scene->camera.proj = projectionMatrix(nearWidth, nearHeight, nearWidth, farClip);
     // set all xforms to identity
     scene->primCapacity = INIT_PRIM_CAP;
     scene->lightCapacity = INIT_LIGHT_CAP;

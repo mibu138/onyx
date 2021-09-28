@@ -130,8 +130,8 @@ typedef struct {
 // This allows us to avoid confusion when multiple entities are sharing a scene and hopefully 
 // avoid double-freeing reources.
 Obdn_Scene* obdn_AllocScene(void);
-void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearClip,
-                      float farClip, Obdn_Scene* scene);
+void obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearWidth,
+                 float nearHeight, float nearDepth, float farClip, Obdn_Scene* scene);
 
 // will update camera as well as target.
 void obdn_UpdateCamera_ArcBall(Obdn_Scene* scene, Coal_Vec3* target,
