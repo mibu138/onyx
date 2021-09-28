@@ -269,15 +269,15 @@ static void printTexInfoCmd(const Hell_Grimoire* grim, void* scene)
 }
 
 static Coal_Mat4 
-projectionMatrix(float w, float h, float n, float f)
+projectionMatrix(float fov, float aspect_ratio, float n, float f)
 {
-    float p = 2 * n / w;
-    float q = 2 * n / h;
+    float p = fov / aspect_ratio;
+    float q = -fov;
     float A = f / (n - f);
     float B = f * n / (n - f);
     Mat4 m = {
         p,   0,  0,  0,
-        0,  -q,  0,  0,
+        0,   q,  0,  0,
         0,   0,  A,  -1,
         0,   0,  B,  0
     };
@@ -285,8 +285,8 @@ projectionMatrix(float w, float h, float n, float f)
 }
 
 void
-obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearWidth,
-                 float nearHeight, float nearDepth, float farClip, Scene* scene)
+obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float fov,
+                 float aspect_ratio, float nearClip, float farClip, Scene* scene)
 {
     memset(scene, 0, sizeof(*scene));
     scene->memory = memory;
@@ -295,7 +295,7 @@ obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float nearWidth,
     Mat4 m = coal_LookAt((Vec3){1, 1, 2}, (Vec3){0, 0, 0}, (Vec3){0, 1, 0});
     scene->camera.xform = m;
     scene->camera.view = coal_Invert4x4(m);
-    scene->camera.proj = projectionMatrix(nearWidth, nearHeight, nearWidth, farClip);
+    scene->camera.proj = projectionMatrix(fov, aspect_ratio, nearClip, farClip);
     // set all xforms to identity
     scene->primCapacity = INIT_PRIM_CAP;
     scene->lightCapacity = INIT_LIGHT_CAP;
@@ -750,4 +750,12 @@ const Obdn_Primitive* obdn_SceneGetDirtyPrims(const Obdn_Scene* s, uint32_t* cou
 {
     *count = s->dirtyPrims.count;
     return s->dirtyPrims.elems;
+}
+
+void obdn_SceneCameraUpdateAspectRatio(Obdn_Scene* s, float ar)
+{
+    float fov = -s->camera.proj.e[1][1];
+    float p   = fov / ar;
+    s->camera.proj.e[0][0] = p;
+    s->dirt |= OBDN_SCENE_CAMERA_PROJ_BIT;
 }
