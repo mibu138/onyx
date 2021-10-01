@@ -1,7 +1,7 @@
 function(author_shaders target_name output_dir glslc)
     set(options)
     set(oneValueArgs)
-    set(multiValueArgs SOURCES)
+    set(multiValueArgs SOURCES DEPS)
     cmake_parse_arguments(S "${options}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN})
 
     if (NOT DEFINED glslc)
@@ -23,7 +23,7 @@ function(author_shaders target_name output_dir glslc)
         add_custom_command(
             OUTPUT  ${SPV}
             COMMAND ${CMD}
-            DEPENDS ${SRC})
+            DEPENDS ${SRC} ${S_DEPS})
         list(APPEND SPVS ${SPV})
     endforeach(SRC)
 
