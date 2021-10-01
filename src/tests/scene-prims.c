@@ -37,7 +37,7 @@ int main(int argc, char *argv[])
     };
     obdn_CreateInstance(&ip, instance);
     obdn_CreateMemory(instance, 100, 100, 100, 0, 0, memory);
-    obdn_CreateScene(grim, memory, 0.01, 100, scene);
+    obdn_CreateScene(grim, memory, 1, 1, 0.01, 100, scene);
 
     Obdn_Geometry cube = obdn_CreateCube(memory, false);
     obdn_PrintGeo(&cube);
