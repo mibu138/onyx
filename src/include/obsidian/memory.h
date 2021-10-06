@@ -20,7 +20,7 @@ typedef struct Obdn_Memory Obdn_Memory;
 
 struct BlockChain;
 
-typedef struct {
+typedef struct Obdn_BufferRegion {
     VkDeviceSize       size;
     VkDeviceSize       offset;
     VkBuffer           buffer;
@@ -30,7 +30,7 @@ typedef struct {
     struct BlockChain* pChain;
 } Obdn_BufferRegion;
 
-typedef struct {
+typedef struct Obdn_Image {
     VkImage            handle;
     VkImageView        view;
     VkSampler          sampler;
