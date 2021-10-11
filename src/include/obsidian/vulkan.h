@@ -71,4 +71,25 @@ static inline void obdn_VulkanErrorMessage(VkResult result, const char* filestr,
 #define V_ASSERT(expr) (expr)
 #endif
 
+#define OBDN_VK_DYNAMIC_STATE_CREATE_INFO() {.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO}
+#define OBDN_VK_DESCRIPTOR_SET_LAYOUT_CREATE_INFO() {.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO}
+#define OBDN_VK_PIPELINE_LAYOUT_CREATE_INFO() {.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO}
+#define OBDN_VK_RENDER_PASS_BEGIN_INFO() {.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO}
+
+inline VkDescriptorSetLayoutBinding obdn_VkDescriptorSetLayoutBinding(
+    uint32_t              binding,
+    VkDescriptorType      descriptorType,
+    uint32_t              descriptorCount,
+    VkShaderStageFlags    stageFlags,
+    const VkSampler*      pImmutableSamplers)
+{
+    return (VkDescriptorSetLayoutBinding){
+        .binding = binding,
+        .descriptorType = descriptorType,
+        .descriptorCount = descriptorCount,
+        .stageFlags = stageFlags,
+        .pImmutableSamplers = pImmutableSamplers
+    };
+}
+
 #endif /* end of include guard: V_VULKAN_H */
