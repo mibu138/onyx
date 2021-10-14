@@ -258,12 +258,12 @@ static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* tex
     texture->devImage = &scene->defaultImage;
 }
 
-static void printPrimInfoCmd(const Hell_Grimoire* grim, void* scene)
+static void printPrimInfoCmd(Hell_Grimoire* grim, void* scene)
 {
     obdn_PrintPrimInfo(scene);
 }
 
-static void printTexInfoCmd(const Hell_Grimoire* grim, void* scene)
+static void printTexInfoCmd(Hell_Grimoire* grim, void* scene)
 {
     obdn_PrintTextureInfo(scene);
 }
