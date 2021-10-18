@@ -654,6 +654,12 @@ obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex)
     removeTexture(scene, tex);
 }
 
+void 
+obdn_SceneRemoveMaterial(Obdn_Scene* scene, Obdn_MaterialHandle mat)
+{
+    removeMaterial(scene, mat);
+}
+
 uint32_t obdn_SceneGetTextureCount(const Obdn_Scene* s)
 {
     return s->textureCount;

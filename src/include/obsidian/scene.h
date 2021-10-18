@@ -171,6 +171,8 @@ const Obdn_PrimitiveHandle* obdn_SceneGetDirtyPrimitives(const Obdn_Scene*,
 
 void obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex);
 
+void obdn_SceneRemoveMaterial(Obdn_Scene* scene, Obdn_MaterialHandle mat);
+
 // Does not free geo
 void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle id);
 
