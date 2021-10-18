@@ -25,7 +25,6 @@ static void initPrimBuffers(Obdn_Memory* memory, VkBufferUsageFlags extraFlags, 
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
-    assert(prim->indexCount > 0);
     assert(prim->attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
 
     size_t vertexBufferSize = 0;
@@ -41,8 +40,11 @@ static void initPrimBuffers(Obdn_Memory* memory, VkBufferUsageFlags extraFlags, 
     prim->vertexRegion = obdn_RequestBufferRegion(memory, vertexBufferSize, 
             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraFlags, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
 
+    if (prim->indexCount > 0)
+    {
     prim->indexRegion = obdn_RequestBufferRegion(memory, sizeof(Obdn_GeoIndex) * prim->indexCount, 
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraFlags, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+    }
 }
 
 static void printPrim(const Prim* prim)
@@ -102,7 +104,10 @@ void obdn_PrintGeo(const Obdn_Geometry* prim)
 void obdn_TransferGeoToDevice(Obdn_Memory* memory, Obdn_Geometry* prim)
 {
     obdn_TransferToDevice(memory, &prim->vertexRegion);
+    if (prim->indexCount > 0)
+    {
     obdn_TransferToDevice(memory, &prim->indexRegion);
+    }
 }
 
 Obdn_Geometry obdn_CreateTriangle(Obdn_Memory* memory)
