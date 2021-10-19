@@ -95,6 +95,8 @@ void obdn_FreeBufferRegion(Obdn_BufferRegion* pRegion);
 
 void obdn_DestroyMemory(Obdn_Memory* memory);
 
+void obdn_MemoryReportSimple(const Obdn_Memory* memory);
+
 VkDeviceAddress obdn_GetBufferRegionAddress(const Obdn_BufferRegion* region);
 
 // application's job to destroy this buffer and free the memory
