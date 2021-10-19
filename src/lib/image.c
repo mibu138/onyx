@@ -315,8 +315,6 @@ void obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount,
     DPRINT("Obdn_V_Image size: %ld\n", image->size);
     memcpy(stagingBuffer.hostData, data, w*h*channelCount);
 
-    stbi_image_free(data);
-
     Command cmd = obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
     obdn_BeginCommandBuffer(cmd.buffer);
@@ -374,6 +372,8 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     obdn_LoadImageData(memory, w, h, channelCount, data, format, usageFlags,
                        aspectMask, sampleCount, filter, layout, createMips,
                        memoryType, image);
+
+    stbi_image_free(data);
 }
 
 void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename)
