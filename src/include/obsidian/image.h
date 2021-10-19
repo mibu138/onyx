@@ -55,6 +55,16 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filepath, const uint8_t cha
     Obdn_MemoryType memoryType,
     Obdn_Image* image);
 
+void obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount, void* data, const VkFormat format,
+    VkImageUsageFlags usageFlags,
+    const VkImageAspectFlags aspectMask,
+    const VkSampleCountFlags sampleCount,
+    const VkFilter filter,
+    const VkImageLayout layout,
+    const bool createMips,
+    Obdn_MemoryType memoryType,
+    Obdn_Image* image);
+
 void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename);
 
 void obdn_v_ClearColorImage(Obdn_Image* image);
