@@ -44,15 +44,38 @@ typedef enum {
     OBDN_SCENE_MATERIALS_BIT   = 1 << 4,
     OBDN_SCENE_TEXTURES_BIT    = 1 << 5,
     OBDN_SCENE_PRIMS_BIT       = 1 << 6,
+    OBDN_SCENE_LAST_BIT_PLUS_1,
 } Obdn_SceneDirtyFlagBits;
-typedef Obdn_Flags Obdn_SceneDirtyFlags;
+typedef uint8_t Obdn_SceneDirtyFlags;
 
 typedef enum {
     OBDN_PRIM_ADDED_BIT            = 1 << 0,
     OBDN_PRIM_REMOVED_BIT          = 1 << 1,
     OBDN_PRIM_TOPOLOGY_CHANGED_BIT = 1 << 2,
+    OBDN_PRIM_LAST_BIT_PLUS_1,
 } Obdn_PrimDirtyFlagBits;
-typedef Obdn_Flags Obdn_PrimDirtyFlags;
+typedef uint8_t Obdn_PrimDirtyFlags;
+
+typedef enum {
+    OBDN_MAT_ADDED_BIT   = 1 << 0,
+    OBDN_MAT_REMOVED_BIT = 1 << 1,
+    OBDN_MAT_CHANGED_BIT = 1 << 2,
+    OBDN_MAT_LAST_BIT_PLUS_1,
+} Obdn_MatDirtyFlagBits;
+typedef uint8_t Obdn_MatDirtyFlags;
+
+typedef enum {
+    OBDN_TEX_ADDED_BIT   = 1 << 0,
+    OBDN_TEX_REMOVED_BIT = 1 << 1,
+    OBDN_TEX_CHANGED_BIT = 1 << 2,
+    OBDN_TEX_LAST_BIT_PLUS_1,
+} Obdn_TexDirtyFlagBits;
+typedef uint8_t Obdn_TexDirtyFlags;
+
+_Static_assert(OBDN_TEX_LAST_BIT_PLUS_1 < 255, "Tex dirty bits must fit in a byte.");
+_Static_assert(OBDN_MAT_LAST_BIT_PLUS_1 < 255, "Mat dirty bits must fit in a byte.");
+_Static_assert(OBDN_PRIM_LAST_BIT_PLUS_1 < 255, "Prim dirty bits must fit in a byte.");
+_Static_assert(OBDN_SCENE_LAST_BIT_PLUS_1 < 255, "Scene dirty bits must fit in a byte.");
 
 typedef enum {
     OBDN_PRIM_INVISIBLE_BIT           = 1 << 0,
@@ -99,23 +122,19 @@ typedef struct {
 } Obdn_Light;
 
 typedef struct {
-    Obdn_Image*       devImage;
+    Obdn_Image*        devImage;
+    Obdn_TexDirtyFlags dirt;
 } Obdn_Texture;
 
 typedef struct {
-    Coal_Vec3          color;
-    float              roughness;
-    Obdn_TextureHandle textureAlbedo;
-    Obdn_TextureHandle textureRoughness;
-    Obdn_TextureHandle textureNormal;
-    Obdn_TextureHandle padding;
+    Coal_Vec3             color;
+    float                 roughness;
+    Obdn_TextureHandle    textureAlbedo;
+    Obdn_TextureHandle    textureRoughness;
+    Obdn_TextureHandle    textureNormal;
+    Obdn_TextureHandle    padding;
+    Obdn_MatDirtyFlagBits dirt;
 } Obdn_Material;
-
-#if UNIX
-_Static_assert(
-    sizeof(Obdn_Material) == 32,
-    "Changing material size and layout may conflict with shader uniforms");
-#endif
 
 typedef struct Obdn_Scene Obdn_Scene;
 

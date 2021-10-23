@@ -63,6 +63,8 @@ typedef struct {
 typedef struct Obdn_Scene {
     Obdn_SceneDirtyFlags dirt;
     Obdn_Memory*         memory;
+    Hell_Stack           dirtyTextures;
+    Hell_Stack           dirtyMaterials;
     Hell_Stack           dirtyPrims;
     obint                primCount;
     obint                lightCount;
@@ -84,6 +86,26 @@ typedef struct Obdn_Scene {
     ObjectMap            matMap;
     ObjectMap            texMap;
 } Obdn_Scene;
+
+static void addTextureToDirtyTextures(Obdn_Scene* s, TextureHandle handle)
+{
+    TextureHandle* texs = s->dirtyTextures.elems;
+    for (int i = 0; i < s->dirtyTextures.count; i++)
+    {
+        if (texs[i].id == handle.id) return; // handle already in set
+    }
+    hell_StackPush(&s->dirtyTextures, &handle);
+}
+
+static void addMaterialToDirtyMaterials(Obdn_Scene* s, MaterialHandle handle)
+{
+    MaterialHandle* mats = s->dirtyMaterials.elems;
+    for (int i = 0; i < s->dirtyMaterials.count; i++)
+    {
+        if (mats[i].id == handle.id) return; // handle already in set
+    }
+    hell_StackPush(&s->dirtyMaterials, &handle);
+}
 
 static void addPrimToDirtyPrims(Obdn_Scene* s, PrimitiveHandle handle)
 {
@@ -166,6 +188,8 @@ static TextureHandle addTexture(Scene* s, Obdn_Texture texture)
 {
     obint id = addSceneObject(&texture, s->textures, &s->textureCount, &s->textureCapacity, sizeof(texture), &s->texMap);
     TextureHandle handle = {id};
+    addTextureToDirtyTextures(s, handle);
+    TEXTURE(s, handle).dirt |= OBDN_TEX_ADDED_BIT;
     s->dirt |= OBDN_SCENE_TEXTURES_BIT;
     return handle;
 }
@@ -174,6 +198,8 @@ static MaterialHandle addMaterial(Scene* s, Obdn_Material material)
 {
     obint id = addSceneObject(&material, s->materials, &s->materialCount, &s->materialCapacity, sizeof(s->materials[0]), &s->matMap);
     MaterialHandle handle = {id};
+    addMaterialToDirtyMaterials(s, handle);
+    MATERIAL(s, handle).dirt |= OBDN_MAT_ADDED_BIT;
     s->dirt |= OBDN_SCENE_MATERIALS_BIT;
     return handle;
 }
@@ -197,7 +223,9 @@ static void removeLight(Scene* s, Obdn_LightHandle handle)
 static void removeTexture(Scene* s, Obdn_TextureHandle handle)
 {
     assert(handle.id < s->textureCapacity);
-    removeSceneObject(handle.id, s->textures, &s->textureCount, sizeof(s->textures[0]), &s->texMap);
+    assert(handle.id > 0); //cant remove the default prim
+    TEXTURE(s, handle).dirt |= OBDN_TEX_REMOVED_BIT;
+    addTextureToDirtyTextures(s, handle);
     s->dirt |= OBDN_SCENE_TEXTURES_BIT;
 }
 
@@ -313,6 +341,8 @@ obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float fov,
 
     // 8 is arbitrary initial capacity
     hell_CreateStack(8, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &scene->dirtyPrims);
+    hell_CreateStack(8, sizeof(Obdn_MaterialHandle), NULL, NULL, &scene->dirtyMaterials);
+    hell_CreateStack(8, sizeof(Obdn_TextureHandle), NULL, NULL, &scene->dirtyTextures);
 
     // create defaults
     Texture tex = {0};
@@ -611,23 +641,79 @@ Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene* s)
 
 void obdn_SceneEndFrame(Obdn_Scene* s)
 {
-    s->dirt = 0;
-    uint32_t c = s->dirtyPrims.count;
-    const PrimitiveHandle* dp = s->dirtyPrims.elems;
-    for (int i = 0; i < c; i++)
+    if (s->dirt & OBDN_SCENE_TEXTURES_BIT)
     {
-        PrimitiveHandle handle = dp[i];
-        // remove prims at the end of the frame so scene consumers can react to the prim 
-        // having the remove bit set
-        if (PRIM(s, handle).dirt & OBDN_PRIM_REMOVED_BIT)
+        u32 c = s->dirtyTextures.count;
+        TextureHandle* handles = s->dirtyTextures.elems;
+        for (u32 i = 0; i < c; i++)
         {
-            removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
-        }
-        else 
-        {
-            PRIM(s, dp[i]).dirt = 0;
+            if (TEXTURE(s, handles[i]).dirt & OBDN_TEX_REMOVED_BIT)
+            {
+                u32 matcount = s->materialCount;
+                for (u32 j = 0; j < matcount; j++)
+                {
+                    if (s->materials[j].textureAlbedo.id == handles[i].id)
+                        s->materials[j].textureAlbedo = NULL_TEXTURE;
+                    if (s->materials[j].textureRoughness.id == handles[i].id)
+                        s->materials[j].textureRoughness = NULL_TEXTURE;
+                    if (s->materials[j].textureNormal.id == handles[i].id)
+                        s->materials[j].textureNormal = NULL_TEXTURE;
+                }
+                removeSceneObject(handles[i].id, s->textures, &s->textureCount,
+                                  sizeof(s->textures[0]), &s->texMap);
+            }
+            else 
+            {
+                TEXTURE(s, handles[i]).dirt = 0;
+            }
         }
     }
+    if (s->dirt & OBDN_SCENE_MATERIALS_BIT)
+    {
+        u32 c = s->dirtyMaterials.count;
+        MaterialHandle* handles = s->dirtyMaterials.elems;
+        for (u32 i = 0; i < c; i++)
+        {
+            Obdn_SceneObjectInt id = handles[i].id;
+            if (MATERIAL(s, handles[i]).dirt & OBDN_MAT_REMOVED_BIT)
+            {
+                u32 primcount = s->primCount;
+                for (u32 j = 0; j < primcount; j++)
+                {
+                    if (s->prims[j].material.id == id)
+                        s->prims[j].material = NULL_MATERIAL;
+                }
+                removeSceneObject(id, s->materials, &s->materialCount,
+                                  sizeof(s->materials[0]), &s->matMap);
+            }
+            else 
+            {
+                MATERIAL(s, handles[i]).dirt = 0;
+            }
+        }
+    }
+    if (s->dirt & OBDN_SCENE_PRIMS_BIT)
+    {
+        u32 c = s->dirtyPrims.count;
+        PrimitiveHandle* dp = s->dirtyPrims.elems;
+        for (int i = 0; i < c; i++)
+        {
+            PrimitiveHandle handle = dp[i];
+            // remove prims at the end of the frame so scene consumers can react to the prim 
+            // having the remove bit set
+            if (PRIM(s, handle).dirt & OBDN_PRIM_REMOVED_BIT)
+            {
+                removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
+            }
+            else 
+            {
+                PRIM(s, dp[i]).dirt = 0;
+            }
+        }
+    }
+    s->dirt = 0;
+    s->dirtyMaterials.count = 0;
+    s->dirtyTextures.count = 0;
     s->dirtyPrims.count = 0;
 }
 
