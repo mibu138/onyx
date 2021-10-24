@@ -47,7 +47,7 @@ printBlockChainInfo(const BlockChain* chain)
     DPRINT("Blocks: \n");
     for (int i = 0; i < chain->count; i++)
     {
-        const Obdn_V_MemBlock* block = &chain->blocks[i];
+        const Obdn_MemBlock* block = &chain->blocks[i];
         DPRINT("{ Block %d: size = %zu, offset = %zu, inUse = %s, id: %d}, ", i,
                block->size, block->offset, block->inUse ? "true" : "false",
                block->id);
@@ -226,7 +226,7 @@ initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
 static void
 freeBlockChain(Obdn_Memory* memory, struct BlockChain* chain)
 {
-    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_V_MemBlock));
+    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_MemBlock));
     if (chain->buffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(memory->instance->device, chain->buffer, NULL);
@@ -238,28 +238,34 @@ freeBlockChain(Obdn_Memory* memory, struct BlockChain* chain)
     memset(chain, 0, sizeof(*chain));
 }
 
-static int
-findAvailableBlockIndex(const uint32_t size, struct BlockChain* chain)
+typedef struct AvailabilityInfo {
+    bool           foundBlock;
+    u32            index;
+    u64            newOffset;
+} AvailabilityInfo;
+
+static AvailabilityInfo
+findAvailableBlockIndex(struct BlockChain* chain, VkDeviceSize size, VkDeviceSize alignment)
 {
-    size_t       cur   = 0;
-    size_t       init  = cur;
-    const size_t count = chain->count;
+    const int count = chain->count;
     DPRINT(">>> requesting block of size %d from chain %s with totalSize %zu\n",
            size, chain->name, chain->totalSize);
     assert(size < chain->totalSize);
     assert(count > 0);
-    assert(cur < count);
-    while (chain->blocks[cur].inUse || chain->blocks[cur].size < size)
+    assert(alignment != 0);
+    for (u32 i = 0; i < count; i++)
     {
-        cur = (cur + 1) % count;
-        if (cur == init)
-        {
-            DPRINT("no suitable block found in chain %s\n", chain->name);
-            return -1;
-        }
+        const Obdn_MemBlock* block = &chain->blocks[i];
+        if (block->inUse || block->size < size) continue;
+        // nextPossibleOffset may be the same as or greater than block->offset.
+        u64 nextPossibleOffset = hell_Align(block->offset, alignment);
+        u64 blockEnd = block->offset + block->size;
+        if (nextPossibleOffset > blockEnd) continue;
+        if (blockEnd - nextPossibleOffset < size) continue;
+        return (AvailabilityInfo){true, i, nextPossibleOffset};
+        // block's new size will be greater than or equal to the resource size;
     }
-    // found a block not in use and with enough size
-    return cur;
+    return (AvailabilityInfo){false};
 }
 
 // from i = firstIndex to i = lastIndex - 1, swap block i with block i + 1
@@ -273,7 +279,7 @@ rotateBlockUp(const size_t fromIndex, const size_t toIndex,
     assert(toIndex > fromIndex);
     for (int i = fromIndex; i < toIndex; i++)
     {
-        Obdn_V_MemBlock temp = chain->blocks[i];
+        Obdn_MemBlock temp = chain->blocks[i];
         chain->blocks[i]     = chain->blocks[i + 1];
         chain->blocks[i + 1] = temp;
     }
@@ -288,9 +294,10 @@ rotateBlockDown(const size_t fromIndex, const size_t toIndex,
     assert(fromIndex > toIndex);
     for (int i = fromIndex; i > toIndex; i--)
     {
-        Obdn_V_MemBlock temp = chain->blocks[i];
+        Obdn_MemBlock temp = chain->blocks[i];
         chain->blocks[i]     = chain->blocks[i - 1];
         chain->blocks[i - 1] = temp;
+        assert(chain->blocks[i - 1].size < chain->totalSize);
     }
 }
 
@@ -300,8 +307,8 @@ mergeBlocks(struct BlockChain* chain)
     assert(chain->count > 1); // must have at least 2 blocks to defragment
     for (int i = 0; i < chain->count - 1; i++)
     {
-        Obdn_V_MemBlock* curr = &chain->blocks[i];
-        Obdn_V_MemBlock* next = &chain->blocks[i + 1];
+        Obdn_MemBlock* curr = &chain->blocks[i];
+        Obdn_MemBlock* next = &chain->blocks[i + 1];
         if (!curr->inUse && !next->inUse)
         {
             // combine them together
@@ -309,7 +316,7 @@ mergeBlocks(struct BlockChain* chain)
             // we could make the other id available for re-use as well
             curr->size               = cSize;
             // set next block to 0
-            memset(next, 0, sizeof(Obdn_V_MemBlock));
+            memset(next, 0, sizeof(Obdn_MemBlock));
             // rotate blocks down past i so that next goes to chain->count - 1
             // and the block at chain->size - 1 goes to chain->count - 2
             if (i + 1 != chain->count - 1)
@@ -335,30 +342,30 @@ chainIsOrdered(const struct BlockChain* chain)
 {
     for (int i = 0; i < chain->count - 1; i++)
     {
-        const Obdn_V_MemBlock* curr = &chain->blocks[i];
-        const Obdn_V_MemBlock* next = &chain->blocks[i + 1];
+        const Obdn_MemBlock* curr = &chain->blocks[i];
+        const Obdn_MemBlock* next = &chain->blocks[i + 1];
         if (curr->offset > next->offset)
             return false;
     }
     return true;
 }
 
-static Obdn_V_MemBlock*
-requestBlock(const uint32_t size, const uint32_t alignment,
+static Obdn_MemBlock*
+requestBlock(const u64 size, const u64 alignment,
              struct BlockChain* chain)
 {
-    const int curIndex = findAvailableBlockIndex(size, chain);
-    if (curIndex < 0) // try defragmenting. if that fails we're done.
+    AvailabilityInfo availInfo = findAvailableBlockIndex(chain, size, alignment);
+    if (!availInfo.foundBlock) // try defragmenting. if that fails we're done.
     {
         defragment(chain);
-        const int curIndex = findAvailableBlockIndex(size, chain);
-        if (curIndex < 0)
+        availInfo = findAvailableBlockIndex(chain, size, alignment);
+        if (!availInfo.foundBlock)
         {
             DPRINT("Memory allocation failed\n");
             exit(0);
         }
     }
-    Obdn_V_MemBlock* curBlock = &chain->blocks[curIndex];
+    Obdn_MemBlock* curBlock = &chain->blocks[availInfo.index];
     if (curBlock->size == size &&
         (curBlock->offset % alignment == 0)) // just reuse this block;
     {
@@ -371,23 +378,33 @@ requestBlock(const uint32_t size, const uint32_t alignment,
         return curBlock;
     }
     // split the block
-    const size_t     newIndex = chain->count++;
-    Obdn_V_MemBlock* newBlock = &chain->blocks[newIndex];
-    assert(newIndex < MAX_BLOCKS);
+    const size_t     newBlockIndex = chain->count++;
+    Obdn_MemBlock*   newBlock = &chain->blocks[newBlockIndex];
+    assert(newBlockIndex < MAX_BLOCKS);
     assert(newBlock->inUse == false);
-    VkDeviceSize       alignedOffset = hell_Align(curBlock->offset, alignment);
-    const VkDeviceSize offsetDiff    = alignedOffset - curBlock->offset;
-    // take away the size lost due to alignment and the new size
-    newBlock->size                   = curBlock->size - offsetDiff - size;
-    newBlock->offset                 = alignedOffset + size;
+    // we will assume correct alignment for the first block... TODO Make sure this is enforced somehow.
+    // if the newOffset is not equal to currentOffset, we must change the currentOffset 
+    // to the new offset, alter the size, and also add the difference in offsets to the
+    // size of the previous block. This is why we check if the index is 0 and hope for the best in that case.
+    // we have already checked to make sure that the block has enough space to fit the resource given its new offset. 
+    u64 diff = 0;
+    if (availInfo.index > 0 && availInfo.newOffset != curBlock->offset) 
+    {
+        diff   = availInfo.newOffset - curBlock->offset;
+        curBlock->size = curBlock->size - diff;
+        curBlock->offset = availInfo.newOffset;
+        chain->blocks[availInfo.index - 1].size = chain->blocks[availInfo.index - 1].size + diff;
+    }
+    newBlock->size                   = curBlock->size   - size;
+    newBlock->offset                 = curBlock->offset + size;
     newBlock->id                     = chain->nextBlockId++;
     curBlock->size                   = size;
-    curBlock->offset                 = alignedOffset;
     curBlock->inUse                  = true;
-    if (newIndex != curIndex + 1)
-        rotateBlockDown(newIndex, curIndex + 1, chain);
+    if (newBlockIndex != availInfo.index + 1)
+        rotateBlockDown(newBlockIndex, availInfo.index + 1, chain);
+    assert(curBlock->size < chain->totalSize);
     assert(chainIsOrdered(chain));
-    chain->usedSize += curBlock->size;
+    chain->usedSize += curBlock->size + diff; //need to factor in the diff if we had to move the block's offset forward.
     DPRINT(">> Alocating block %d of size %09zu from chain %s. %zu bytes out "
            "of %zu now in use.\n",
            curBlock->id, curBlock->size, chain->name, chain->usedSize,
@@ -407,7 +424,7 @@ freeBlock(struct BlockChain* chain, const uint32_t id)
             break;
     }
     assert(blockIndex < blockCount); // block must not have come from this chain
-    Obdn_V_MemBlock*   block = &chain->blocks[blockIndex];
+    Obdn_MemBlock*   block = &chain->blocks[blockIndex];
     const VkDeviceSize size  = block->size;
     block->inUse             = false;
     mergeBlocks(chain);
@@ -551,7 +568,7 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     {
         hell_Error(HELL_ERR_FATAL, "Size %zu is not 4 byte aligned.", size);
     }
-    Obdn_V_MemBlock*   block = NULL;
+    Obdn_MemBlock*   block = NULL;
     struct BlockChain* chain = NULL;
     switch (memType)
     {
@@ -576,7 +593,7 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     Obdn_BufferRegion region = {0};
     region.offset              = block->offset;
     region.memBlockId          = block->id;
-    region.size                = block->size;
+    region.size                = size;
     region.buffer              = chain->buffer;
     region.pChain              = chain;
 
@@ -715,7 +732,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
         assert(0);
     }
 
-    const Obdn_V_MemBlock* block =
+    const Obdn_MemBlock* block =
         requestBlock(memReqs.size, memReqs.alignment, image.pChain);
     image.memBlockId = block->id;
     image.offset     = block->offset;
@@ -944,4 +961,22 @@ obdn_SizeOfMemory(void)
 Obdn_Memory* obdn_AllocMemory(void)
 {
     return hell_Malloc(sizeof(Obdn_Memory));
+}
+
+static void 
+simpleBlockchainReport(const BlockChain* chain)
+{
+    float percent = (float)chain->usedSize / chain->totalSize;
+    hell_Print("Blockchain: %s Used Size: %d Total Size: %d Percent Used: %f\n", chain->name, chain->usedSize, chain->totalSize, percent);
+}
+
+void 
+obdn_MemoryReportSimple(const Obdn_Memory* memory)
+{
+    hell_Print("Memory Report\n");
+    simpleBlockchainReport(&memory->blockChainHostGraphicsBuffer);
+    simpleBlockchainReport(&memory->blockChainDeviceGraphicsBuffer);
+    simpleBlockchainReport(&memory->blockChainDeviceGraphicsImage);
+    simpleBlockchainReport(&memory->blockChainHostTransferBuffer);
+    simpleBlockchainReport(&memory->blockChainExternalDeviceGraphicsImage);
 }

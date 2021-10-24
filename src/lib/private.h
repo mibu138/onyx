@@ -28,12 +28,12 @@ typedef struct Obdn_Instance {
     VkPhysicalDeviceProperties                         deviceProperties;
 } Obdn_Instance;
 
-typedef struct obdn_V_MemBlock {
-    VkDeviceSize   size;
+typedef struct Obdn_MemBlock {
+    VkDeviceSize   size; // note this is the actual available space at this block. the resource might not be using all of it.
     VkDeviceSize   offset;
     _Bool          inUse;
     uint32_t       id; // global unique identifier
-} Obdn_V_MemBlock;
+} Obdn_MemBlock;
 
 typedef struct BlockChain {
     char                 name[16]; // for debugging
@@ -48,7 +48,7 @@ typedef struct BlockChain {
     VkBuffer             buffer;
     VkBufferUsageFlags   bufferFlags;
     uint8_t*             hostData;
-    Obdn_V_MemBlock      blocks[MAX_BLOCKS];
+    Obdn_MemBlock        blocks[MAX_BLOCKS];
     struct Obdn_Memory*  memory;
 } BlockChain;
 

@@ -289,7 +289,7 @@ void obdn_CopyBufferToImage(const Obdn_BufferRegion* region,
     DPRINT("Copying complete.\n");
 }
 
-void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t channelCount, const VkFormat format,
+void obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount, void* data, const VkFormat format,
     VkImageUsageFlags usageFlags,
     const VkImageAspectFlags aspectMask,
     const VkSampleCountFlags sampleCount,
@@ -299,12 +299,7 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     Obdn_MemoryType memoryType,
     Image* image)
 {
-    assert(channelCount < 5);
-    int w, h, n;
-    unsigned char* data = stbi_load(filename, &w, &h, &n, channelCount);
     assert(data);
-    assert(image);
-    assert(image->size == 0);
     const uint32_t mipLevels = createMips ? floor(log2(fmax(w, h))) + 1 : 1;
 
     usageFlags |= VK_IMAGE_USAGE_TRANSFER_DST_BIT; //to copy buffer to it 
@@ -319,8 +314,6 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     DPRINT("loading image: width %d height %d channels %d\n", w, h, channelCount);
     DPRINT("Obdn_V_Image size: %ld\n", image->size);
     memcpy(stagingBuffer.hostData, data, w*h*channelCount);
-
-    stbi_image_free(data);
 
     Command cmd = obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 
@@ -358,6 +351,29 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
 
     if (createMips)
         createMipMaps(memory->instance, VK_FILTER_LINEAR, layout, image);
+}
+
+void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t channelCount, const VkFormat format,
+    VkImageUsageFlags usageFlags,
+    const VkImageAspectFlags aspectMask,
+    const VkSampleCountFlags sampleCount,
+    const VkFilter filter,
+    const VkImageLayout layout,
+    const bool createMips,
+    Obdn_MemoryType memoryType,
+    Image* image)
+{
+    assert(channelCount < 5);
+    int w, h, n;
+    unsigned char* data = stbi_load(filename, &w, &h, &n, channelCount);
+    assert(data);
+    assert(image);
+    assert(image->size == 0);
+    obdn_LoadImageData(memory, w, h, channelCount, data, format, usageFlags,
+                       aspectMask, sampleCount, filter, layout, createMips,
+                       memoryType, image);
+
+    stbi_image_free(data);
 }
 
 void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename)
