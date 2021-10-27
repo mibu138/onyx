@@ -16,6 +16,7 @@ Obdn_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_Queu
 
     const VkCommandPoolCreateInfo cmdPoolCi = {
         .queueFamilyIndex = cmd.queueFamily,
+        .flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT,
         .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
     };
 
