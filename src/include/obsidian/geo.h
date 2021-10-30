@@ -60,6 +60,7 @@ void obdn_FreeGeo(Obdn_Geometry* prim);
 void obdn_PrintGeo(const Obdn_Geometry* prim);
 
 VkDeviceSize obdn_GetAttrOffset(const Obdn_Geometry* prim, const char* attrname);
+VkDeviceSize obdn_GetAttrOffset2(const Obdn_Geometry* prim, u32 index);
 VkDeviceSize obdn_GetAttrRange(const Obdn_Geometry* prim, const char* attrname);
 
 #endif /* end of include guard: R_GEO_H */

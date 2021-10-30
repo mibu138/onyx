@@ -545,6 +545,11 @@ VkDeviceSize obdn_GetAttrOffset(const Obdn_Geometry* prim, const char* attrname)
     return 0;
 }
 
+VkDeviceSize obdn_GetAttrOffset2(const Obdn_Geometry* prim, u32 index)
+{
+    return prim->vertexRegion.offset + prim->attrOffsets[index];
+}
+
 VkDeviceSize obdn_GetAttrRange(const Obdn_Geometry* prim, const char* attrname)
 {
     for (int i = 0; i < prim->attrCount; i++)
