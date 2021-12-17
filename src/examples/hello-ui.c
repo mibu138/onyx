@@ -118,7 +118,7 @@ void init(void)
 
 #define TARGET_RENDER_INTERVAL 500 
 
-void draw(void)
+void draw(u64 fi, u64 dt)
 {
     static Hell_Tick timeOfLastRender = 0;
     static Hell_Tick timeSinceLastRender = TARGET_RENDER_INTERVAL;

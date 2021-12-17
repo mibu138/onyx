@@ -107,7 +107,7 @@ void initApp(void)
 
 #define TARGET_RENDER_INTERVAL 10000 // render every 30 ms
 
-void draw(void)
+void draw(u64 fi, u64 dt)
 {
     static Hell_Tick timeOfLastRender = 0;
     static Hell_Tick timeSinceLastRender = TARGET_RENDER_INTERVAL;
