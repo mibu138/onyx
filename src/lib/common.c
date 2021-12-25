@@ -24,10 +24,11 @@ void obdn_Announce(const char* fmt, ...)
     hell_Print("%s%s", HEADER, msg);
 }
 
-void obdn_CreateFramebuffer(const Obdn_Instance* instance, const unsigned attachmentCount, const VkImageView* attachments, 
-        const unsigned width, const unsigned height, 
-        const VkRenderPass renderpass,
-        VkFramebuffer* framebuffer)
+void obdn_CreateFramebuffer(const VkDevice device, const unsigned attachmentCount, 
+    const VkImageView* attachments, 
+    const unsigned width, const unsigned height, 
+    const VkRenderPass renderpass,
+    VkFramebuffer* framebuffer)
 {
     VkFramebufferCreateInfo ci = {
         .sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
@@ -38,11 +39,11 @@ void obdn_CreateFramebuffer(const Obdn_Instance* instance, const unsigned attach
         .height = height,
         .layers = 1
     };
-    vkCreateFramebuffer(instance->device, &ci, NULL, framebuffer);
+    vkCreateFramebuffer(device, &ci, NULL, framebuffer);
 }
 
-void obdn_DestroyFramebuffer(const Obdn_Instance* instance, VkFramebuffer fb)
+void obdn_DestroyFramebuffer(const VkDevice device, VkFramebuffer fb)
 {
-    vkDestroyFramebuffer(instance->device, fb, NULL);
+    vkDestroyFramebuffer(device, fb, NULL);
 }
 

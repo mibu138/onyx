@@ -722,6 +722,13 @@ obdn_GetPresentQueue(const Obdn_Instance* instance)
     return instance->presentQueue;
 }
 
+VkQueue 
+obdn_GetGrahicsQueue(const Obdn_Instance* inst, u32 index)
+{
+    assert(index < inst->graphicsQueueFamily.queueCount);
+    return inst->graphicsQueueFamily.queues[index];
+}
+
 void
 obdn_SubmitGraphicsCommands(const Obdn_Instance* instance,
                             const uint32_t       queueIndex,

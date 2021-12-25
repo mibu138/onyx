@@ -1,6 +1,10 @@
 #ifndef OBSIDIAN_H
 #define OBSIDIAN_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #include "common.h"
 #include "video.h"
 #include "memory.h"
@@ -38,5 +42,9 @@ static inline int obdn_CreateOrb(const Obdn_InstanceParms* ip,
     orb->device = obdn_GetDevice(orb->instance);
     return 0;
 }
+
+#ifdef __cplusplus 
+}
+#endif
 
 #endif /* end of include guard: OBSIDIAN_H */

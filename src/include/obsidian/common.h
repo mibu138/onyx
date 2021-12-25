@@ -22,11 +22,11 @@ void obdn_Announce(const char *fmt, ...);
 // if null is passed it will be an offscreen swapchain.
 // returns the swapchain id. currently not used for anything.
 
-void obdn_CreateFramebuffer(const Obdn_Instance* instance, const unsigned attachmentCount, const VkImageView* attachments, 
+void obdn_CreateFramebuffer(const VkDevice, const unsigned attachmentCount, const VkImageView* attachments, 
         const unsigned width, const unsigned height, 
         const VkRenderPass renderpass,
         VkFramebuffer* framebuffer);
 
-void obdn_DestroyFramebuffer(const Obdn_Instance* instance, VkFramebuffer fb);
+void obdn_DestroyFramebuffer(const VkDevice, VkFramebuffer fb);
 
 #endif /* end of include guard: OBSIDIAN_COMMON_H */

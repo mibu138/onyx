@@ -1,6 +1,7 @@
 #include "command.h"
 #include "video.h"
 #include "private.h"
+#include <string.h>
 
 void obdn_SubmitAndWait(Obdn_Command* cmd, const uint32_t queueIndex)
 {
@@ -45,6 +46,44 @@ Obdn_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_Queu
     V_ASSERT( vkCreateFence(instance->device, &fenceCi, NULL, &cmd.fence) );
 
     return cmd;
+}
+
+Obdn_CommandPool obdn_CreateCommandPool(VkDevice device,
+    uint32_t queueFamilyIndex,
+    VkCommandPoolCreateFlags poolflags,
+    uint32_t bufcount)
+{
+    Obdn_CommandPool pool = {};
+    pool.queueFamily = queueFamilyIndex;
+    const VkCommandPoolCreateInfo cmdPoolCi = {
+        .queueFamilyIndex = pool.queueFamily,
+        .flags = poolflags,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO,
+    };
+
+    V_ASSERT( vkCreateCommandPool(device, &cmdPoolCi, NULL, &pool.pool) );
+
+    const VkCommandBufferAllocateInfo ai = {
+        .commandBufferCount = bufcount,
+        .commandPool = pool.pool,
+        .level = VK_COMMAND_BUFFER_LEVEL_PRIMARY,
+        .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO
+    };
+
+    pool.cmdbufs = hell_Malloc(sizeof(VkCommandBuffer) * bufcount);
+
+    V_ASSERT( vkAllocateCommandBuffers(device, &ai, pool.cmdbufs) );
+
+    pool.cmdbuf_count = bufcount;
+
+    return pool;
+}
+
+void obdn_DestroyCommandPool(VkDevice device, Obdn_CommandPool* pool)
+{
+    vkDestroyCommandPool(device, pool->pool, NULL);
+    hell_Free(pool->cmdbufs);
+    memset(pool, 0, sizeof(*pool));
 }
 
 void obdn_BeginCommandBuffer(VkCommandBuffer cmdBuf)
@@ -141,6 +180,30 @@ void obdn_CreateSemaphore(VkDevice device, VkSemaphore* semaphore)
     };
 
     V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, semaphore) );
+}
+
+void obdn_CreateSemaphores(VkDevice device, u32 count, VkSemaphore* semas)
+{
+    const VkSemaphoreCreateInfo semaCi = {
+        .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
+    };
+    for (u32 i = 0; i < count; ++i) 
+    {
+        V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, &semas[i]) );
+    }
+}
+
+void obdn_CreateFences(VkDevice device, bool signaled, int count, VkFence* fences)
+{
+    VkFenceCreateInfo ci = {
+        .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+        .flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0
+    };
+
+    for (int i = 0; i < count; ++i) 
+    {
+        V_ASSERT( vkCreateFence(device, &ci, NULL, &fences[i]) );
+    }
 }
 
 void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height)

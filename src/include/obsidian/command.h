@@ -20,9 +20,22 @@ typedef struct {
     VkAccessFlags dstAccessMask;
 } Obdn_Barrier;
 
+typedef struct Obdn_CommandPool {
+    VkCommandPool    pool;
+    VkCommandBuffer* cmdbufs;
+    uint32_t         queueFamily;
+    uint32_t         cmdbuf_count;
+} Obdn_CommandPool;
+
 Obdn_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_QueueType);
 
+Obdn_CommandPool obdn_CreateCommandPool(VkDevice device,
+    uint32_t queueFamilyIndex,
+    VkCommandPoolCreateFlags poolflags,
+    uint32_t bufcount);
+void obdn_DestroyCommandPool(VkDevice device, Obdn_CommandPool* pool);
 void obdn_BeginCommandBuffer(VkCommandBuffer cmdBuf);
+void obdn_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf);
 void obdn_EndCommandBuffer(VkCommandBuffer cmdBuf);
 
 void obdn_SubmitAndWait(Obdn_Command* cmd, const uint32_t queueIndex);
@@ -41,7 +54,9 @@ void obdn_v_MemoryBarrier(
     VkAccessFlags        dstAccessMask);
 
 void obdn_CreateFence(VkDevice, VkFence* fence);
+void obdn_CreateFences(VkDevice device, bool signaled, int count, VkFence* fences);
 void obdn_CreateSemaphore(VkDevice, VkSemaphore* semaphore);
+void obdn_CreateSemaphores(VkDevice device, u32 count, VkSemaphore* semas);
 
 void obdn_SubmitCommand(Obdn_Command* cmd, VkSemaphore semaphore, VkFence fence);
 

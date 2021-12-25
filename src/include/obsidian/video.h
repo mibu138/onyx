@@ -64,6 +64,7 @@ void obdn_SubmitGraphicsCommand(const Obdn_Instance*, uint32_t queueIndex,
 uint32_t obdn_GetQueueFamilyIndex(const Obdn_Instance*, Obdn_V_QueueType type);
 VkDevice obdn_GetDevice(const Obdn_Instance*);
 VkQueue  obdn_GetPresentQueue(const Obdn_Instance*);
+VkQueue  obdn_GetGrahicsQueue(const Obdn_Instance*, u32 index);
 VkPhysicalDevice obdn_GetPhysicalDevice(const Obdn_Instance*);
 
 void obdn_PresentQueueWaitIdle(const Obdn_Instance*);

@@ -44,15 +44,15 @@ static void createSurfaceDependent(void)
                        OBDN_MEMORY_DEVICE_TYPE);
     VkImageView attachments_0[2] = {obdn_GetSwapchainImageView(swapchain, 0), depthImage.view};
     VkImageView attachments_1[2] = {obdn_GetSwapchainImageView(swapchain, 1), depthImage.view};
-    obdn_CreateFramebuffer(oInstance, 2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
-    obdn_CreateFramebuffer(oInstance, 2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
+    obdn_CreateFramebuffer(device, 2, attachments_0, dim.width, dim.height, renderPass, &framebuffers[0]);
+    obdn_CreateFramebuffer(device, 2, attachments_1, dim.width, dim.height, renderPass, &framebuffers[1]);
 }
 
 static void destroySurfaceDependent(void)
 {
     obdn_FreeImage(&depthImage);
-    obdn_DestroyFramebuffer(oInstance, framebuffers[0]);
-    obdn_DestroyFramebuffer(oInstance, framebuffers[1]);
+    obdn_DestroyFramebuffer(device, framebuffers[0]);
+    obdn_DestroyFramebuffer(device, framebuffers[1]);
 }
 
 static void onSwapchainRecreate(void)
