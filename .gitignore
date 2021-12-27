@@ -1,4 +1,5 @@
 build/*
+*.swp
 .clangd
 bin/*
 compile_commands.json

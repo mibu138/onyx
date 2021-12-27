@@ -100,7 +100,7 @@ FetchContent_MakeAvailable(hell coal)
 add_library(thirdparty INTERFACE)
 target_include_directories(thirdparty INTERFACE "thirdparty")
 
-add_subdirectory(lib)
+add_subdirectory(source)
 add_subdirectory(shaders)
 if(NOT ${OBSIDIAN_SKIP_EXAMPLES})
     add_subdirectory(examples)

@@ -130,7 +130,7 @@ void draw(u64 fi, u64 dt)
     timeSinceLastRender = 0;
 
     VkFence fence = VK_NULL_HANDLE;
-    const Obdn_Framebuffer* fb = obdn_AcquireSwapchainFramebuffer(swapchain, &fence, &acquireSemaphore);
+    const Obdn_Frame* fb = obdn_AcquireSwapchainFrame(swapchain, &fence, &acquireSemaphore);
 
     if (fb->dirty)
         onSwapchainRecreate();
