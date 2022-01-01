@@ -60,6 +60,7 @@ void obdn_CreateSemaphores(VkDevice device, u32 count, VkSemaphore* semas);
 
 void obdn_SubmitCommand(Obdn_Command* cmd, VkSemaphore semaphore, VkFence fence);
 
+void obdn_CmdSetViewportScissor(VkCommandBuffer cmdbuf, u32 x, u32 y, u32 w, u32 h);
 void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height);
 
 void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf, 
@@ -71,5 +72,9 @@ void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf);
 
 void obdn_DestroyFence(VkDevice device, VkFence fence);
 void obdn_DestroySemaphore(VkDevice device, VkSemaphore semaphore);
+
+void obdn_CmdClearColorImage(VkCommandBuffer cmdbuf, VkImage image, VkImageLayout layout,
+        uint32_t base_mip_level, uint32_t mip_level_count,
+        float r, float g, float b, float a);
 
 #endif /* end of include guard: OBDN_V_COMMAND_H */

@@ -493,3 +493,4 @@ void obdn_v_ClearColorImage(Obdn_Image* image)
 
     obdn_DestroyCommand(cmd);
 }
+

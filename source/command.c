@@ -206,6 +206,24 @@ void obdn_CreateFences(VkDevice device, bool signaled, int count, VkFence* fence
     }
 }
 
+void obdn_CmdSetViewportScissor(VkCommandBuffer cmdbuf, u32 x, u32 y, u32 w, u32 h)
+{
+    VkViewport vp = {
+        .width = w,
+        .height = h,
+        .x = x, .y = y,
+        .minDepth = 0.0,
+        .maxDepth = 1.0,
+    };
+    VkRect2D sz = {
+        .extent = {w, h},
+        .offset = {x, y}
+    };
+
+    vkCmdSetViewport(cmdbuf, 0, 1, &vp);
+    vkCmdSetScissor(cmdbuf, 0, 1, &sz);
+}
+
 void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height)
 {
     VkViewport vp = {
@@ -251,3 +269,24 @@ void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf)
     vkCmdEndRenderPass(cmdbuf);
 }
 
+void obdn_CmdClearColorImage(VkCommandBuffer cmdbuf, VkImage image, VkImageLayout layout,
+        uint32_t base_mip_level, uint32_t mip_level_count,
+        float r, float g, float b, float a)
+{
+    VkClearColorValue color = {
+        .float32[0] = r,
+        .float32[1] = g,
+        .float32[2] = b,
+        .float32[3] = a,
+    };
+
+    VkImageSubresourceRange range = {
+        .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseArrayLayer = 0,
+        .baseMipLevel = base_mip_level,
+        .layerCount = 1,
+        .levelCount = mip_level_count
+    };
+
+    vkCmdClearColorImage(cmdbuf, image, layout, &color, 1, &range);
+}

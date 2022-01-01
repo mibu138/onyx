@@ -21,7 +21,7 @@ typedef struct Obdn_AovInfo {
     VkImageAspectFlags aspectFlags;
 } Obdn_AovInfo;
 
-void obdn_CreateFrames(uint32_t count, uint8_t aovCount, const Obdn_AovInfo* aov_infos, 
+void obdn_CreateFrames(Obdn_Memory* memory, uint8_t count, uint8_t aovCount, const Obdn_AovInfo* aov_infos, 
         uint32_t width, uint32_t height, Obdn_Frame* frames);
 
 #endif /* end of include guard: OBDN_FRAME_H */
