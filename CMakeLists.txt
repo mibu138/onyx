@@ -5,6 +5,7 @@ project(Obsidian LANGUAGES C VERSION 0.1.0)
 option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
 option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
+option(OBSIDIAN_USE_SHADERC   "Access shaderc functionality" OFF)
 
 if(NOT DEFINED HELL_URL)
     set(HELL_URL https://github.com/mokchira/hell)
@@ -14,9 +15,10 @@ if(NOT DEFINED COAL_URL)
     set(COAL_URL https://github.com/mokchira/coal)
 endif()
 
-include(FetchContent)
-
 list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+
+include(FetchContent)
+include(fetch_shaderc)
 
 FetchContent_Declare(
     hell 
@@ -31,6 +33,11 @@ FetchContent_Declare(
 include(GNUInstallDirs)
 enable_testing()
 
+if (${OBSIDIAN_USE_SHADERC})
+    fetch_shaderc()
+    set(GLC glslc_exe)
+endif()
+    
 find_package(Vulkan 1.2.162)
 if (NOT Vulkan_FOUND)
     FetchContent_Declare(
@@ -48,39 +55,8 @@ endif()
 if (NOT DEFINED GLC)
     find_program(GLSLC glslc)
     if (GLSLC STREQUAL "GLSLC-NOTFOUND")
-        if (OBSIDIAN_BUILD_GLSLC)
-            FetchContent_Declare(
-                glslang
-                GIT_REPOSITORY https://github.com/KhronosGroup/glslang
-                GIT_TAG c94ec9356f1a12876ae959409ec67eddb8a90c16)
-            set(SKIP_GLSLANG_INSTALL ON)
-
-            FetchContent_Declare(
-                spirv_headers
-                GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Headers
-                GIT_TAG e7b49d7fb59808a650618e0a4008d4bae927e112)
-            set(SPIRV_HEADERS_SKIP_EXAMPLES ON)
-            set(SPIRV_HEADERS_SKIP_INSTALL ON)
-
-            FetchContent_Declare(
-                spirv_tools 
-                GIT_REPOSITORY https://github.com/KhronosGroup/SPIRV-Tools
-                GIT_TAG 5737dbb068da91274de9728aab8b4bf27c52f38d)
-            set(SPIRV_BUILD_FUZZER OFF)
-            set(SKIP_SPIRV_TOOLS_INSTALL ON)
-            set(SPIRV_COLOR_TERMINAL OFF)
-            set(SPIRV_SKIP_TESTS ON)
-            set(SPIRV_SKIP_EXECUTABLES ON)
-
-            FetchContent_Declare(
-                shaderc 
-                GIT_REPOSITORY https://github.com/google/shaderc
-                GIT_TAG fadb0edb247a1daa74f9a206a27e9a1c0417ce49)
-            set(SHADERC_SKIP_TESTS ON)
-            set(SHADERC_SKIP_EXAMPLES ON)
-            set(SHADERC_SKIP_INSTALL ON)
-
-            FetchContent_MakeAvailable(glslang spirv_headers spirv_tools shaderc)
+        if (OBSIDIAN_BUILD_GLSLC AND NOT ${OBSIDIAN_USE_SHADERC})
+            fetch_shaderc()
         else()
             message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLSLC=ON to build it.")
         endif()
