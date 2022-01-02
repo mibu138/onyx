@@ -102,17 +102,18 @@ static inline VkShaderModuleCreateInfo obdn_ShaderModuleCreateInfo(size_t codeSi
     return (VkShaderModuleCreateInfo){
         .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
         .codeSize = codeSize,
-        .pCode = pCode
+        .pCode = (uint32_t*)pCode
     };
 }
 
-static inline VkPipelineShaderStageCreateInfo obdn_PipelineShaderStageCreateInfo(VkShaderStageFlags 
-        stage, VkShaderModule module, const char* pName, const VkSpecializationInfo* pSpecializationInfo)
+static inline VkPipelineShaderStageCreateInfo obdn_PipelineShaderStageCreateInfo(VkShaderStageFlagBits stage, 
+        VkShaderModule module, const char* entryName, const VkSpecializationInfo* pSpecializationInfo /*can be NULL*/)
 {
     return (VkPipelineShaderStageCreateInfo){
         .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
         .stage = stage,
-        .pName = pName,
+        .module = module,
+        .pName = entryName,
         .pSpecializationInfo = pSpecializationInfo
     };
 }
@@ -276,7 +277,8 @@ static inline VkPipelineColorBlendStateCreateInfo obdn_PipelineColorBlendStateCr
     c.logicOp = logicOp;
     c.attachmentCount = attachmentCount;
     c.pAttachments = pAttachments;
-    memcpy(c.blendConstants, blendConstants, sizeof(c.blendConstants));
+    if (blendConstants)
+        memcpy(c.blendConstants, blendConstants, sizeof(c.blendConstants));
     return c;
 }
 

@@ -145,6 +145,8 @@ void obdn_AllocateDescriptorSets(VkDevice, VkDescriptorPool pool, uint32_t descS
 
 void obdn_SetRuntimeSpvPrefix(const char* prefix);
 
+const char* obdn_GetFullScreenQuadShaderString(void);
+
 #ifdef OBSIDIAN_SHADERC_ENABLED
 void obdn_CreateShaderModule(VkDevice device, const char* shader_string, 
         const char* name, Obdn_ShaderType type, VkShaderModule* module);

@@ -967,7 +967,8 @@ obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
     VkPipelineDepthStencilStateCreateInfo depthstencil = obdn_PipelineDepthStencilStateCreateInfo(depthTestEnable, 
             depthWriteEnable, VK_COMPARE_OP_LESS_OR_EQUAL, false, false, stencilopstate, stencilopstate, 0.0, 0.0);
     bool do_blend = blendMode == OBDN_BLEND_MODE_NONE ? false : true;
-    VkColorComponentFlags write_all = VK_COLOR_COMPONENT_R_BIT |
+    VkColorComponentFlags write_all = 
+        VK_COLOR_COMPONENT_R_BIT |
         VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
@@ -993,3 +994,17 @@ obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
             &colorblend, &dynstate, layout, renderPass, subpass, VK_NULL_HANDLE, 0);
     V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &gpci, NULL, pipeline) );
 };
+
+const char* 
+obdn_GetFullScreenQuadShaderString(void)
+{
+    return ""
+    "#version 460\n"
+    "layout(location = 0) out vec2 outUV;\n"
+    "// vertex ordering is clockwise\n"
+    "void main()\n"
+    "{\n"
+    "    outUV = vec2((gl_VertexIndex << 1) & 2, gl_VertexIndex & 2);\n"
+    "    gl_Position = vec4(outUV * 2.0f + -1.0f, 0.0f, 1.0f);\n"
+    "}\n";
+}
