@@ -1,11 +1,16 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(Obsidian LANGUAGES C VERSION 0.1.0)
+project(Obsidian VERSION 0.1.0)
 
 option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
 option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
-option(OBSIDIAN_USE_SHADERC   "Access shaderc functionality" OFF)
+option(OBSIDIAN_ENABLE_SHADERC   "Access shaderc functionality" OFF)
+option(OBSIDIAN_EXPORT_COMPILE_COMMANDS "Export compile_commands.json" ON)
+
+if (${OBSIDIAN_EXPORT_COMPILE_COMMANDS})
+    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+endif()
 
 if(NOT DEFINED HELL_URL)
     set(HELL_URL https://github.com/mokchira/hell)
@@ -19,6 +24,7 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(FetchContent)
 include(fetch_shaderc)
+set(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps)
 
 FetchContent_Declare(
     hell 
@@ -33,7 +39,7 @@ FetchContent_Declare(
 include(GNUInstallDirs)
 enable_testing()
 
-if (${OBSIDIAN_USE_SHADERC})
+if (${OBSIDIAN_ENABLE_SHADERC})
     fetch_shaderc()
     set(GLC glslc_exe)
 endif()
@@ -55,7 +61,7 @@ endif()
 if (NOT DEFINED GLC)
     find_program(GLSLC glslc)
     if (GLSLC STREQUAL "GLSLC-NOTFOUND")
-        if (OBSIDIAN_BUILD_GLSLC AND NOT ${OBSIDIAN_USE_SHADERC})
+        if (OBSIDIAN_BUILD_GLSLC AND NOT ${OBSIDIAN_ENABLE_SHADERC})
             fetch_shaderc()
         else()
             message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLSLC=ON to build it.")
@@ -84,3 +90,5 @@ endif()
 if(NOT ${OBSIDIAN_SKIP_TESTS})
     add_subdirectory(tests)
 endif()
+
+

@@ -12,6 +12,18 @@
 
 #define OBDN_FULL_SCREEN_VERT_SPV "full-screen.vert.spv"
 
+typedef enum Obdn_ShaderType {
+    OBDN_SHADER_TYPE_VERTEX,
+    OBDN_SHADER_TYPE_FRAGMENT,
+    OBDN_SHADER_TYPE_COMPUTE,
+    OBDN_SHADER_TYPE_GEOMETRY,
+    OBDN_SHADER_TYPE_TESS_CONTROL,
+    OBDN_SHADER_TYPE_TESS_EVALUATION,
+    OBDN_SHADER_TYPE_RAY_GEN,
+    OBDN_SHADER_TYPE_ANY_HIT,
+    OBDN_SHADER_TYPE_CLOSEST_HIT,
+    OBDN_SHADER_TYPE_MISS,
+} Obdn_ShaderType;
 
 typedef struct {
     uint32_t                 descriptorCount;
@@ -132,6 +144,26 @@ void obdn_AllocateDescriptorSets(VkDevice, VkDescriptorPool pool, uint32_t descS
                             VkDescriptorSet*      sets);
 
 void obdn_SetRuntimeSpvPrefix(const char* prefix);
+
+#ifdef OBSIDIAN_SHADERC_ENABLED
+void obdn_CreateShaderModule(VkDevice device, const char* shader_string, 
+        const char* name, Obdn_ShaderType type, VkShaderModule* module);
+#endif
+
+// Creates a basic graphics pipeline.
+// patchControlPoints will be ignored unless a tesselation shader stage is
+// passed in. If dynamic_viewport is enabled, it doesnt matter what you put for
+// viewport_width or viewport_height.
+void obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
+        VkRenderPass renderPass, uint32_t subpass, 
+        uint32_t stageCount, const VkPipelineShaderStageCreateInfo* pStages,
+        const VkPipelineVertexInputStateCreateInfo* pVertexInputState,
+        VkPrimitiveTopology topology, uint32_t patchControlPoints, uint32_t viewport_width,
+        uint32_t viewport_height, bool dynamic_viewport,
+        VkPolygonMode polygonMode, VkFrontFace frontFace, float lineWidth, bool depthTestEnable, 
+        bool depthWriteEnable,
+        Obdn_BlendMode blendMode,
+        VkPipeline* pipeline);
 
 #endif /* end of include guard: R_PIPELINE_H */
 

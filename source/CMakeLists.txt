@@ -18,6 +18,8 @@ list(APPEND SRCS
     locations.c)
 list(APPEND DEPS 
     Vulkan::Vulkan)
+list(APPEND PRIVATE_DEPS 
+    thirdparty)
 if(FREETYPE_FOUND)
     list(APPEND SRCS
 	ui.c         
@@ -27,6 +29,10 @@ if(FREETYPE_FOUND)
     set(FT2_DIR ${FREETYPE_INCLUDE_DIR_ft2build})
 endif()
 
+if(${OBSIDIAN_ENABLE_SHADERC})
+    list(APPEND PRIVATE_DEPS shaderc)
+endif()
+
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 add_library(obsidian STATIC)
 target_sources(obsidian PRIVATE ${SRCS})
@@ -34,8 +40,11 @@ target_include_directories(obsidian
     PRIVATE "../include/obsidian"
     INTERFACE "../include")
 target_link_libraries(obsidian
-    PRIVATE   thirdparty 
+    PRIVATE ${PRIVATE_DEPS}  
     PUBLIC ${DEPS} Hell::Hell Coal::Coal)
+if (${OBSIDIAN_ENABLE_SHADERC})
+target_compile_definitions(obsidian PUBLIC OBSIDIAN_SHADERC_ENABLED)
+endif()
 if(WIN32)
 set_target_properties(obsidian PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()

@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include <shaderc/shaderc.h>
 
 enum shaderStageType { VERT, FRAG };
 
@@ -886,3 +887,109 @@ obdn_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32
 
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, sets));
 }
+
+#ifdef OBSIDIAN_SHADERC_ENABLED
+void 
+obdn_CreateShaderModule(VkDevice device, const char* shader_string, 
+        const char* name, Obdn_ShaderType type, VkShaderModule* module)
+{
+    shaderc_shader_kind shader_kind = 0;
+    switch (type)
+    {
+    case OBDN_SHADER_TYPE_VERTEX:   shader_kind = shaderc_vertex_shader; break;
+    case OBDN_SHADER_TYPE_FRAGMENT: shader_kind = shaderc_fragment_shader; break;
+    case OBDN_SHADER_TYPE_COMPUTE:  
+    case OBDN_SHADER_TYPE_GEOMETRY: 
+    case OBDN_SHADER_TYPE_TESS_CONTROL: 
+    case OBDN_SHADER_TYPE_TESS_EVALUATION: 
+    case OBDN_SHADER_TYPE_RAY_GEN: 
+    case OBDN_SHADER_TYPE_ANY_HIT: 
+    case OBDN_SHADER_TYPE_CLOSEST_HIT: 
+    case OBDN_SHADER_TYPE_MISS: 
+    default: hell_Error(HELL_ERR_FATAL, "Obsidian: shader type not supported\n");
+    }
+    shaderc_compiler_t compiler = shaderc_compiler_initialize();
+    shaderc_compilation_result_t result = shaderc_compile_into_spv(
+            compiler, shader_string, strlen(shader_string), shader_kind, 
+            name, "main", NULL);
+    shaderc_compilation_status comp_status = shaderc_result_get_compilation_status(result);
+    size_t num_warnings = shaderc_result_get_num_warnings(result);
+    size_t num_errors   = shaderc_result_get_num_errors(result);
+    if (num_warnings || num_errors)
+    {
+        hell_Print("Shader %s Compilation error: %s\n", name, 
+                shaderc_result_get_error_message(result));
+    }
+    if (comp_status != shaderc_compilation_status_success)
+        hell_Error(HELL_ERR_FATAL, "ERROR: shader compilation failed\n");
+    const char* bytes = shaderc_result_get_bytes(result);
+    size_t num_bytes  = shaderc_result_get_length(result);
+    VkShaderModuleCreateInfo ci = obdn_ShaderModuleCreateInfo(num_bytes, bytes);
+    V_ASSERT(vkCreateShaderModule(device, &ci, NULL, module));
+    shaderc_result_release(result);
+}
+#endif
+
+void 
+obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
+        VkRenderPass renderPass, uint32_t subpass, 
+        uint32_t stageCount, const VkPipelineShaderStageCreateInfo* pStages,
+        const VkPipelineVertexInputStateCreateInfo* pVertexInputState,
+        VkPrimitiveTopology topology, uint32_t patchControlPoints, uint32_t viewport_width,
+        uint32_t viewport_height, bool dynamicViewport,
+        VkPolygonMode polygonMode, VkFrontFace frontFace, float lineWidth, bool depthTestEnable, 
+        bool depthWriteEnable,
+        Obdn_BlendMode blendMode,
+        VkPipeline* pipeline)
+{
+    VkPipelineInputAssemblyStateCreateInfo input_assem = obdn_PipelineInputAssemblyStateCreateInfo(topology, false);
+    VkPipelineTessellationStateCreateInfo tess = obdn_PipelineTessellationStateCreateInfo(patchControlPoints);
+    VkViewport viewport = {
+        .width  = viewport_width,
+        .height = viewport_height,
+        .x = 0,
+        .y = 0,
+        .minDepth = 0.0,
+        .maxDepth = 1.0
+    };
+    VkRect2D scissor = {
+        .extent.width = viewport_width,
+        .extent.height = viewport_height,
+        .offset.x = 0,
+        .offset.y = 0
+    };
+    VkPipelineViewportStateCreateInfo view = obdn_PipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
+    VkPipelineRasterizationStateCreateInfo raster = obdn_PipelineRasterizationStateCreateInfo(false,
+            false, polygonMode, VK_CULL_MODE_BACK_BIT, frontFace, false, 0.0, 0.0, 0.0, lineWidth);
+    VkPipelineMultisampleStateCreateInfo multisamp = obdn_PipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT,
+            false, 0.0, NULL, false, false);
+    VkStencilOpState stencilopstate = {};
+    VkPipelineDepthStencilStateCreateInfo depthstencil = obdn_PipelineDepthStencilStateCreateInfo(depthTestEnable, 
+            depthWriteEnable, VK_COMPARE_OP_LESS_OR_EQUAL, false, false, stencilopstate, stencilopstate, 0.0, 0.0);
+    bool do_blend = blendMode == OBDN_BLEND_MODE_NONE ? false : true;
+    VkColorComponentFlags write_all = VK_COLOR_COMPONENT_R_BIT |
+        VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT |
+        VK_COLOR_COMPONENT_A_BIT;
+    VkPipelineColorBlendAttachmentState blend_attachment = obdn_PipelineColorBlendAttachmentState(do_blend, VK_BLEND_FACTOR_SRC_ALPHA,
+            VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+            write_all);
+    switch (blendMode) 
+    {
+        case OBDN_BLEND_MODE_OVER:                      setBlendModeOver(&blend_attachment); break;
+        case OBDN_BLEND_MODE_OVER_NO_PREMUL:            setBlendModeOverNoPremul(&blend_attachment); break;
+        case OBDN_BLEND_MODE_ERASE:                     setBlendModeErase(&blend_attachment); break;
+        case OBDN_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&blend_attachment); break;
+        case OBDN_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&blend_attachment); break;
+        case OBDN_BLEND_MODE_ERASE_MONOCHROME:          setBlendModeEraseMonochrome(&blend_attachment); break;
+        case OBDN_BLEND_MODE_NONE: break;
+    }
+    VkPipelineColorBlendStateCreateInfo colorblend = obdn_PipelineColorBlendStateCreateInfo(false, 0, 1, &blend_attachment, NULL);
+    VkDynamicState dynamicStates[2] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
+    int dynstateCount = dynamicViewport ? 2 : 0;
+    VkPipelineDynamicStateCreateInfo dynstate = obdn_PipelineDynamicStateCreateInfo(dynstateCount, dynamicStates);
+    VkGraphicsPipelineCreateInfo gpci = obdn_GraphicsPipelineCreateInfo(stageCount, pStages,
+            pVertexInputState, &input_assem, &tess, &view, &raster, &multisamp, &depthstencil, 
+            &colorblend, &dynstate, layout, renderPass, subpass, VK_NULL_HANDLE, 0);
+    V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &gpci, NULL, pipeline) );
+};
