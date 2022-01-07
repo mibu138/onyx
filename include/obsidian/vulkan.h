@@ -354,4 +354,162 @@ static inline VkGraphicsPipelineCreateInfo obdn_GraphicsPipelineCreateInfo(
     return c;
 }
 
+static inline VkAttachmentDescription obdn_AttachmentDescription(
+    VkFormat                        format,
+    VkSampleCountFlagBits           samples,
+    VkAttachmentLoadOp              loadOp,
+    VkAttachmentStoreOp             storeOp,
+    VkAttachmentLoadOp              stencilLoadOp,
+    VkAttachmentStoreOp             stencilStoreOp,
+    VkImageLayout                   initialLayout,
+    VkImageLayout                   finalLayout)
+{
+    VkAttachmentDescription c = {};
+    c.format = format;
+    c.samples = samples;
+    c.loadOp = loadOp;
+    c.storeOp = storeOp;
+    c.stencilLoadOp = stencilLoadOp;
+    c.stencilStoreOp = stencilStoreOp;
+    c.initialLayout = initialLayout;
+    c.finalLayout = finalLayout;
+    return c;
+}
+
+static inline VkAttachmentReference obdn_AttachmentReference(
+    uint32_t         attachment,
+    VkImageLayout    layout)
+{
+    VkAttachmentReference c = {};
+    c.attachment = attachment;
+    c.layout = layout;
+    return c;
+}
+
+static inline VkSubpassDescription obdn_SubpassDescription(
+    VkPipelineBindPoint             pipelineBindPoint,
+    uint32_t                        inputAttachmentCount,
+    const VkAttachmentReference*    pInputAttachments,
+    uint32_t                        colorAttachmentCount,
+    const VkAttachmentReference*    pColorAttachments,
+    const VkAttachmentReference*    pResolveAttachments,
+    const VkAttachmentReference*    pDepthStencilAttachment,
+    uint32_t                        preserveAttachmentCount,
+    const uint32_t*                 pPreserveAttachments)
+{
+    VkSubpassDescription c = {};
+    c.pipelineBindPoint = pipelineBindPoint;
+    c.inputAttachmentCount = inputAttachmentCount;
+    c.pInputAttachments = pInputAttachments;
+    c.colorAttachmentCount = colorAttachmentCount;
+    c.pColorAttachments = pColorAttachments;
+    c.pResolveAttachments = pResolveAttachments;
+    c.pDepthStencilAttachment = pDepthStencilAttachment;
+    c.preserveAttachmentCount = preserveAttachmentCount;
+    c.pPreserveAttachments = pPreserveAttachments;
+    return c;
+}
+
+static inline VkSubpassDependency obdn_SubpassDependency(
+    uint32_t                srcSubpass,
+    uint32_t                dstSubpass,
+    VkPipelineStageFlags    srcStageMask,
+    VkPipelineStageFlags    dstStageMask,
+    VkAccessFlags           srcAccessMask,
+    VkAccessFlags           dstAccessMask,
+    VkDependencyFlags       dependencyFlags)
+{
+    VkSubpassDependency c = {};
+    c.srcSubpass = srcSubpass;
+    c.dstSubpass = dstSubpass;
+    c.srcStageMask = srcStageMask;
+    c.dstStageMask = dstStageMask;
+    c.srcAccessMask = srcAccessMask;
+    c.dstAccessMask = dstAccessMask;
+    c.dependencyFlags = dependencyFlags;
+    return c;
+}
+
+static inline VkRenderPassCreateInfo obdn_RenderPassCreateInfo(
+    uint32_t                          attachmentCount,
+    const VkAttachmentDescription*    pAttachments,
+    uint32_t                          subpassCount,
+    const VkSubpassDescription*       pSubpasses,
+    uint32_t                          dependencyCount,
+    const VkSubpassDependency*        pDependencies)
+{
+    VkRenderPassCreateInfo c = {};
+    c.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    c.attachmentCount = attachmentCount;
+    c.pAttachments = pAttachments;
+    c.subpassCount = subpassCount;
+    c.pSubpasses = pSubpasses;
+    c.dependencyCount = dependencyCount;
+    c.pDependencies = pDependencies;
+    return c;
+}
+
+static inline VkRenderPassBeginInfo obdn_RenderPassBeginInfo(
+    VkRenderPass           renderPass,
+    VkFramebuffer          framebuffer,
+    VkRect2D               renderArea,
+    uint32_t               clearValueCount,
+    const VkClearValue*    pClearValues)
+{
+    VkRenderPassBeginInfo c = {};
+    c.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    c.renderPass = renderPass;
+    c.framebuffer = framebuffer;
+    c.renderArea = renderArea;
+    c.clearValueCount = clearValueCount;
+    c.pClearValues = pClearValues;
+    return c;
+}
+
+static inline VkDescriptorBufferInfo obdn_DescriptorBufferInfo( 
+    VkBuffer        buffer,
+    VkDeviceSize    offset,
+    VkDeviceSize    range)
+{
+    VkDescriptorBufferInfo c = {};
+    c.buffer = buffer;
+    c.offset = offset;
+    c.range = range;
+    return c;
+}
+
+static inline VkDescriptorImageInfo obdn_DescriptorImageInfo(
+    VkSampler        sampler,
+    VkImageView      imageView,
+    VkImageLayout    imageLayout)
+{
+    VkDescriptorImageInfo c = {};
+    c.sampler = sampler;
+    c.imageView = imageView;
+    c.imageLayout = imageLayout;
+    return c;
+}
+
+static inline VkWriteDescriptorSet obdn_WriteDescriptorSet(
+    VkDescriptorSet                  dstSet,
+    uint32_t                         dstBinding,
+    uint32_t                         dstArrayElement,
+    uint32_t                         descriptorCount,
+    VkDescriptorType                 descriptorType,
+    const VkDescriptorImageInfo*     pImageInfo,
+    const VkDescriptorBufferInfo*    pBufferInfo,
+    const VkBufferView*              pTexelBufferView)
+{
+    VkWriteDescriptorSet c = {};
+    c.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    c.dstSet = dstSet;
+    c.dstBinding = dstBinding;
+    c.dstArrayElement = dstArrayElement;
+    c.descriptorCount = descriptorCount;
+    c.descriptorType = descriptorType;
+    c.pImageInfo = pImageInfo;
+    c.pBufferInfo = pBufferInfo;
+    c.pTexelBufferView = pTexelBufferView;
+    return c;
+}
 #endif /* end of include guard: OBDN_VULKAN_H */

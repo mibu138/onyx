@@ -2,6 +2,7 @@ build/*
 *.swp
 .clangd
 bin/*
+deps
 compile_commands.json
 lib/*
 shaders/spv/*

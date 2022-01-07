@@ -980,3 +980,10 @@ obdn_MemoryReportSimple(const Obdn_Memory* memory)
     simpleBlockchainReport(&memory->blockChainHostTransferBuffer);
     simpleBlockchainReport(&memory->blockChainExternalDeviceGraphicsImage);
 }
+
+void 
+obdn_GetImageMemoryUsage(const Obdn_Memory* memory, uint64_t* bytes_in_use, uint64_t* total_bytes)
+{
+    *bytes_in_use = memory->blockChainDeviceGraphicsImage.usedSize;
+    *total_bytes = memory->blockChainDeviceGraphicsImage.totalSize;
+}

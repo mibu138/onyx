@@ -129,10 +129,10 @@ Obdn_Image obdn_CreateImageAndSampler(
     VkSamplerCreateInfo samplerInfo = {
         .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
         .magFilter = filter,
-        .minFilter = VK_FILTER_LINEAR,
-        .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-        .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+        .minFilter = filter,
+        .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+        .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
         .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
         .mipLodBias = 0, //TODO understand the actual lod calculation. -0.5 just seems to look better to me
         .anisotropyEnable = VK_TRUE,
@@ -376,13 +376,14 @@ void obdn_LoadImage(Obdn_Memory* memory, const char* filename, const uint8_t cha
     stbi_image_free(data);
 }
 
-void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename)
+void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, VkImageLayout image_layout, 
+        const char* filename)
 {
     Obdn_BufferRegion region = obdn_RequestBufferRegion(memory, 
             image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT, OBDN_MEMORY_HOST_TRANSFER_TYPE);
 
-    VkImageLayout origLayout = image->layout;
-    obdn_TransitionImageLayout(image->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
+    VkImageLayout origLayout = image_layout;
+    obdn_TransitionImageLayout(origLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, image);
 
     const VkImageSubresourceLayers subRes = {
         .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,

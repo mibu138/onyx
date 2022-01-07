@@ -65,7 +65,8 @@ void obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount,
     Obdn_MemoryType memoryType,
     Obdn_Image* image);
 
-void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, const char* filename);
+void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType fileType, VkImageLayout image_layout, 
+        const char* filename);
 
 void obdn_v_ClearColorImage(Obdn_Image* image);
 

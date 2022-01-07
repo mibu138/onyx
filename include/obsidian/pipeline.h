@@ -6,7 +6,7 @@
 #include "raytrace.h"
 
 #define OBDN_MAX_PIPELINES 10
-#define OBDN_MAX_DESCRIPTOR_SETS 10
+#define OBDN_MAX_DESCRIPTOR_SETS 100
 #define OBDN_MAX_BINDINGS 10
 #define OBDN_MAX_PUSH_CONSTANTS 5
 
