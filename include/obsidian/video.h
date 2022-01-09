@@ -13,6 +13,12 @@ typedef enum {
     OBDN_V_QUEUE_COMPUTE_TYPE,
 } Obdn_V_QueueType;
 
+typedef enum Obdn_SurfaceType {
+    OBDN_SURFACE_TYPE_NO_WINDOW,
+    OBDN_SURFACE_TYPE_XCB,
+    OBDN_SURFACE_TYPE_WIN32
+} Obdn_SurfaceType;
+
 struct Obdn_V_Command;
 typedef struct Obdn_Instance Obdn_Instance;
 
@@ -25,6 +31,7 @@ Obdn_Instance* obdn_AllocInstance(void);
 typedef struct Obdn_InstanceParms {
     bool                                disableValidation;
     bool                                enableRayTracing;
+    Obdn_SurfaceType                    surfaceType;
     uint32_t                            enabledInstanceLayerCount;
     const char**                        ppEnabledInstanceLayerNames;
     uint32_t                            enabledInstanceExentensionCount;

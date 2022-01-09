@@ -14,9 +14,9 @@
 #include "coal/linalg.h"
 
 typedef Obdn_BufferRegion          BufferRegion;
-typedef Obdn_R_AccelerationStructure AccelerationStructure;
+typedef Obdn_AccelerationStructure AccelerationStructure;
 typedef Obdn_Command               Command;
-typedef Obdn_R_ShaderBindingTable    ShaderBindingTable;
+typedef Obdn_ShaderBindingTable    ShaderBindingTable;
 
 #define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_RAYTRACE, fmt, ##__VA_ARGS__)
 
@@ -299,7 +299,7 @@ void obdn_DestroyAccelerationStruct(VkDevice device, AccelerationStructure* as)
     memset(as, 0, sizeof(*as));
 }
 
-void obdn_DestroyShaderBindingTable(Obdn_R_ShaderBindingTable* sb)
+void obdn_DestroyShaderBindingTable(Obdn_ShaderBindingTable* sb)
 {
     obdn_FreeBufferRegion(&sb->bufferRegion);
     memset(sb, 0, sizeof(*sb));

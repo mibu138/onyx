@@ -5,6 +5,7 @@
 #include "types.h"
 #include <coal/types.h>
 #include <hell/cmd.h>
+#include <hell/ds.h>
 
 //#define OBDN_S_MAX_PRIMS     256
 //#define OBDN_SCENE_MAX_PRIMS     32
@@ -13,6 +14,9 @@
 //#define OBDN_SCENE_MAX_TEXTURES  16
 
 typedef uint32_t  Obdn_SceneObjectInt;
+#ifdef OBDN_SIMPLE_TYPE_NAMES
+typedef Obdn_SceneObjectInt obint;
+#endif
 typedef Coal_Mat4 Obdn_Xform;
 
 #define OBDN_DEFHANDLE(name)                                                   \
@@ -145,8 +149,9 @@ typedef struct Obdn_Scene Obdn_Scene;
 
 // container to associate prim ids with pipelines
 typedef struct {
-    Obdn_SceneObjectInt  primCount;
-    Obdn_SceneObjectInt* primIds;
+    const Obdn_PrimitiveHandle* prims; // points to internal elems
+    const uint32_t*             count; // points to internal count
+    Hell_Array                  array; // backing array. should not need to access directly
 } Obdn_PrimitiveList;
 
 // New paradigm: scene does not own any gpu resources. Images, geo, anything backed by gpu memory
@@ -177,6 +182,7 @@ void obdn_BindPrimToMaterial(Obdn_Scene*                scene,
 void obdn_BindPrimToMaterialDirect(Obdn_Scene* scene, uint32_t directIndex,
                                    Obdn_MaterialHandle mathandle);
 
+Obdn_PrimitiveList obdn_CreatePrimList(uint32_t initial_capacity);
 void obdn_AddPrimToList(const Obdn_PrimitiveHandle, Obdn_PrimitiveList*);
 void obdn_AddDirectionLight(Obdn_Scene* s, Coal_Vec3 dir, Coal_Vec3 color,
                             float intensity);
@@ -231,17 +237,21 @@ void obdn_UpdatePrimXform(Obdn_Scene* scene, const Obdn_PrimitiveHandle primId,
 void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle primId,
                        Coal_Mat4 newXform);
 
-Coal_Mat4 obdn_GetCameraView(const Obdn_Scene* scene);
-Coal_Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene);
+Coal_Mat4 obdn_SceneGetCameraView(const Obdn_Scene* scene);
+Coal_Mat4 obdn_SceneGetCameraProjection(const Obdn_Scene* scene);
+Coal_Mat4 obdn_SceneGetCameraXform(const Obdn_Scene* scene);
 
 void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4);
 void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4);
 
 Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id);
 
-uint32_t obdn_GetPrimCount(const Obdn_Scene*);
+uint32_t obdn_SceneGetPrimCount(const Obdn_Scene*);
+uint32_t obdn_SceneGetLightCount(const Obdn_Scene*);
 
-Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene*);
+const Obdn_Light* Obdn_SceneGetLight(const Obdn_Scene*, Obdn_LightHandle);
+
+Obdn_SceneDirtyFlags obdn_SceneGetDirt(const Obdn_Scene*);
 
 // sets dirt flags to 0 and resets dirty prim set
 void obdn_SceneEndFrame(Obdn_Scene*);
@@ -260,9 +270,9 @@ uint32_t obdn_SceneGetMaterialIndex(const Obdn_Scene*, Obdn_MaterialHandle);
 uint32_t obdn_SceneGetTextureIndex(const Obdn_Scene*, Obdn_TextureHandle);
 
 uint32_t       obdn_SceneGetTextureCount(const Obdn_Scene* s);
-Obdn_Texture*  obdn_SceneGetTextures(const Obdn_Scene* s);
+Obdn_Texture*  obdn_SceneGetTextures(const Obdn_Scene* s, Obdn_SceneObjectInt* count);
 uint32_t       obdn_SceneGetMaterialCount(const Obdn_Scene* s);
-Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s);
+Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s, Obdn_SceneObjectInt* count);
 
 // a bit of a hack for dali
 void obdn_SceneDirtyTextures(Obdn_Scene* s);
@@ -286,8 +296,33 @@ Obdn_Geometry* obdn_SceneGetPrimGeo(Obdn_Scene*          scene,
 Obdn_Primitive* 
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle);
 
+const Obdn_Primitive*
+obdn_SceneGetPrimitiveConst(const Obdn_Scene* s, Obdn_PrimitiveHandle handle);
+
+const Obdn_Primitive* obdn_SceneGetPrimitives(const Obdn_Scene* s, Obdn_SceneObjectInt* count);
+
 void obdn_SceneDirtyAll(Obdn_Scene* s);
 
 void obdn_SceneCameraUpdateAspectRatio(Obdn_Scene* s, float ar);
+
+static inline Obdn_PrimitiveHandle obdn_CreatePrimitiveHandle(Obdn_SceneObjectInt i) 
+{
+    return (Obdn_PrimitiveHandle){.id = i}; 
+}
+
+static inline Obdn_MaterialHandle obdn_CreateMaterialHandle(Obdn_SceneObjectInt i) 
+{
+    return (Obdn_MaterialHandle){.id = i}; 
+}
+
+static inline Obdn_TextureHandle obdn_CreateTextureHandle(Obdn_SceneObjectInt i) 
+{
+    return (Obdn_TextureHandle){.id = i}; 
+}
+
+static inline Obdn_LightHandle obdn_CreateLightHandle(Obdn_SceneObjectInt i) 
+{
+    return (Obdn_LightHandle){.id = i}; 
+}
 
 #endif /* end of include guard: OBDN_S_SCENE_H */

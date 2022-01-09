@@ -57,15 +57,15 @@ typedef struct {
     // an object and can reclaim its id. the bottom of the stack should always
     // be larger than any other Id used yet. in other words, we should always pull from this 
     // stack for the next id
-    Hell_Stack availableIds;
+    Hell_Array availableIds;
 } ObjectMap;
 
 typedef struct Obdn_Scene {
     Obdn_SceneDirtyFlags dirt;
     Obdn_Memory*         memory;
-    Hell_Stack           dirtyTextures;
-    Hell_Stack           dirtyMaterials;
-    Hell_Stack           dirtyPrims;
+    Hell_Array           dirtyTextures;
+    Hell_Array           dirtyMaterials;
+    Hell_Array           dirtyPrims;
     obint                primCount;
     obint                lightCount;
     obint                materialCount;
@@ -94,7 +94,7 @@ static void addTextureToDirtyTextures(Obdn_Scene* s, TextureHandle handle)
     {
         if (texs[i].id == handle.id) return; // handle already in set
     }
-    hell_StackPush(&s->dirtyTextures, &handle);
+    hell_ArrayPush(&s->dirtyTextures, &handle);
 }
 
 static void addMaterialToDirtyMaterials(Obdn_Scene* s, MaterialHandle handle)
@@ -104,7 +104,7 @@ static void addMaterialToDirtyMaterials(Obdn_Scene* s, MaterialHandle handle)
     {
         if (mats[i].id == handle.id) return; // handle already in set
     }
-    hell_StackPush(&s->dirtyMaterials, &handle);
+    hell_ArrayPush(&s->dirtyMaterials, &handle);
 }
 
 static void addPrimToDirtyPrims(Obdn_Scene* s, PrimitiveHandle handle)
@@ -114,13 +114,13 @@ static void addPrimToDirtyPrims(Obdn_Scene* s, PrimitiveHandle handle)
     {
         if (prims[i].id == handle.id) return; // handle already in set
     }
-    hell_StackPush(&s->dirtyPrims, &handle);
+    hell_ArrayPush(&s->dirtyPrims, &handle);
 }
 
 static void createObjectMap(u32 initObjectCap, u32 initIdStackCap, ObjectMap* map)
 {
     map->indices = hell_Malloc(sizeof(map->indices[0]) * initObjectCap);
-    hell_CreateStack(initIdStackCap, sizeof(map->indices[0]), NULL, NULL, &map->availableIds);
+    hell_CreateArray(initIdStackCap, sizeof(map->indices[0]), NULL, NULL, &map->availableIds);
 }
 
 static void growArray(void** curptr, obint* curcap, const u32 elemsize)
@@ -148,7 +148,7 @@ static obint addSceneObject(const void* object, void* objectArray, obint* object
     if (map->availableIds.count == 0)
         id = index;
     else 
-        hell_StackPop(&map->availableIds, &id);
+        hell_ArrayPop(&map->availableIds, &id);
     map->indices[id] = index;
     void* dst = (u8*)(objectArray) + index * elemSize;
     memcpy(dst, object, elemSize);
@@ -163,7 +163,7 @@ static void removeSceneObject(obint id, void* objectArray, obint* objectCount, c
     const u32         range = end - (u8*)src;
     memmove(dst, src, range);
     (*objectCount)--;
-    hell_StackPush(&map->availableIds, &id);
+    hell_ArrayPush(&map->availableIds, &id);
 }
 
 static PrimitiveHandle addPrim(Scene* s, Obdn_Primitive prim)
@@ -340,9 +340,9 @@ obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float fov,
     scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
 
     // 8 is arbitrary initial capacity
-    hell_CreateStack(8, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &scene->dirtyPrims);
-    hell_CreateStack(8, sizeof(Obdn_MaterialHandle), NULL, NULL, &scene->dirtyMaterials);
-    hell_CreateStack(8, sizeof(Obdn_TextureHandle), NULL, NULL, &scene->dirtyTextures);
+    hell_CreateArray(8, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &scene->dirtyPrims);
+    hell_CreateArray(8, sizeof(Obdn_MaterialHandle), NULL, NULL, &scene->dirtyMaterials);
+    hell_CreateArray(8, sizeof(Obdn_TextureHandle), NULL, NULL, &scene->dirtyTextures);
 
     // create defaults
     Texture tex = {0};
@@ -488,15 +488,25 @@ void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle handle, Mat4 newX
     scene->dirt |= OBDN_SCENE_XFORMS_BIT;
 }
 
+Obdn_PrimitiveList obdn_CreatePrimList(uint32_t initial_cap)
+{
+    Obdn_PrimitiveList pl = {0};
+    hell_CreateArray(initial_cap, sizeof(*pl.prims), NULL, NULL, &pl.array);
+    pl.prims = pl.array.elems;
+    pl.count = &pl.array.count;
+    return pl;
+}
+
 void obdn_AddPrimToList(Obdn_PrimitiveHandle handle, Obdn_PrimitiveList* list)
 {
-    list->primIds[list->primCount] = handle.id;
-    list->primCount++;
+    hell_ArrayPush(&list->array, &handle);
+    // need to reset the pointer in case we realloc'd
+    list->prims = list->array.elems;
 }
 
 void obdn_ClearPrimList(Obdn_PrimitiveList* list)
 {
-    list->primCount = 0;
+    hell_ArrayClear(&list->array);
 }
 
 void obdn_DestroyScene(Obdn_Scene* scene)
@@ -613,14 +623,19 @@ Obdn_Scene* obdn_AllocScene(void)
     return hell_Malloc(sizeof(Scene));
 }
 
-Mat4 obdn_GetCameraView(const Obdn_Scene* scene)
+Mat4 obdn_SceneGetCameraView(const Obdn_Scene* scene)
 {
     return scene->camera.view;
 }
 
-Mat4 obdn_GetCameraProjection(const Obdn_Scene* scene)
+Mat4 obdn_SceneGetCameraProjection(const Obdn_Scene* scene)
 {
     return scene->camera.proj;
+}
+
+Coal_Mat4 obdn_SceneGetCameraXform(const Obdn_Scene* scene)
+{
+    return scene->camera.xform;
 }
 
 Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id)
@@ -629,12 +644,22 @@ Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id)
     return &PRIM(s, handle);
 }
 
-uint32_t obdn_GetPrimCount(const Obdn_Scene* s)
+uint32_t obdn_SceneGetPrimCount(const Obdn_Scene* s)
 {
     return s->primCount;
 }
 
-Obdn_SceneDirtyFlags obdn_GetSceneDirt(const Obdn_Scene* s)
+uint32_t obdn_SceneGetLightCount(const Obdn_Scene* s)
+{
+    return s->lightCount;
+}
+
+const Obdn_Light* Obdn_SceneGetLight(const Obdn_Scene* s, Obdn_LightHandle h)
+{
+    return &LIGHT(s, h);
+}
+
+Obdn_SceneDirtyFlags obdn_SceneGetDirt(const Obdn_Scene* s)
 {
     return s->dirt;
 }
@@ -751,8 +776,9 @@ uint32_t obdn_SceneGetTextureCount(const Obdn_Scene* s)
     return s->textureCount;
 }
 
-Obdn_Texture* obdn_SceneGetTextures(const Obdn_Scene* s)
+Obdn_Texture* obdn_SceneGetTextures(const Obdn_Scene* s, Obdn_SceneObjectInt* count)
 {
+    *count = s->textureCount;
     return s->textures;
 }
 
@@ -761,8 +787,9 @@ uint32_t       obdn_SceneGetMaterialCount(const Obdn_Scene* s)
     return s->materialCount;
 }
 
-Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s)
+Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s, Obdn_SceneObjectInt* count)
 {
+    *count = s->materialCount;
     return s->materials;
 }
 
@@ -831,6 +858,18 @@ Obdn_Primitive*
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
 {
     return &PRIM(s, handle);
+}
+
+const Obdn_Primitive*
+obdn_SceneGetPrimitiveConst(const Obdn_Scene* s, Obdn_PrimitiveHandle handle)
+{
+    return &PRIM(s, handle);
+}
+
+const Obdn_Primitive* obdn_SceneGetPrimitives(const Obdn_Scene* s, Obdn_SceneObjectInt* count)
+{
+    *count = s->primCount;
+    return s->prims;
 }
 
 void obdn_SceneDirtyAll(Obdn_Scene* s)

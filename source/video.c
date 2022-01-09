@@ -1,16 +1,17 @@
 //
 #include "video.h"
-#include "private.h"
+#include "command.h"
 #include "common.h"
 #include "dtags.h"
-#include "command.h"
 #include "loader.h"
 #include "memory.h"
+#include "private.h"
 #include "vulkan.h"
 #include <assert.h>
 #include <hell/attributes.h>
 #include <hell/common.h>
 #include <hell/debug.h>
+#include <hell/ds.h>
 #include <hell/len.h>
 #include <hell/platform.h>
 #include <stdint.h>
@@ -31,13 +32,16 @@ debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
 }
 
 static void
-checkForAvailableLayers(const Obdn_InstanceParms* parms)
+checkForAvailableLayers(u32          enabledInstanceLayerCount,
+                        const char** ppEnabledInstanceLayerNames)
 {
     uint32_t availableCount;
     vkEnumerateInstanceLayerProperties(&availableCount, NULL);
-    VkLayerProperties* propertiesAvailable = hell_Malloc(sizeof(VkLayerProperties) * availableCount);
+    VkLayerProperties* propertiesAvailable =
+        hell_Malloc(sizeof(VkLayerProperties) * availableCount);
     vkEnumerateInstanceLayerProperties(&availableCount, propertiesAvailable);
-    const char* listAvailableLayers = getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_LAYERS");
+    const char* listAvailableLayers =
+        getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_LAYERS");
     if (listAvailableLayers)
     {
         DPRINT_VK("%s\n", "Vulkan Instance layers available:");
@@ -49,9 +53,9 @@ checkForAvailableLayers(const Obdn_InstanceParms* parms)
         hell_Print("\n");
         for (int i = 0; i < availableCount; i++)
         {
-            const char*      name   = propertiesAvailable[i].layerName;
+            const char* name = propertiesAvailable[i].layerName;
             const char* desc = propertiesAvailable[i].description;
-            const int pad    = padding - strlen(name);
+            const int   pad  = padding - strlen(name);
             hell_Print("%s%*s\n", name, pad, desc);
             for (int i = 0; i < padding; i++)
             {
@@ -61,10 +65,10 @@ checkForAvailableLayers(const Obdn_InstanceParms* parms)
         }
         hell_Print("\n");
     }
-    for (int i = 0; i < parms->enabledInstanceLayerCount; i++)
+    for (int i = 0; i < enabledInstanceLayerCount; i++)
     {
-        bool matched = false;
-        const char* layerName = parms->ppEnabledInstanceLayerNames[i];
+        bool        matched   = false;
+        const char* layerName = ppEnabledInstanceLayerNames[i];
         for (int j = 0; j < availableCount; j++)
         {
             if (strcmp(layerName, propertiesAvailable[j].layerName) == 0)
@@ -74,21 +78,26 @@ checkForAvailableLayers(const Obdn_InstanceParms* parms)
         }
         if (!matched)
         {
-            obdn_Announce("WARNING: Requested Vulkan Instance Layer not available: %s\n", layerName);
+            obdn_Announce(
+                "WARNING: Requested Vulkan Instance Layer not available: %s\n",
+                layerName);
         }
     }
     hell_Free(propertiesAvailable);
 }
 
 static void
-checkForAvailableExtensions(const Obdn_InstanceParms* parms)
+checkForAvailableExtensions(u32          enabledInstanceExentensionCount,
+                            const char** ppEnabledInstanceExtensionNames)
 {
     uint32_t availableCount;
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount, NULL);
-    VkExtensionProperties* propertiesAvailable = hell_Malloc(sizeof(VkExtensionProperties) * availableCount);
+    VkExtensionProperties* propertiesAvailable =
+        hell_Malloc(sizeof(VkExtensionProperties) * availableCount);
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount,
                                            propertiesAvailable);
-    const char* listAvailableExtensions = getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_EXTENSIONS");
+    const char* listAvailableExtensions =
+        getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_EXTENSIONS");
     if (listAvailableExtensions)
     {
         obdn_Announce("%s\n", "Vulkan Instance extensions available:");
@@ -98,20 +107,23 @@ checkForAvailableExtensions(const Obdn_InstanceParms* parms)
         }
         hell_Print("\n");
     }
-    for (int i = 0; i < parms->enabledInstanceExentensionCount; i++)
+    for (int i = 0; i < enabledInstanceExentensionCount; i++)
     {
-        bool matched = false;
-        const char* extensionName = parms->ppEnabledInstanceExtensionNames[i];
+        bool        matched       = false;
+        const char* extensionName = ppEnabledInstanceExtensionNames[i];
         for (int j = 0; j < availableCount; j++)
         {
-            if (strcmp(extensionName, propertiesAvailable[j].extensionName) == 0)
+            if (strcmp(extensionName, propertiesAvailable[j].extensionName) ==
+                0)
             {
                 matched = true;
             }
         }
         if (!matched)
         {
-            obdn_Announce("WARNING: Requested Vulkan Instance Extension not available: %s\n", extensionName);
+            obdn_Announce("WARNING: Requested Vulkan Instance Extension not "
+                          "available: %s\n",
+                          extensionName);
         }
     }
     hell_Free(propertiesAvailable);
@@ -130,7 +142,15 @@ getVkVersionAvailable(void)
 }
 
 static Obdn_Result
-initVkInstance(const Obdn_InstanceParms* parms, VkInstance* instance)
+initVkInstance(u32          enabledInstanceExentensionCount,
+               const char** ppEnabledInstanceExtensionNames,
+               u32          enabledInstanceLayerCount,
+               const char** ppEnabledInstanceLayerNames,
+               u32          enabledDeviceExtensionCount,
+               const char** ppEnabledDeviceExtensionNames,
+               bool disableValidation, u32 validationFeaturesCount,
+               const VkValidationFeatureEnableEXT* pEnabledValidationFeatures,
+               VkInstance*                         instance)
 {
     uint32_t vulkver = getVkVersionAvailable();
     // uint32_t vulkver = VK_MAKE_VERSION(1, 2, 0);
@@ -147,28 +167,31 @@ initVkInstance(const Obdn_InstanceParms* parms, VkInstance* instance)
         .apiVersion         = vulkver,
     };
 
-    checkForAvailableLayers(parms);
-    checkForAvailableExtensions(parms);
+    checkForAvailableLayers(enabledInstanceLayerCount,
+                            ppEnabledInstanceLayerNames);
+    checkForAvailableExtensions(enabledInstanceExentensionCount,
+                                ppEnabledInstanceExtensionNames);
 
     VkValidationFeaturesEXT extraValidation = (VkValidationFeaturesEXT){
         .sType = VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT,
         .disabledValidationFeatureCount = 0,
-        .enabledValidationFeatureCount = parms->validationFeaturesCount,
-        .pEnabledValidationFeatures = parms->pValidationFeatures};
+        .enabledValidationFeatureCount  = validationFeaturesCount,
+        .pEnabledValidationFeatures     = pEnabledValidationFeatures};
 
-    VkValidationFeaturesEXT* pExtraValidation = parms->validationFeaturesCount ? &extraValidation : NULL;
+    VkValidationFeaturesEXT* pExtraValidation =
+        validationFeaturesCount ? &extraValidation : NULL;
 
     VkInstanceCreateInfo instanceInfo = {
-        .enabledLayerCount       = parms->enabledInstanceLayerCount,
-        .enabledExtensionCount   = parms->enabledInstanceExentensionCount,
-        .ppEnabledExtensionNames = parms->ppEnabledInstanceExtensionNames,
-        .ppEnabledLayerNames     = parms->ppEnabledInstanceLayerNames,
+        .enabledLayerCount       = enabledInstanceLayerCount,
+        .enabledExtensionCount   = enabledInstanceExentensionCount,
+        .ppEnabledExtensionNames = ppEnabledInstanceExtensionNames,
+        .ppEnabledLayerNames     = ppEnabledInstanceLayerNames,
         .pApplicationInfo        = &appInfo,
         .sType                   = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
         .pNext                   = pExtraValidation,
     };
 
-    if (parms->disableValidation)
+    if (disableValidation)
     {
         instanceInfo.enabledLayerCount = 0; // disables layers
     }
@@ -178,7 +201,7 @@ initVkInstance(const Obdn_InstanceParms* parms, VkInstance* instance)
     {
         if (r == VK_ERROR_EXTENSION_NOT_PRESENT)
             return OBDN_ERROR_INSTANCE_EXTENSION_NOT_PRESENT;
-        else 
+        else
             return OBDN_ERROR_GENERIC;
     }
     return OBDN_SUCCESS;
@@ -221,7 +244,7 @@ retrievePhysicalDevice(const VkInstance            instance,
 {
     uint32_t physdevcount;
     V_ASSERT(vkEnumeratePhysicalDevices(instance, &physdevcount, NULL));
-    assert(physdevcount < 6); //TODO make robust
+    assert(physdevcount < 6); // TODO make robust
     VkPhysicalDevice devices[6];
     V_ASSERT(vkEnumeratePhysicalDevices(instance, &physdevcount, devices));
     VkPhysicalDeviceProperties props[6];
@@ -247,9 +270,9 @@ retrievePhysicalDevice(const VkInstance            instance,
 static Obdn_Result
 initDevice(
     const bool enableRayTracing, const uint32_t userExtCount,
-    const char* const*           userExtensions,
-    const VkPhysicalDevice physicalDevice, QueueFamily* graphicsQueueFamily,
-    QueueFamily* computeQueueFamily, QueueFamily* transferQueueFamily,
+    const char* const* userExtensions, const VkPhysicalDevice physicalDevice,
+    QueueFamily* graphicsQueueFamily, QueueFamily* computeQueueFamily,
+    QueueFamily*                                        transferQueueFamily,
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR*    rtProperties,
     VkPhysicalDeviceAccelerationStructurePropertiesKHR* accelStructProperties,
     VkDevice*                                           device)
@@ -260,7 +283,7 @@ initDevice(
     uint32_t qfcount;
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, NULL);
-    assert(qfcount < 10); //TODO make robust
+    assert(qfcount < 10); // TODO make robust
     VkQueueFamilyProperties qfprops[10];
 
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, qfprops);
@@ -270,7 +293,7 @@ initDevice(
     {
         VkQueryControlFlags flags = qfprops[i].queueFlags;
         obdn_Announce("Queue Family %d: count: %d flags: ", i,
-                  qfprops[i].queueCount);
+                      qfprops[i].queueCount);
         if (flags & VK_QUEUE_GRAPHICS_BIT)
             hell_Print(" Graphics ");
         if (flags & VK_QUEUE_COMPUTE_BIT)
@@ -351,7 +374,8 @@ initDevice(
     uint32_t propCount;
     V_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, NULL,
                                                   &propCount, NULL));
-    VkExtensionProperties* properties = hell_Malloc(sizeof(*properties) * propCount);
+    VkExtensionProperties* properties =
+        hell_Malloc(sizeof(*properties) * propCount);
     V_ASSERT(vkEnumerateDeviceExtensionProperties(physicalDevice, NULL,
                                                   &propCount, properties));
 
@@ -395,9 +419,9 @@ initDevice(
         VK_KHR_SWAPCHAIN_EXTENSION_NAME,
         VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
         VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        //VK_KHR_RAY_QUERY_EXTENSION_NAME,
-        // Required by VK_KHR_acceleration_structure
-        // VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
+        // VK_KHR_RAY_QUERY_EXTENSION_NAME,
+        //  Required by VK_KHR_acceleration_structure
+        //  VK_KHR_BUFFER_DEVICE_ADDRESS_EXTENSION_NAME,
         VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
         // VK_EXT_DESCRIPTOR_INDEXING_EXTENSION_NAME,
         // Required for VK_KHR_ray_tracing_pipeline
@@ -506,9 +530,9 @@ initDevice(
         defaultExtNames = extensionsReg;
     }
 
-    int  extCount = userExtCount + defExtCount;
-    #define MAX_EXT 16
-    assert(extCount < MAX_EXT); //TODO make robust
+    int extCount = userExtCount + defExtCount;
+#define MAX_EXT 16
+    assert(extCount < MAX_EXT); // TODO make robust
     char extNamesData[MAX_EXT][VK_MAX_EXTENSION_NAME_SIZE];
 
     for (int i = 0; i < defExtCount; i++)
@@ -548,7 +572,7 @@ initDevice(
         {
             return OBDN_ERROR_DEVICE_EXTENSION_NOT_PRESENT;
         }
-        else 
+        else
             return OBDN_ERROR_GENERIC;
     }
 
@@ -580,70 +604,90 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
     obdn_Announce("Obsidian: Queues Initialized\n");
 }
 
-Obdn_Result 
-obdn_CreateInstance(const Obdn_InstanceParms* baseparms, Obdn_Instance* instance)
+Obdn_Result
+obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
 {
     memset(instance, 0, sizeof(Obdn_Instance));
-    Obdn_InstanceParms parms = *baseparms; //make a copy because we may modify.
-    if (!parms.disableValidation) 
+    Hell_Array enabled_instance_extension_names, enabled_instance_layer_names,
+        enabled_device_extension_names;
+    hell_CreateArray(12, sizeof(char*), NULL, NULL,
+                     &enabled_instance_extension_names);
+    hell_CreateArray(12, sizeof(char*), NULL, NULL,
+                     &enabled_instance_layer_names);
+    hell_CreateArray(12, sizeof(char*), NULL, NULL,
+                     &enabled_device_extension_names);
+    for (int i = 0; i < parms->enabledInstanceExentensionCount; i++)
+        hell_ArrayPush(&enabled_instance_extension_names,
+                       &parms->ppEnabledInstanceExtensionNames[i]);
+    for (int i = 0; i < parms->enabledInstanceLayerCount; i++)
+        hell_ArrayPush(&enabled_instance_layer_names,
+                       &parms->ppEnabledInstanceLayerNames[i]);
+    for (int i = 0; i < parms->enabledDeviceExtensionCount; i++)
+        hell_ArrayPush(&enabled_device_extension_names,
+                       &parms->ppEnabledDeviceExtensionNames[i]);
+    if (!parms->disableValidation)
     {
-        // requires us to add 1 instance layer and 2 instance extensions
-        uint32_t oldLayerCount     = parms.enabledInstanceLayerCount;
-        uint32_t oldExtensionCount = parms.enabledInstanceExentensionCount;
-        uint32_t newExtensionCount = oldExtensionCount + 1;
-        uint32_t newLayerCount     = oldLayerCount + 1;
-        const char**   newExtensionNames = hell_Malloc(sizeof(char*) * newExtensionCount);
-        const char**   newLayerNames     = hell_Malloc(sizeof(char*) * newLayerCount);
-        int i = 0;
-        for(; i < oldLayerCount; i++)
-            newLayerNames[i] = hell_CopyString(parms.ppEnabledInstanceLayerNames[i]); //allocates
-        newLayerNames[i] = hell_CopyString("VK_LAYER_KHRONOS_validation");
-        i = 0;
-        for(; i < oldExtensionCount; i++)
-            newExtensionNames[i] = hell_CopyString(parms.ppEnabledInstanceExtensionNames[i]); //allocates
-        newExtensionNames[i] = hell_CopyString(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-        
-        parms.enabledInstanceExentensionCount = newExtensionCount;
-        parms.enabledInstanceLayerCount       = newLayerCount;
-        parms.ppEnabledInstanceExtensionNames = newExtensionNames;
-        parms.ppEnabledInstanceLayerNames     = newLayerNames;
+        const char* validation_layer = "VK_LAYER_KHRONOS_validation";
+        const char* debug_util_ext   = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+        hell_ArrayPush(&enabled_instance_layer_names, &validation_layer);
+        hell_ArrayPush(&enabled_device_extension_names, &debug_util_ext);
     }
-    Obdn_Result r = initVkInstance(&parms, &instance->vkinstance);
+    switch (parms->surfaceType)
+    {
+    case OBDN_SURFACE_TYPE_XCB: {
+        const char* surfext = VK_KHR_SURFACE_EXTENSION_NAME;
+        const char* xcbext  = "VK_KHR_xcb_surface";
+        hell_ArrayPush(&enabled_instance_extension_names, &surfext);
+        hell_ArrayPush(&enabled_instance_extension_names, &xcbext);
+        break;
+    }
+    case OBDN_SURFACE_TYPE_WIN32: {
+        const char* surfext = VK_KHR_SURFACE_EXTENSION_NAME;
+        const char* xcbext  = "VK_KHR_win32_surface";
+        hell_ArrayPush(&enabled_instance_extension_names, &surfext);
+        hell_ArrayPush(&enabled_instance_extension_names, &xcbext);
+        break;
+    }
+    case OBDN_SURFACE_TYPE_NO_WINDOW:
+        break;
+    }
+    Obdn_Result r = initVkInstance(
+        enabled_instance_extension_names.count,
+        enabled_instance_extension_names.elems,
+        enabled_instance_layer_names.count, enabled_instance_layer_names.elems,
+        enabled_device_extension_names.count,
+        enabled_device_extension_names.elems, parms->disableValidation,
+        parms->validationFeaturesCount, parms->pValidationFeatures,
+        &instance->vkinstance);
     if (r != OBDN_SUCCESS)
     {
-        hell_Print("Could not initialize Vulkan instance");
+        hell_Error(HELL_ERR_FATAL, "Could not initialize Vulkan instance\n");
         return r;
     }
     obdn_Announce("Vulkan Instance initilized.\n");
-    if (!parms.disableValidation)
-    {
-        initDebugMessenger(instance->vkinstance, &instance->debugMessenger);
-        // clean up
-        for (int i = 0; i < parms.enabledInstanceExentensionCount; i++)
-            hell_Free((void*)parms.ppEnabledInstanceExtensionNames[i]);
-        for (int i = 0; i < parms.enabledInstanceLayerCount; i++)
-            hell_Free((void*)parms.ppEnabledInstanceLayerNames[i]);
-        hell_Free(parms.ppEnabledInstanceExtensionNames);
-        hell_Free(parms.ppEnabledInstanceLayerNames);
-    }
     instance->physicalDevice = retrievePhysicalDevice(
         instance->vkinstance, &instance->deviceProperties);
-    r = initDevice(parms.enableRayTracing, parms.enabledDeviceExtensionCount, parms.ppEnabledDeviceExtensionNames, instance->physicalDevice,
-               &instance->graphicsQueueFamily, &instance->computeQueueFamily,
-               &instance->transferQueueFamily, &instance->rtProperties,
-               &instance->accelStructProperties, &instance->device);
+    r = initDevice(
+        parms->enableRayTracing, enabled_device_extension_names.count,
+        enabled_device_extension_names.elems, instance->physicalDevice,
+        &instance->graphicsQueueFamily, &instance->computeQueueFamily,
+        &instance->transferQueueFamily, &instance->rtProperties,
+        &instance->accelStructProperties, &instance->device);
     if (r != OBDN_SUCCESS)
     {
-        hell_Print("Could not initialize Vulkan device");
+        hell_Error(HELL_ERR_FATAL, "Could not initialize Vulkan device\n");
         return r;
     }
     obdn_Announce("Vulkan device initilized.\n");
-    if (parms.enableRayTracing) // TODO not all functions have to do with
+    if (parms->enableRayTracing) // TODO not all functions have to do with
         obdn_v_LoadFunctions(instance->device);
     initQueues(instance->device, &instance->graphicsQueueFamily,
                &instance->computeQueueFamily, &instance->transferQueueFamily,
                &instance->presentQueue);
     obdn_Announce("Initialized Obsidian Instance.\n");
+    hell_DestroyArray(&enabled_instance_layer_names, NULL);
+    hell_DestroyArray(&enabled_device_extension_names, NULL);
+    hell_DestroyArray(&enabled_instance_extension_names, NULL);
     return OBDN_SUCCESS;
 }
 
@@ -722,7 +766,7 @@ obdn_GetPresentQueue(const Obdn_Instance* instance)
     return instance->presentQueue;
 }
 
-VkQueue 
+VkQueue
 obdn_GetGrahicsQueue(const Obdn_Instance* inst, u32 index)
 {
     assert(index < inst->graphicsQueueFamily.queueCount);
@@ -744,12 +788,14 @@ obdn_SubmitGraphicsCommand(const Obdn_Instance*       instance,
                            const uint32_t             queueIndex,
                            const VkPipelineStageFlags waitDstStageMask,
                            uint32_t                   waitCount,
-                           VkSemaphore                waitSemephores[/*waitCount*/],
-                           uint32_t                   signalCount,
+                           VkSemaphore waitSemephores[/*waitCount*/],
+                           uint32_t    signalCount,
                            VkSemaphore signalSemphores[/*signalCount*/],
                            VkFence fence, const VkCommandBuffer cmdBuf)
 {
-    VkPipelineStageFlags waitDstStageMasks[] = {waitDstStageMask, waitDstStageMask, waitDstStageMask, waitDstStageMask}; // hack...
+    VkPipelineStageFlags waitDstStageMasks[] = {
+        waitDstStageMask, waitDstStageMask, waitDstStageMask,
+        waitDstStageMask}; // hack...
     VkSubmitInfo si = {.sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
                        .pWaitDstStageMask    = waitDstStageMasks,
                        .waitSemaphoreCount   = waitCount,
@@ -804,7 +850,6 @@ obdn_GetPhysicalDeviceAccelerationStructureProperties(
     return instance->accelStructProperties;
 }
 
-
 const VkInstance*
 obdn_GetVkInstance(const Obdn_Instance* instance)
 {
@@ -823,13 +868,14 @@ obdn_DeviceWaitIdle(const Obdn_Instance* instance)
     vkDeviceWaitIdle(instance->device);
 }
 
-uint64_t 
+uint64_t
 obdn_SizeOfInstance(void)
 {
     return sizeof(Obdn_Instance);
 }
 
-Obdn_Instance* obdn_AllocInstance(void)
+Obdn_Instance*
+obdn_AllocInstance(void)
 {
     return hell_Malloc(sizeof(Obdn_Instance));
 }

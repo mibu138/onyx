@@ -433,7 +433,7 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
 #define MAX_RT_SHADER_COUNT 10
 
 void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[/*count*/], 
-        VkPipeline pipelines[/*count*/], Obdn_R_ShaderBindingTable shaderBindingTables[/*count*/])
+        VkPipeline pipelines[/*count*/], Obdn_ShaderBindingTable shaderBindingTables[/*count*/])
 {
     assert(count > 0);
     assert(count < OBDN_MAX_PIPELINES);

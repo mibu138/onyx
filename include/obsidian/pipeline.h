@@ -117,7 +117,7 @@ void obdn_CreatePipelineLayouts(VkDevice, const uint8_t count, const Obdn_Pipeli
 void obdn_CreateGraphicsPipelines(VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[/*count*/], VkPipeline pipelines[/*count*/]);
 void obdn_CleanUpPipelines(void);
 void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[/*count*/], 
-        VkPipeline pipelines[/*count*/], Obdn_R_ShaderBindingTable shaderBindingTables[/*count*/]);
+        VkPipeline pipelines[/*count*/], Obdn_ShaderBindingTable shaderBindingTables[/*count*/]);
 
 void obdn_CreateDescriptionsAndLayouts(VkDevice, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[/*descSetCount*/], 
         VkDescriptorSetLayout layouts[/*descSetCount*/], 
