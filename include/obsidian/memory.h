@@ -108,6 +108,8 @@ void obdn_CreateUnmanagedBuffer(Obdn_Memory* memory, const VkBufferUsageFlags bu
 const VkDeviceMemory obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_MemoryType memType);
 const VkDeviceSize   obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_MemoryType memType);
 
+const Obdn_Instance* obdn_GetMemoryInstance(const Obdn_Memory* memory);
+
 void obdn_GetImageMemoryUsage(const Obdn_Memory* memory, uint64_t* bytes_in_use, uint64_t* total_bytes);
 
 #ifdef WIN32

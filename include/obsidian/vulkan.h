@@ -512,4 +512,44 @@ static inline VkWriteDescriptorSet obdn_WriteDescriptorSet(
     c.pTexelBufferView = pTexelBufferView;
     return c;
 }
+
+static VkImageSubresourceRange obdn_ImageSubresourceRange(
+    VkImageAspectFlags    aspectMask,
+    uint32_t              baseMipLevel,
+    uint32_t              levelCount,
+    uint32_t              baseArrayLayer,
+    uint32_t              layerCount)
+{
+    VkImageSubresourceRange c = {};
+    c.aspectMask = aspectMask;
+    c.baseMipLevel = baseMipLevel;
+    c.levelCount = levelCount;
+    c.baseArrayLayer = baseArrayLayer;
+    c.layerCount = layerCount;
+    return c;
+}
+
+static inline VkImageMemoryBarrier obdn_ImageMemoryBarrier(
+    VkAccessFlags              srcAccessMask,
+    VkAccessFlags              dstAccessMask,
+    VkImageLayout              oldLayout,
+    VkImageLayout              newLayout,
+    uint32_t                   srcQueueFamilyIndex,
+    uint32_t                   dstQueueFamilyIndex,
+    VkImage                    image,
+    VkImageSubresourceRange    subresourceRange)
+{
+    VkImageMemoryBarrier c = {};
+    c.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    c.srcAccessMask = srcAccessMask;
+    c.dstAccessMask = dstAccessMask;
+    c.oldLayout = oldLayout;
+    c.newLayout = newLayout;
+    c.srcQueueFamilyIndex = srcQueueFamilyIndex;
+    c.dstQueueFamilyIndex = dstQueueFamilyIndex;
+    c.image = image;
+    c.subresourceRange = subresourceRange;
+    return c;
+}
+
 #endif /* end of include guard: OBDN_VULKAN_H */

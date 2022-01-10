@@ -987,3 +987,8 @@ obdn_GetImageMemoryUsage(const Obdn_Memory* memory, uint64_t* bytes_in_use, uint
     *bytes_in_use = memory->blockChainDeviceGraphicsImage.usedSize;
     *total_bytes = memory->blockChainDeviceGraphicsImage.totalSize;
 }
+
+const Obdn_Instance* obdn_GetMemoryInstance(const Obdn_Memory* memory)
+{
+    return memory->instance;
+}
