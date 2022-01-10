@@ -630,7 +630,7 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
         const char* validation_layer = "VK_LAYER_KHRONOS_validation";
         const char* debug_util_ext   = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
         hell_ArrayPush(&enabled_instance_layer_names, &validation_layer);
-        hell_ArrayPush(&enabled_device_extension_names, &debug_util_ext);
+        hell_ArrayPush(&enabled_instance_extension_names, &debug_util_ext);
     }
     switch (parms->surfaceType)
     {

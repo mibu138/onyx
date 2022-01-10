@@ -39,8 +39,9 @@ unsigned obdn_GetSwapchainImageCount(const Obdn_Swapchain* swapchain);
 bool obdn_PresentFrame(Obdn_Swapchain* swapchain, const uint32_t semaphoreCount,
                        VkSemaphore* waitSemaphores);
 
-const Obdn_Frame* obdn_AcquireSwapchainFrame(Obdn_Swapchain* swapchain, VkFence* fence,
-                                    VkSemaphore* semaphore);
+// fence can be a VK_NULL_HANDLE
+const Obdn_Frame* obdn_AcquireSwapchainFrame(Obdn_Swapchain* swapchain, VkFence fence,
+                                    VkSemaphore semaphore);
 
 VkDeviceSize obdn_GetSwapchainImageSize(const Obdn_Swapchain* swapchain);
 

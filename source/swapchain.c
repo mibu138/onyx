@@ -393,12 +393,10 @@ VkExtent3D      obdn_GetSwapchainExtent3D(const Obdn_Swapchain* swapchain)
 #define WAIT_TIME_NS 500000
 
 const Obdn_Frame*
-obdn_AcquireSwapchainFrame(Obdn_Swapchain* swapchain, VkFence* fence,
-                           VkSemaphore* semaphore)
+obdn_AcquireSwapchainFrame(Obdn_Swapchain* swapchain, VkFence fence,
+                           VkSemaphore semaphore)
 {
     assert(semaphore);
-    assert(fence);
-    assert(swapchain);
     VkResult r;
 retry:
     if (swapchain->dirty)
@@ -409,7 +407,7 @@ retry:
         swapchain->dirty = false;
     }
     r = vkAcquireNextImageKHR(swapchain->device, swapchain->swapchain, WAIT_TIME_NS,
-                              *semaphore, *fence,
+                              semaphore, fence,
                               &swapchain->acquiredImageIndex);
     if (VK_ERROR_OUT_OF_DATE_KHR == r)
     {

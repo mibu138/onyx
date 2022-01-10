@@ -149,10 +149,14 @@ typedef struct Obdn_Scene Obdn_Scene;
 
 // container to associate prim ids with pipelines
 typedef struct {
-    const Obdn_PrimitiveHandle* prims; // points to internal elems
-    const uint32_t*             count; // points to internal count
-    Hell_Array                  array; // backing array. should not need to access directly
+    Hell_Array array; // backing array. should not need to access directly
 } Obdn_PrimitiveList;
+
+static inline const Obdn_PrimitiveHandle* obdn_GetPrimlistPrims(const Obdn_PrimitiveList* list, u32* count)
+{
+    *count = list->array.count;
+    return list->array.elems;
+}
 
 // New paradigm: scene does not own any gpu resources. Images, geo, anything backed by gpu memory
 // Those things should be created and destroyed independently

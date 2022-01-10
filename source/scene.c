@@ -490,10 +490,8 @@ void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle handle, Mat4 newX
 
 Obdn_PrimitiveList obdn_CreatePrimList(uint32_t initial_cap)
 {
-    Obdn_PrimitiveList pl = {0};
-    hell_CreateArray(initial_cap, sizeof(*pl.prims), NULL, NULL, &pl.array);
-    pl.prims = pl.array.elems;
-    pl.count = &pl.array.count;
+    Obdn_PrimitiveList pl = {};
+    hell_CreateArray(initial_cap, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &pl.array);
     return pl;
 }
 
@@ -501,7 +499,6 @@ void obdn_AddPrimToList(Obdn_PrimitiveHandle handle, Obdn_PrimitiveList* list)
 {
     hell_ArrayPush(&list->array, &handle);
     // need to reset the pointer in case we realloc'd
-    list->prims = list->array.elems;
 }
 
 void obdn_ClearPrimList(Obdn_PrimitiveList* list)
