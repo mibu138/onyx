@@ -495,3 +495,7 @@ void obdn_v_ClearColorImage(Obdn_Image* image)
     obdn_DestroyCommand(cmd);
 }
 
+VkImageSubresourceRange obdn_GetImageSubresourceRange(const Obdn_Image* img)
+{
+    return obdn_ImageSubresourceRange(img->aspectMask, 0, img->mipLevels, 0, 0);
+}

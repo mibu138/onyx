@@ -70,4 +70,6 @@ void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType
 
 void obdn_v_ClearColorImage(Obdn_Image* image);
 
+VkImageSubresourceRange obdn_GetImageSubresourceRange(const Obdn_Image* img);
+
 #endif /* end of include guard: OBDN_V_IMAGE_H */

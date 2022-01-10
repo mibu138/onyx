@@ -262,26 +262,43 @@ static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 
 
 static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* texture)
 {
-    Obdn_BufferRegion hostBuffer = obdn_RequestBufferRegion(
-        memory, 4 * DEFAULT_TEX_DIM * DEFAULT_TEX_DIM /* 4 components, 1 byte each*/,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
-    u8* pxcomponent = hostBuffer.hostData;
-    for (int i = 0; i < (DEFAULT_TEX_DIM * DEFAULT_TEX_DIM * 4); i++)
-    {
-        *pxcomponent++ = UINT8_MAX; // should be full white, hopefully
-    }
-
     scene->defaultImage = obdn_CreateImageAndSampler(
         memory, DEFAULT_TEX_DIM, DEFAULT_TEX_DIM, VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, VK_FILTER_LINEAR,
         OBDN_MEMORY_DEVICE_TYPE);
 
-    obdn_CopyBufferToImage(&hostBuffer, &scene->defaultImage);
+    Obdn_Command cmd = obdn_CreateCommand(obdn_GetMemoryInstance(memory), OBDN_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_TransitionImageLayout(VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, &scene->defaultImage);
+    obdn_BeginCommandBufferOneTimeSubmit(cmd.buffer);
 
-    obdn_FreeBufferRegion(&hostBuffer);
+    Obdn_Barrier b = {};
+    b.srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+    b.dstStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    b.srcAccessMask = 0;
+    b.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    obdn_CmdTransitionImageLayout(cmd.buffer, b, VK_IMAGE_LAYOUT_UNDEFINED, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+            scene->defaultImage.mipLevels, scene->defaultImage.handle);
+
+    obdn_CmdClearColorImage(cmd.buffer, scene->defaultImage.handle, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, 1, 1.0, 1.0, 1.0, 1.0);
+
+    b.srcStageFlags = b.dstStageFlags;
+    b.dstStageFlags = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    b.srcAccessMask = b.dstAccessMask;
+    b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+    obdn_CmdTransitionImageLayout(cmd.buffer, b, 
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+            scene->defaultImage.mipLevels, scene->defaultImage.handle);
+
+    obdn_EndCommandBuffer(cmd.buffer);
+
+    obdn_SubmitAndWait(&cmd, 0);
+
+    obdn_DestroyCommand(cmd);
 
     texture->devImage = &scene->defaultImage;
 }
