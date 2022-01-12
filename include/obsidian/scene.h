@@ -188,11 +188,11 @@ void obdn_BindPrimToMaterialDirect(Obdn_Scene* scene, uint32_t directIndex,
 
 Obdn_PrimitiveList obdn_CreatePrimList(uint32_t initial_capacity);
 void obdn_AddPrimToList(const Obdn_PrimitiveHandle, Obdn_PrimitiveList*);
-void obdn_AddDirectionLight(Obdn_Scene* s, Coal_Vec3 dir, Coal_Vec3 color,
+Obdn_LightHandle obdn_SceneAddDirectionLight(Obdn_Scene* s, Coal_Vec3 dir, Coal_Vec3 color,
                             float intensity);
 void obdn_ClearPrimList(Obdn_PrimitiveList*);
 void obdn_DestroyScene(Obdn_Scene* scene);
-void obdn_AddPointLight(Obdn_Scene* s, Coal_Vec3 pos, Coal_Vec3 color,
+Obdn_LightHandle obdn_SceneAddPointLight(Obdn_Scene* s, Coal_Vec3 pos, Coal_Vec3 color,
                         float intensity);
 void obdn_PrintLightInfo(const Obdn_Scene* s);
 void obdn_PrintTextureInfo(const Obdn_Scene* s);
@@ -252,6 +252,8 @@ Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id);
 
 uint32_t obdn_SceneGetPrimCount(const Obdn_Scene*);
 uint32_t obdn_SceneGetLightCount(const Obdn_Scene*);
+
+Obdn_Light* obdn_SceneGetLights(const Obdn_Scene*, uint32_t* count);
 
 const Obdn_Light* Obdn_SceneGetLight(const Obdn_Scene*, Obdn_LightHandle);
 

@@ -552,4 +552,25 @@ static inline VkImageMemoryBarrier obdn_ImageMemoryBarrier(
     return c;
 }
 
+static inline VkSubmitInfo obdn_SubmitInfo(
+    uint32_t                       waitSemaphoreCount,
+    const VkSemaphore*             pWaitSemaphores,
+    const VkPipelineStageFlags*    pWaitDstStageMask,
+    uint32_t                       commandBufferCount,
+    const VkCommandBuffer*         pCommandBuffers,
+    uint32_t                       signalSemaphoreCount,
+    const VkSemaphore*             pSignalSemaphores)
+{
+    VkSubmitInfo c = {};
+    c.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    c.waitSemaphoreCount = waitSemaphoreCount;
+    c.pWaitSemaphores = pWaitSemaphores;
+    c.pWaitDstStageMask = pWaitDstStageMask;
+    c.commandBufferCount = commandBufferCount;
+    c.pCommandBuffers = pCommandBuffers;
+    c.signalSemaphoreCount = signalSemaphoreCount;
+    c.pSignalSemaphores = pSignalSemaphores;
+    return c;
+}
+
 #endif /* end of include guard: OBDN_VULKAN_H */

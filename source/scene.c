@@ -533,14 +533,14 @@ void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
     removePrim(s, handle);
 }
 
-void obdn_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
+Obdn_LightHandle obdn_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
 {
-    addDirectionLight(s, dir, color, intensity);
+    return addDirectionLight(s, dir, color, intensity);
 }
 
-void obdn_SceneAddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity)
+Obdn_LightHandle obdn_SceneAddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity)
 {
-    addPointLight(s, pos, color, intensity);
+    return addPointLight(s, pos, color, intensity);
 }
 
 void obdn_SceneRemoveLight(Scene* s, LightHandle id)
@@ -666,6 +666,12 @@ uint32_t obdn_SceneGetPrimCount(const Obdn_Scene* s)
 uint32_t obdn_SceneGetLightCount(const Obdn_Scene* s)
 {
     return s->lightCount;
+}
+
+Obdn_Light* obdn_SceneGetLights(const Obdn_Scene* scene, uint32_t* count)
+{
+    *count = scene->lightCount;
+    return scene->lights;
 }
 
 const Obdn_Light* Obdn_SceneGetLight(const Obdn_Scene* s, Obdn_LightHandle h)

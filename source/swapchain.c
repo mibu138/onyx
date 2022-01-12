@@ -265,12 +265,12 @@ createSwapchainFramebuffers(Obdn_Swapchain* swapchain, uint32_t aovCount, Obdn_A
         colorImage->format = swapchain->format;
         colorImage->usageFlags = swapchain->imageUsageFlags;
 
-        for (uint32_t i = 1; i < aovCount; i++)
+        for (uint32_t j = 1; j < aovCount; j++)
         {
-            fb->aovs[i] = obdn_CreateImage(
+            fb->aovs[j] = obdn_CreateImage(
                 swapchain->memory, swapchain->width, swapchain->height,
-                aovInfos[i].format, aovInfos[i].usageFlags,
-                aovInfos[i].aspectFlags, VK_SAMPLE_COUNT_1_BIT, 1,
+                aovInfos[j].format, aovInfos[j].usageFlags,
+                aovInfos[j].aspectFlags, VK_SAMPLE_COUNT_1_BIT, 1,
                 OBDN_MEMORY_DEVICE_TYPE);
         }
 
