@@ -290,3 +290,4 @@ void obdn_CmdClearColorImage(VkCommandBuffer cmdbuf, VkImage image, VkImageLayou
 
     vkCmdClearColorImage(cmdbuf, image, layout, &color, 1, &range);
 }
+

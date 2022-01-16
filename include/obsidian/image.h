@@ -34,6 +34,9 @@ void obdn_CopyBufferToImage(const Obdn_BufferRegion* region,
 void obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
         const Obdn_Image* image, Obdn_BufferRegion* region);
 
+VkImageBlit obdn_ImageBlitSimpleColor(uint32_t srcWidth, uint32_t srcHeight, uint32_t dstWidth, uint32_t dstHeight, 
+        uint32_t srcMipLevel, uint32_t dstMipLevel);
+
 void obdn_CmdCopyBufferToImage(const VkCommandBuffer cmdbuf, uint32_t mipLevel, const Obdn_BufferRegion* region,
         Obdn_Image* image);
 
@@ -71,5 +74,14 @@ void obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image, Obdn_V_ImageFileType
 void obdn_v_ClearColorImage(Obdn_Image* image);
 
 VkImageSubresourceRange obdn_GetImageSubresourceRange(const Obdn_Image* img);
+
+VkImageCopy
+obdn_ImageCopySimpleColor(uint32_t width, uint32_t height, uint32_t srcOffsetX,
+                          uint32_t srcOffsetY, uint32_t srcMipLevel,
+                          uint32_t dstOffsetX, uint32_t dstOffsetY,
+                          uint32_t dstMipLevel);
+
+uint32_t obdn_CalcMipLevelsForImage(uint32_t width, uint32_t height);
+
 
 #endif /* end of include guard: OBDN_V_IMAGE_H */
