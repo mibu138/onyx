@@ -141,7 +141,6 @@ typedef struct {
     Obdn_TextureHandle    textureAlbedo;
     Obdn_TextureHandle    textureRoughness;
     Obdn_TextureHandle    textureNormal;
-    Obdn_TextureHandle    padding;
     Obdn_MatDirtyFlagBits dirt;
 } Obdn_Material;
 
@@ -155,7 +154,7 @@ typedef struct {
 static inline const Obdn_PrimitiveHandle* obdn_GetPrimlistPrims(const Obdn_PrimitiveList* list, u32* count)
 {
     *count = list->array.count;
-    return list->array.elems;
+    return (Obdn_PrimitiveHandle*)list->array.elems;
 }
 
 // New paradigm: scene does not own any gpu resources. Images, geo, anything backed by gpu memory

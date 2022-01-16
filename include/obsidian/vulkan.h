@@ -215,6 +215,7 @@ static inline VkPipelineRasterizationStateCreateInfo obdn_PipelineRasterizationS
     c.frontFace = frontFace;
     c.depthBiasEnable = depthBiasEnable;
     c.depthBiasConstantFactor = depthBiasConstantFactor;
+    c.depthBiasClamp = depthBiasClamp;
     c.depthBiasSlopeFactor = depthBiasSlopeFactor;
     c.lineWidth = lineWidth;
     return c;
@@ -513,7 +514,7 @@ static inline VkWriteDescriptorSet obdn_WriteDescriptorSet(
     return c;
 }
 
-static VkImageSubresourceRange obdn_ImageSubresourceRange(
+static inline VkImageSubresourceRange obdn_ImageSubresourceRange(
     VkImageAspectFlags    aspectMask,
     uint32_t              baseMipLevel,
     uint32_t              levelCount,

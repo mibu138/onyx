@@ -609,13 +609,15 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
 {
     memset(instance, 0, sizeof(Obdn_Instance));
     Hell_Array enabled_instance_extension_names, enabled_instance_layer_names,
-        enabled_device_extension_names;
+        enabled_device_extension_names, enabled_validation_features;
     hell_CreateArray(12, sizeof(char*), NULL, NULL,
                      &enabled_instance_extension_names);
     hell_CreateArray(12, sizeof(char*), NULL, NULL,
                      &enabled_instance_layer_names);
     hell_CreateArray(12, sizeof(char*), NULL, NULL,
                      &enabled_device_extension_names);
+    hell_CreateArray(12, sizeof(VkValidationFeatureEnableEXT), NULL, NULL,
+                     &enabled_validation_features);
     for (int i = 0; i < parms->enabledInstanceExentensionCount; i++)
         hell_ArrayPush(&enabled_instance_extension_names,
                        &parms->ppEnabledInstanceExtensionNames[i]);
@@ -629,8 +631,11 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
     {
         const char* validation_layer = "VK_LAYER_KHRONOS_validation";
         const char* debug_util_ext   = VK_EXT_DEBUG_UTILS_EXTENSION_NAME;
+        VkValidationFeatureEnableEXT sync_validation =
+            VK_VALIDATION_FEATURE_ENABLE_SYNCHRONIZATION_VALIDATION_EXT;
         hell_ArrayPush(&enabled_instance_layer_names, &validation_layer);
         hell_ArrayPush(&enabled_instance_extension_names, &debug_util_ext);
+        hell_ArrayPush(&enabled_validation_features, &sync_validation);
     }
     switch (parms->surfaceType)
     {
@@ -657,7 +662,8 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
         enabled_instance_layer_names.count, enabled_instance_layer_names.elems,
         enabled_device_extension_names.count,
         enabled_device_extension_names.elems, parms->disableValidation,
-        parms->validationFeaturesCount, parms->pValidationFeatures,
+        enabled_validation_features.count, 
+        enabled_validation_features.elems,
         &instance->vkinstance);
     if (r != OBDN_SUCCESS)
     {

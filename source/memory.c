@@ -891,7 +891,7 @@ obdn_CreateUnmanagedBuffer(Obdn_Memory*             memory,
     V_ASSERT(vkBindBufferMemory(memory->instance->device, *pBuffer, *pMemory, 0));
 }
 
-const VkDeviceMemory
+VkDeviceMemory
 obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_MemoryType memType)
 {
     switch (memType)
@@ -904,7 +904,7 @@ obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_MemoryType memType)
     }
 }
 
-const VkDeviceSize
+VkDeviceSize
 obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_MemoryType memType)
 {
     switch (memType)

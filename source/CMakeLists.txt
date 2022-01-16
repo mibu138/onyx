@@ -15,7 +15,10 @@ list(APPEND SRCS
     file.c       
     common.c       
     util.c
-    locations.c)
+    locations.c
+    mikktspace.c
+
+    )
 list(APPEND DEPS 
     Vulkan::Vulkan)
 list(APPEND PRIVATE_DEPS 

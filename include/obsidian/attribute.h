@@ -6,6 +6,7 @@
 #define UV_NAME         "uv"
 #define UVW_NAME        "uvw"
 #define TANGENT_NAME    "tan"
+#define SIGN_NAME       "sin"
 #define BITANGENT_NAME  "btn"
 
 #define ATTR_NAME_LEN OBDN_R_ATTR_NAME_LEN

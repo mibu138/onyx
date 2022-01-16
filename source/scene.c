@@ -897,7 +897,7 @@ void obdn_SceneDirtyAll(Obdn_Scene* s)
     s->dirt = -1;
 }
 
-const Obdn_Primitive* obdn_SceneGetDirtyPrims(const Obdn_Scene* s, uint32_t* count)
+const Obdn_PrimitiveHandle* obdn_SceneGetDirtyPrimitives(const Obdn_Scene* s, uint32_t* count)
 {
     *count = s->dirtyPrims.count;
     return s->dirtyPrims.elems;
