@@ -1,8 +1,8 @@
 function(fetch_shaderc)
         FetchContent_Declare(
             shaderc 
-            GIT_REPOSITORY /home/michaelb/dev/shaderc
-            GIT_TAG mybranch)
+            GIT_REPOSITORY https://github.com/mokchira/shaderc
+            GIT_TAG main)
         set(SPIRV_HEADERS_SKIP_EXAMPLES ON)
         set(SKIP_GLSLANG_INSTALL ON)
         set(SPIRV_HEADERS_SKIP_INSTALL ON)
