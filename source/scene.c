@@ -55,7 +55,7 @@ typedef struct {
     obint*  indices;
     // a stack of ids that are available for reuse. gets added to when we remove
     // an object and can reclaim its id. the bottom of the stack should always
-    // be larger than any other Id used yet. in other words, we should always pull from this 
+    // be larger than any other Id used yet. in other words, we should always pull from this
     // stack for the next id
     Hell_Array availableIds;
 } ObjectMap;
@@ -129,7 +129,7 @@ static void growArray(void** curptr, obint* curcap, const u32 elemsize)
     assert(*curptr);
     uint32_t newcap = *curcap * 2;
     void* p = hell_Realloc(*curptr, newcap * elemsize);
-    if (!p) 
+    if (!p)
         hell_Error(HELL_ERR_FATAL, "Growing array capacity failed. Realloc returned Null\n");
     *curptr = p;
     *curcap = newcap;
@@ -147,7 +147,7 @@ static obint addSceneObject(const void* object, void* objectArray, obint* object
     obint id = 0;
     if (map->availableIds.count == 0)
         id = index;
-    else 
+    else
         hell_ArrayPop(&map->availableIds, &id);
     map->indices[id] = index;
     void* dst = (u8*)(objectArray) + index * elemSize;
@@ -278,11 +278,11 @@ static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* tex
     b.srcAccessMask = 0;
     b.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    obdn_CmdTransitionImageLayout(cmd.buffer, b, VK_IMAGE_LAYOUT_UNDEFINED, 
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
+    obdn_CmdTransitionImageLayout(cmd.buffer, b, VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             scene->defaultImage.mipLevels, scene->defaultImage.handle);
 
-    obdn_CmdClearColorImage(cmd.buffer, scene->defaultImage.handle, 
+    obdn_CmdClearColorImage(cmd.buffer, scene->defaultImage.handle,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, 1, 1.0, 1.0, 1.0, 1.0);
 
     b.srcStageFlags = b.dstStageFlags;
@@ -290,8 +290,8 @@ static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* tex
     b.srcAccessMask = b.dstAccessMask;
     b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    obdn_CmdTransitionImageLayout(cmd.buffer, b, 
-            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 
+    obdn_CmdTransitionImageLayout(cmd.buffer, b,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             scene->defaultImage.mipLevels, scene->defaultImage.handle);
 
     obdn_EndCommandBuffer(cmd.buffer);
@@ -313,7 +313,7 @@ static void printTexInfoCmd(Hell_Grimoire* grim, void* scene)
     obdn_PrintTextureInfo(scene);
 }
 
-static Coal_Mat4 
+static Coal_Mat4
 projectionMatrix(float fov, float aspect_ratio, float n, float f)
 {
     float p = fov / aspect_ratio;
@@ -408,11 +408,11 @@ Obdn_PrimitiveHandle obdn_SceneAddPrim(Scene* scene, Obdn_Geometry* geo, const C
     };
     prim.xform = xform;
     PrimitiveHandle handle = addPrim(scene, prim);
-      
+
     return handle;
 }
 
-Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness, 
+Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness,
         Obdn_TextureHandle albedoId, Obdn_TextureHandle roughnessId, Obdn_TextureHandle normalId)
 {
     Obdn_Material mat = {0};
@@ -470,8 +470,8 @@ void obdn_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int 
         up =     (Vec3)HOME_UP;
     }
     //pos = m_RotateY_Vec3(dt, &pos);
-    arcball_camera_update(pos.e, target->e, up.e, NULL, dt, 
-            ZOOM_RATE, PAN_RATE, TUMBLE_RATE, screenWidth, screenHeight, xprev, x, yprev, y, 
+    arcball_camera_update(pos.e, target->e, up.e, NULL, dt,
+            ZOOM_RATE, PAN_RATE, TUMBLE_RATE, screenWidth, screenHeight, xprev, x, yprev, y,
             panning, tumbling, zoom_ticks, 0);
     Mat4 m = coal_LookAt(pos, *target, up);
     scene->camera.xform = m;
@@ -576,7 +576,7 @@ void obdn_PrintTextureInfo(const Scene* s)
     {
         const Texture* tex = &s->textures[i];
         const Obdn_Image* img = tex->devImage;
-        hell_Print("Texture index %d\n", i); 
+        hell_Print("Texture index %d\n", i);
         hell_Print("Width %d Height %d Size %d \n", img->extent.width, img->extent.height, img->size);
         hell_Print("Format %d \n", img->format);
         hell_Print("\n");
@@ -595,7 +595,7 @@ void obdn_PrintPrimInfo(const Scene* s)
     hell_Print("Prim count: %d\n", s->primCount);
     for (int i = 0; i < s->primCount; i++)
     {
-        hell_Print("Prim %d material id %d\n", i, s->prims[i].material.id); 
+        hell_Print("Prim %d material id %d\n", i, s->prims[i].material.id);
         const Material* mat = &MATERIAL(s, s->prims[i].material);
         hell_Print("Material: handle id %d color %f %f %f roughness %f\n", s->prims[i].material.id, mat->color.r, mat->color.g, mat->color.b, mat->roughness);
         hell_Print("Material: Albedo TextureHandle: %d\n", mat->textureAlbedo.id);
@@ -707,7 +707,7 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
                 removeSceneObject(handles[i].id, s->textures, &s->textureCount,
                                   sizeof(s->textures[0]), &s->texMap);
             }
-            else 
+            else
             {
                 TEXTURE(s, handles[i]).dirt = 0;
             }
@@ -731,7 +731,7 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
                 removeSceneObject(id, s->materials, &s->materialCount,
                                   sizeof(s->materials[0]), &s->matMap);
             }
-            else 
+            else
             {
                 MATERIAL(s, handles[i]).dirt = 0;
             }
@@ -744,13 +744,13 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
         for (int i = 0; i < c; i++)
         {
             PrimitiveHandle handle = dp[i];
-            // remove prims at the end of the frame so scene consumers can react to the prim 
+            // remove prims at the end of the frame so scene consumers can react to the prim
             // having the remove bit set
             if (PRIM(s, handle).dirt & OBDN_PRIM_REMOVED_BIT)
             {
                 removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
             }
-            else 
+            else
             {
                 PRIM(s, dp[i]).dirt = 0;
             }
@@ -779,13 +779,13 @@ Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene* scene, Obdn_Image* image)
     return addTexture(scene, tex);
 }
 
-void 
+void
 obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex)
 {
     removeTexture(scene, tex);
 }
 
-void 
+void
 obdn_SceneRemoveMaterial(Obdn_Scene* scene, Obdn_MaterialHandle mat)
 {
     removeMaterial(scene, mat);
@@ -854,7 +854,7 @@ void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4 m)
     scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
 }
 
-const Obdn_Camera* 
+const Obdn_Camera*
 obdn_SceneGetCamera(const Obdn_Scene* scene)
 {
     return &scene->camera;
@@ -874,7 +874,7 @@ Obdn_Geometry* obdn_SceneGetPrimGeo(Obdn_Scene* scene, PrimitiveHandle prim, Obd
     return PRIM(scene, prim).geo;
 }
 
-Obdn_Primitive* 
+Obdn_Primitive*
 obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
 {
     return &PRIM(s, handle);

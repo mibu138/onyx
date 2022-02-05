@@ -113,9 +113,16 @@ void obdn_EndCommandBuffer(VkCommandBuffer cmdBuf)
 
 void obdn_WaitForFence(VkDevice device, VkFence* fence)
 {
-    vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
-    vkResetFences(device, 1, fence);
+    V_ASSERT(vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX));
+    V_ASSERT(vkResetFences(device, 1, fence));
 }
+
+void obdn_WaitForFence_TimeOut(VkDevice device, VkFence* fence, uint64_t timeout_ns)
+{
+    V_ASSERT(vkWaitForFences(device, 1, fence, VK_TRUE, timeout_ns));
+    V_ASSERT(vkResetFences(device, 1, fence));
+}
+
 
 void obdn_DestroyFence(VkDevice device, VkFence fence)
 {

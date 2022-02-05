@@ -141,7 +141,7 @@ getVkVersionAvailable(void)
     return v;
 }
 
-static Obdn_Result
+static VkResult
 initVkInstance(u32          enabledInstanceExentensionCount,
                const char** ppEnabledInstanceExtensionNames,
                u32          enabledInstanceLayerCount,
@@ -197,14 +197,7 @@ initVkInstance(u32          enabledInstanceExentensionCount,
     }
 
     VkResult r = vkCreateInstance(&instanceInfo, NULL, instance);
-    if (r != VK_SUCCESS)
-    {
-        if (r == VK_ERROR_EXTENSION_NOT_PRESENT)
-            return OBDN_ERROR_INSTANCE_EXTENSION_NOT_PRESENT;
-        else
-            return OBDN_ERROR_GENERIC;
-    }
-    return OBDN_SUCCESS;
+    return r;
 }
 
 static void
@@ -215,7 +208,7 @@ initDebugMessenger(const VkInstance          instance,
         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-#if VERBOSE > 1
+#if 1
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 #endif
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
@@ -267,7 +260,7 @@ retrievePhysicalDevice(const VkInstance            instance,
     return devices[selected];
 }
 
-static Obdn_Result
+static VkResult
 initDevice(
     const bool enableRayTracing, const uint32_t userExtCount,
     const char* const* userExtensions, const VkPhysicalDevice physicalDevice,
@@ -566,17 +559,7 @@ initDevice(
 
     VkResult r = vkCreateDevice(physicalDevice, &dci, NULL, device);
     hell_Free(properties);
-    if (r != VK_SUCCESS)
-    {
-        if (r == VK_ERROR_EXTENSION_NOT_PRESENT)
-        {
-            return OBDN_ERROR_DEVICE_EXTENSION_NOT_PRESENT;
-        }
-        else
-            return OBDN_ERROR_GENERIC;
-    }
-
-    return OBDN_SUCCESS;
+    return r;
 }
 
 static void
@@ -604,7 +587,7 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
     obdn_Announce("Obsidian: Queues Initialized\n");
 }
 
-Obdn_Result
+void
 obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
 {
     memset(instance, 0, sizeof(Obdn_Instance));
@@ -656,7 +639,7 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
     case OBDN_SURFACE_TYPE_NO_WINDOW:
         break;
     }
-    Obdn_Result r = initVkInstance(
+    VkResult r = initVkInstance(
         enabled_instance_extension_names.count,
         enabled_instance_extension_names.elems,
         enabled_instance_layer_names.count, enabled_instance_layer_names.elems,
@@ -665,10 +648,13 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
         enabled_validation_features.count, 
         enabled_validation_features.elems,
         &instance->vkinstance);
-    if (r != OBDN_SUCCESS)
+    if (r != VK_SUCCESS)
     {
-        hell_Error(HELL_ERR_FATAL, "Could not initialize Vulkan instance\n");
-        return r;
+        hell_Error(HELL_ERR_FATAL, "Could not initialize Vulkan instance. \n");
+    }
+    if (!parms->disableValidation)
+    {
+        initDebugMessenger(instance->vkinstance, &instance->debugMessenger);
     }
     obdn_Announce("Vulkan Instance initilized.\n");
     instance->physicalDevice = retrievePhysicalDevice(
@@ -679,10 +665,9 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
         &instance->graphicsQueueFamily, &instance->computeQueueFamily,
         &instance->transferQueueFamily, &instance->rtProperties,
         &instance->accelStructProperties, &instance->device);
-    if (r != OBDN_SUCCESS)
+    if (r != VK_SUCCESS)
     {
         hell_Error(HELL_ERR_FATAL, "Could not initialize Vulkan device\n");
-        return r;
     }
     obdn_Announce("Vulkan device initilized.\n");
     if (parms->enableRayTracing) // TODO not all functions have to do with
@@ -694,7 +679,6 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
     hell_DestroyArray(&enabled_instance_layer_names, NULL);
     hell_DestroyArray(&enabled_device_extension_names, NULL);
     hell_DestroyArray(&enabled_instance_extension_names, NULL);
-    return OBDN_SUCCESS;
 }
 
 void
@@ -773,10 +757,17 @@ obdn_GetPresentQueue(const Obdn_Instance* instance)
 }
 
 VkQueue
-obdn_GetGrahicsQueue(const Obdn_Instance* inst, u32 index)
+obdn_GetGraphicsQueue(const Obdn_Instance* inst, u32 index)
 {
     assert(index < inst->graphicsQueueFamily.queueCount);
     return inst->graphicsQueueFamily.queues[index];
+}
+
+VkQueue
+obdn_GetTransferQueue(const Obdn_Instance* inst, u32 index)
+{
+    assert(index < inst->transferQueueFamily.queueCount);
+    return inst->transferQueueFamily.queues[index];
 }
 
 void
@@ -884,4 +875,25 @@ Obdn_Instance*
 obdn_AllocInstance(void)
 {
     return hell_Malloc(sizeof(Obdn_Instance));
+}
+
+void
+obdn_QueueSubmit(
+    VkQueue                                     queue,
+    uint32_t                                    submitCount,
+    const VkSubmitInfo*                         pSubmits,
+    VkFence                                     fence)
+{
+    V_ASSERT(vkQueueSubmit(queue, submitCount, pSubmits, fence));
+}
+
+void
+obdn_QueueSubmit2(
+    VkQueue                                     queue,
+    uint32_t                                    submitCount,
+    const VkSubmitInfo2*                        pSubmits,
+    VkFence                                     fence)
+{
+    hell_Error(HELL_ERR_FATAL, "Not implemented yet\n");
+    //V_ASSERT(vkQueueSubmit2(queue, submitCount, pSubmits, fence));
 }

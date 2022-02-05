@@ -43,6 +43,7 @@ void obdn_SubmitAndWait(Obdn_Command* cmd, const uint32_t queueIndex);
 void obdn_DestroyCommand(Obdn_Command);
 
 void obdn_WaitForFence(VkDevice device, VkFence* fence);
+void obdn_WaitForFence_TimeOut(VkDevice device, VkFence* fence, uint64_t timeout_ns);
 void obdn_ResetCommand(Obdn_Command* cmd);
 void obdn_WaitForFenceNoReset(VkDevice device, VkFence* fence);
 void obdn_v_MemoryBarrier(

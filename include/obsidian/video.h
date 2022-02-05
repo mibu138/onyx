@@ -25,8 +25,8 @@ typedef struct Obdn_Instance Obdn_Instance;
 uint64_t obdn_SizeOfInstance(void);
 Obdn_Instance* obdn_AllocInstance(void);
 
-// enabling/disabling validation and/or raytracing 
-// will automatically enable the required layers and 
+// enabling/disabling validation and/or raytracing
+// will automatically enable the required layers and
 // extensions for those to be used effectively
 typedef struct Obdn_InstanceParms {
     bool                                disableValidation;
@@ -42,12 +42,19 @@ typedef struct Obdn_InstanceParms {
     const char**                        ppEnabledDeviceExtensionNames;
 } Obdn_InstanceParms;
 
-Obdn_Result obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance);
+void obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance);
 const VkInstance* obdn_GetVkInstance(const Obdn_Instance*);
 void obdn_SubmitToQueue(const Obdn_Instance*, const VkCommandBuffer* buffer,
                         Obdn_V_QueueType, uint32_t queueIndex);
 void obdn_SubmitToQueueWait(const Obdn_Instance*, const VkCommandBuffer* buffer,
                             Obdn_V_QueueType, uint32_t queueIndex);
+
+void
+obdn_QueueSubmit(
+    VkQueue                                     queue,
+    uint32_t                                    submitCount,
+    const VkSubmitInfo*                         pSubmits,
+    VkFence                                     fence);
 void obdn_DestroyInstance(Obdn_Instance*);
 void obdn_SubmitGraphicsCommands(const Obdn_Instance*,
                                  uint32_t      queueIndex,
@@ -71,7 +78,8 @@ void obdn_SubmitGraphicsCommand(const Obdn_Instance*, uint32_t queueIndex,
 uint32_t obdn_GetQueueFamilyIndex(const Obdn_Instance*, Obdn_V_QueueType type);
 VkDevice obdn_GetDevice(const Obdn_Instance*);
 VkQueue  obdn_GetPresentQueue(const Obdn_Instance*);
-VkQueue  obdn_GetGrahicsQueue(const Obdn_Instance*, u32 index);
+VkQueue  obdn_GetGraphicsQueue(const Obdn_Instance*, u32 index);
+VkQueue  obdn_GetTransferQueue(const Obdn_Instance*, u32 index);
 VkPhysicalDevice obdn_GetPhysicalDevice(const Obdn_Instance*);
 
 void obdn_PresentQueueWaitIdle(const Obdn_Instance*);
@@ -80,6 +88,13 @@ void obdn_DeviceWaitIdle(const Obdn_Instance*);
 
 const VkPhysicalDeviceProperties*
 obdn_GetPhysicalDeviceProperties(const Obdn_Instance*);
+
+void
+obdn_QueueSubmit2(
+    VkQueue                                     queue,
+    uint32_t                                    submitCount,
+    const VkSubmitInfo2*                        pSubmits,
+    VkFence                                     fence);
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR
 obdn_GetPhysicalDeviceRayTracingProperties(const Obdn_Instance*);
