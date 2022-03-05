@@ -431,7 +431,10 @@ obdn_LoadImage(Obdn_Memory* memory, const char* filename,
     assert(channelCount < 5);
     int            w, h, n;
     unsigned char* data = stbi_load(filename, &w, &h, &n, channelCount);
-    assert(data);
+    if (!data)
+    {
+        hell_Error(HELL_ERR_FATAL, "stb: %s\n", stbi_failure_reason());
+    }
     assert(image);
     assert(image->size == 0);
     obdn_LoadImageData(memory, w, h, channelCount, data, format, usageFlags,
