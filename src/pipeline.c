@@ -324,7 +324,9 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
             .depthClampEnable = VK_FALSE, // dunno
             .rasterizerDiscardEnable = VK_FALSE, // actually discards everything
             .polygonMode = rasterInfo->polygonMode,
-            .cullMode = rasterInfo->cullMode == 0 ? VK_CULL_MODE_BACK_BIT : rasterInfo->cullMode,
+            // this line won't work because 0 == VK_CULL_MODE_NONE
+            //.cullMode = rasterInfo->cullMode == 0 ? VK_CULL_MODE_BACK_BIT : rasterInfo->cullMode,
+            .cullMode = rasterInfo->cullMode,
             .frontFace = rasterInfo->frontFace,
             .depthBiasEnable = VK_FALSE,
             .lineWidth = 1.0

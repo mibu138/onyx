@@ -847,6 +847,13 @@ bool obdn_SceneHasGeoDirect(Obdn_Scene* s, u32 directIndex)
     return false;
 }
 
+void obdn_SceneSetCameraXform(Obdn_Scene* scene, const Coal_Mat4 m)
+{
+    scene->camera.xform = m;
+    scene->camera.view = coal_Invert4x4(m);
+    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+}
+
 void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4 m)
 {
     scene->camera.view = m;

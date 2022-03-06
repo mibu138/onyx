@@ -244,6 +244,7 @@ Coal_Mat4 obdn_SceneGetCameraView(const Obdn_Scene* scene);
 Coal_Mat4 obdn_SceneGetCameraProjection(const Obdn_Scene* scene);
 Coal_Mat4 obdn_SceneGetCameraXform(const Obdn_Scene* scene);
 
+void obdn_SceneSetCameraXform(Obdn_Scene* scene, const Coal_Mat4);
 void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4);
 void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4);
 
