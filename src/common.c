@@ -9,12 +9,12 @@
 #include "private.h"
 
 #define MAX_PRINT_MSG 256
-#define HEADER "OBSIDIAN: "
+#define HEADER "ONYX: "
 
 #define STR_100_MB "104857600"
 #define STR_256_MB "268435456"
 
-void obdn_Announce(const char* fmt, ...)
+void onyx_Announce(const char* fmt, ...)
 {
     va_list argptr;
     char    msg[MAX_PRINT_MSG];
@@ -24,7 +24,7 @@ void obdn_Announce(const char* fmt, ...)
     hell_Print("%s%s", HEADER, msg);
 }
 
-void obdn_CreateFramebuffer(const VkDevice device, const unsigned attachmentCount, 
+void onyx_CreateFramebuffer(const VkDevice device, const unsigned attachmentCount, 
     const VkImageView* attachments, 
     const unsigned width, const unsigned height, 
     const VkRenderPass renderpass,
@@ -42,7 +42,7 @@ void obdn_CreateFramebuffer(const VkDevice device, const unsigned attachmentCoun
     vkCreateFramebuffer(device, &ci, NULL, framebuffer);
 }
 
-void obdn_DestroyFramebuffer(const VkDevice device, VkFramebuffer fb)
+void onyx_DestroyFramebuffer(const VkDevice device, VkFramebuffer fb)
 {
     vkDestroyFramebuffer(device, fb, NULL);
 }

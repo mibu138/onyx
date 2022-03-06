@@ -1,13 +1,13 @@
 #include <hell/hell.h>
 #include <hell/len.h>
-#include <obsidian/obsidian.h>
+#include <onyx/onyx.h>
 
 Hell_Grimoire* grim;
 Hell_EventQueue* equeue;
 
-Obdn_Instance*  instance;
-Obdn_Memory*    memory;
-Obdn_Scene*     scene;
+Onyx_Instance*  instance;
+Onyx_Memory*    memory;
+Onyx_Scene*     scene;
 
 int main(int argc, char *argv[])
 {
@@ -17,9 +17,9 @@ int main(int argc, char *argv[])
     hell_CreateEventQueue(equeue);
     hell_CreateGrimoire(equeue, grim);
 
-    instance = obdn_AllocInstance();
-    memory   = obdn_AllocMemory();
-    scene     = obdn_AllocScene();
+    instance = onyx_AllocInstance();
+    memory   = onyx_AllocMemory();
+    scene     = onyx_AllocScene();
     #if UNIX
     const char* instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -31,20 +31,20 @@ int main(int argc, char *argv[])
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME
     };
     #endif
-    Obdn_InstanceParms ip = {
+    Onyx_InstanceParms ip = {
         .enabledInstanceExentensionCount = LEN(instanceExtensions),
         .ppEnabledInstanceExtensionNames = instanceExtensions,
     };
-    obdn_CreateInstance(&ip, instance);
-    obdn_CreateMemory(instance, 100, 100, 100, 0, 0, memory);
-    obdn_CreateScene(grim, memory, 1, 1, 0.01, 100, scene);
+    onyx_CreateInstance(&ip, instance);
+    onyx_CreateMemory(instance, 100, 100, 100, 0, 0, memory);
+    onyx_CreateScene(grim, memory, 1, 1, 0.01, 100, scene);
 
-    Obdn_Geometry cube = obdn_CreateCube(memory, false);
-    obdn_PrintGeo(&cube);
+    Onyx_Geometry cube = onyx_CreateCube(memory, false);
+    onyx_PrintGeo(&cube);
     assert(cube.indexCount  == 36);
     assert(cube.vertexCount == 24);
-    Obdn_Geometry tri  = obdn_CreateTriangle(memory);
-    obdn_PrintGeo(&tri);
+    Onyx_Geometry tri  = onyx_CreateTriangle(memory);
+    onyx_PrintGeo(&tri);
     assert(tri.vertexCount == 3);
     assert(tri.indexCount  == 3);
 

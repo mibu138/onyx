@@ -4,11 +4,11 @@
 #include <string.h>
 #include <assert.h>
 
-#define MAX_PATH_LEN OBDN_MAX_PATH_LEN
+#define MAX_PATH_LEN ONYX_MAX_PATH_LEN
 
 static const char* filepath = __FILE__;
 
-const char* obdn_GetObdnRoot(void)
+const char* onyx_GetOnyxRoot(void)
 {
     static char root[MAX_PATH_LEN];
     if (root[0] == 0) // not set yet
@@ -21,7 +21,7 @@ const char* obdn_GetObdnRoot(void)
         while (iter != filepath && *iter != '/')
             *iter-- = '\0';
         *iter = '\0';
-        hell_DPrint("Obdn root: %s\n", root);
+        hell_DPrint("Onyx root: %s\n", root);
     }
     return root;
 }

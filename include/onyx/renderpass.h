@@ -1,26 +1,26 @@
-#ifndef OBDN_R_RENDERPASS_H
-#define OBDN_R_RENDERPASS_H
+#ifndef ONYX_R_RENDERPASS_H
+#define ONYX_R_RENDERPASS_H
 
 #include "def.h"
 
-#define OBDN_R_MAX_ATTACHMENTS 8
-#define OBDN_R_MAX_ATTACHMENT_REFERENCES 8
-#define OBDN_R_MAX_SUBPASSES 8
+#define ONYX_R_MAX_ATTACHMENTS 8
+#define ONYX_R_MAX_ATTACHMENT_REFERENCES 8
+#define ONYX_R_MAX_SUBPASSES 8
 
 typedef struct {
     const uint32_t attachmentCount;
     const uint32_t subpassCount;
     const VkAttachmentDescription* pAttachments;
     const VkSubpassDescription*    pSubpasses;
-} Obdn_R_RenderPassInfo;
+} Onyx_R_RenderPassInfo;
 
-void obdn_CreateRenderPass(VkDevice, const Obdn_R_RenderPassInfo* info, VkRenderPass* pRenderPass);
-void obdn_CreateRenderPass_Color(VkDevice, const VkImageLayout initialLayout, 
+void onyx_CreateRenderPass(VkDevice, const Onyx_R_RenderPassInfo* info, VkRenderPass* pRenderPass);
+void onyx_CreateRenderPass_Color(VkDevice, const VkImageLayout initialLayout, 
         const VkImageLayout finalLayout,
         const VkAttachmentLoadOp loadOp, 
         const VkFormat colorFormat,
         VkRenderPass* pRenderPass);
-void obdn_CreateRenderPass_ColorDepth(VkDevice, 
+void onyx_CreateRenderPass_ColorDepth(VkDevice, 
         const VkImageLayout colorInitialLayout, const VkImageLayout colorFinalLayout,
         const VkImageLayout depthInitialLayout, const VkImageLayout depthFinalLayout,
         const VkAttachmentLoadOp  colorLoadOp, const VkAttachmentStoreOp colorStoreOp,
@@ -29,10 +29,10 @@ void obdn_CreateRenderPass_ColorDepth(VkDevice,
         const VkFormat depthFormat,
         VkRenderPass* pRenderPass);
 
-void obdn_CreateRenderPass_ColorDepthMSAA(VkDevice, const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
+void onyx_CreateRenderPass_ColorDepthMSAA(VkDevice, const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
         const VkFormat depthFormat,
         VkRenderPass* pRenderPass);
 
-#endif /* end of include guard: OBDN_R_RENDERPASS_H */
+#endif /* end of include guard: ONYX_R_RENDERPASS_H */

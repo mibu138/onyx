@@ -9,11 +9,11 @@
 #include <string.h>
 
 #if UNIX
-_Static_assert(sizeof(uint8_t) == sizeof(Obdn_GeoAttributeSize),
-               "sizeof(Obdn_R_AttributeSize) must be 1");
+_Static_assert(sizeof(uint8_t) == sizeof(Onyx_GeoAttributeSize),
+               "sizeof(Onyx_R_AttributeSize) must be 1");
 #endif
 
-typedef Obdn_FileGeo FPrim;
+typedef Onyx_FileGeo FPrim;
 
 #define FCHECK
 
@@ -52,30 +52,30 @@ printPrim(const FPrim* prim)
 }
 
 void
-obdn_PrintFileGeo(const Obdn_FileGeo* prim)
+onyx_PrintFileGeo(const Onyx_FileGeo* prim)
 {
     printPrim(prim);
 }
 
-Obdn_FileGeo
-obdn_CreateFileGeo(const uint32_t vertexCount, const uint32_t indexCount,
+Onyx_FileGeo
+onyx_CreateFileGeo(const uint32_t vertexCount, const uint32_t indexCount,
                        const uint32_t             attrCount,
-                       const Obdn_GeoAttributeSize attrSizes[/*attrCount*/],
-                       const char attrNames[/*attrCount*/][OBDN_R_ATTR_NAME_LEN])
+                       const Onyx_GeoAttributeSize attrSizes[/*attrCount*/],
+                       const char attrNames[/*attrCount*/][ONYX_R_ATTR_NAME_LEN])
 {
-    Obdn_FileGeo fprim = {.vertexCount = vertexCount,
+    Onyx_FileGeo fprim = {.vertexCount = vertexCount,
                               .indexCount  = indexCount,
                               .attrCount   = attrCount};
 
-    fprim.attrSizes  = hell_Malloc(attrCount * sizeof(Obdn_GeoAttributeSize));
-    fprim.indices    = hell_Malloc(indexCount * sizeof(Obdn_GeoIndex));
+    fprim.attrSizes  = hell_Malloc(attrCount * sizeof(Onyx_GeoAttributeSize));
+    fprim.indices    = hell_Malloc(indexCount * sizeof(Onyx_GeoIndex));
     fprim.attrNames  = hell_Malloc(attrCount * sizeof(char*));
     fprim.attributes = hell_Malloc(attrCount * sizeof(void*));
 
     for (int i = 0; i < attrCount; i++)
     {
         fprim.attrSizes[i]  = attrSizes[i];
-        fprim.attrNames[i]  = hell_Malloc(OBDN_R_ATTR_NAME_LEN);
+        fprim.attrNames[i]  = hell_Malloc(ONYX_R_ATTR_NAME_LEN);
         fprim.attributes[i] = hell_Malloc(vertexCount * attrSizes[i]);
     }
 
@@ -83,22 +83,22 @@ obdn_CreateFileGeo(const uint32_t vertexCount, const uint32_t indexCount,
     {
         for (int i = 0; i < attrCount; i++)
         {
-            memcpy(fprim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
+            memcpy(fprim.attrNames[i], attrNames[i], ONYX_R_ATTR_NAME_LEN);
         }
     }
 
     return fprim;
 }
 
-Obdn_FileGeo
-obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
+Onyx_FileGeo
+onyx_CreateFileGeoFromGeo(Onyx_Memory* memory, const Onyx_Geometry* rprim)
 {
-    Obdn_FileGeo fprim = obdn_CreateFileGeo(
+    Onyx_FileGeo fprim = onyx_CreateFileGeo(
         rprim->vertexCount, rprim->indexCount, rprim->attrCount,
         rprim->attrSizes, rprim->attrNames);
 
-    Obdn_BufferRegion hostVertRegion;
-    Obdn_BufferRegion hostIndexRegion;
+    Onyx_BufferRegion hostVertRegion;
+    Onyx_BufferRegion hostIndexRegion;
 
     size_t attrDataSize = 0;
     for (int i = 0; i < rprim->attrCount; i++)
@@ -111,13 +111,13 @@ obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
     if (!rprim->vertexRegion.hostData)
     {
         // must copy data to host
-        hostVertRegion = obdn_RequestBufferRegion(
-            memory, attrDataSize, 0, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
-        hostIndexRegion = obdn_RequestBufferRegion(
-            memory, rprim->indexCount * sizeof(Obdn_GeoIndex), 0,
-            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
-        obdn_CopyBufferRegion(&rprim->vertexRegion, &hostVertRegion);
-        obdn_CopyBufferRegion(&rprim->indexRegion, &hostIndexRegion);
+        hostVertRegion = onyx_RequestBufferRegion(
+            memory, attrDataSize, 0, ONYX_MEMORY_HOST_GRAPHICS_TYPE);
+        hostIndexRegion = onyx_RequestBufferRegion(
+            memory, rprim->indexCount * sizeof(Onyx_GeoIndex), 0,
+            ONYX_MEMORY_HOST_GRAPHICS_TYPE);
+        onyx_CopyBufferRegion(&rprim->vertexRegion, &hostVertRegion);
+        onyx_CopyBufferRegion(&rprim->indexRegion, &hostIndexRegion);
     }
     else
     {
@@ -131,49 +131,49 @@ obdn_CreateFileGeoFromGeo(Obdn_Memory* memory, const Obdn_Geometry* rprim)
         const void*  src = hostVertRegion.hostData + rprim->attrOffsets[i];
         memcpy(fprim.attributes[i], src, chunkSize);
         // src = rprim->attrNames[i];
-        // memcpy(fprim.attrNames[i], src, OBDN_R_ATTR_NAME_LEN);
+        // memcpy(fprim.attrNames[i], src, ONYX_R_ATTR_NAME_LEN);
         fprim.attrSizes[i] = rprim->attrSizes[i];
     }
 
     memcpy(fprim.indices, hostIndexRegion.hostData,
-           rprim->indexCount * sizeof(Obdn_GeoIndex));
+           rprim->indexCount * sizeof(Onyx_GeoIndex));
 
     if (!rprim->vertexRegion.hostData)
     {
-        obdn_FreeBufferRegion(&hostVertRegion);
-        obdn_FreeBufferRegion(&hostIndexRegion);
+        onyx_FreeBufferRegion(&hostVertRegion);
+        onyx_FreeBufferRegion(&hostIndexRegion);
     }
 
     return fprim;
 }
 
-Obdn_Geometry
-obdn_CreateGeoFromFileGeo(Obdn_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags,
- const Obdn_FileGeo* fprim)
+Onyx_Geometry
+onyx_CreateGeoFromFileGeo(Onyx_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags,
+ const Onyx_FileGeo* fprim)
 {
-    Obdn_Geometry rprim =
-        obdn_CreateGeometry(memory, extraBufferUsageFlags, fprim->vertexCount, fprim->indexCount,
+    Onyx_Geometry rprim =
+        onyx_CreateGeometry(memory, extraBufferUsageFlags, fprim->vertexCount, fprim->indexCount,
                              fprim->attrCount, fprim->attrSizes);
-    const size_t indexDataSize = fprim->indexCount * sizeof(Obdn_GeoIndex);
+    const size_t indexDataSize = fprim->indexCount * sizeof(Onyx_GeoIndex);
     for (int i = 0; i < fprim->attrCount; i++)
     {
-        void* dst = obdn_GetGeoAttribute(&rprim, i);
+        void* dst = onyx_GetGeoAttribute(&rprim, i);
         memcpy(dst, fprim->attributes[i],
                rprim.attrSizes[i] * rprim.vertexCount);
-        memcpy(rprim.attrNames[i], fprim->attrNames[i], OBDN_R_ATTR_NAME_LEN);
+        memcpy(rprim.attrNames[i], fprim->attrNames[i], ONYX_R_ATTR_NAME_LEN);
     }
     memcpy(rprim.indexRegion.hostData, fprim->indices, indexDataSize);
     return rprim;
 }
 
 int
-obdn_WriteFileGeo(const char* filename, const Obdn_FileGeo* fprim)
+onyx_WriteFileGeo(const char* filename, const Onyx_FileGeo* fprim)
 {
     FILE* file = fopen(filename, "wb");
     assert(file);
-    const size_t headerSize = offsetof(Obdn_FileGeo, attrSizes);
+    const size_t headerSize = offsetof(Onyx_FileGeo, attrSizes);
     assert(headerSize == 16);
-    const size_t indexDataSize = sizeof(Obdn_GeoIndex) * fprim->indexCount;
+    const size_t indexDataSize = sizeof(Onyx_GeoIndex) * fprim->indexCount;
     size_t       r;
     r = fwrite(fprim, headerSize, 1, file);
     assert(r == 1);
@@ -181,7 +181,7 @@ obdn_WriteFileGeo(const char* filename, const Obdn_FileGeo* fprim)
     assert(r == 1);
     for (int i = 0; i < fprim->attrCount; i++)
     {
-        r = fwrite(fprim->attrNames[i], OBDN_R_ATTR_NAME_LEN, 1, file);
+        r = fwrite(fprim->attrNames[i], ONYX_R_ATTR_NAME_LEN, 1, file);
         assert(r == 1);
     }
     for (int i = 0; i < fprim->attrCount; i++)
@@ -198,27 +198,27 @@ obdn_WriteFileGeo(const char* filename, const Obdn_FileGeo* fprim)
 }
 
 int
-obdn_ReadFileGeo(const char* filename, Obdn_FileGeo* fprim)
+onyx_ReadFileGeo(const char* filename, Onyx_FileGeo* fprim)
 {
     FILE* file = fopen(filename, "rb");
     assert(file);
     size_t r;
-    const size_t headerSize = offsetof(Obdn_FileGeo, attrSizes);
+    const size_t headerSize = offsetof(Onyx_FileGeo, attrSizes);
     assert(headerSize == 16);
     r = fread(fprim, headerSize, 1, file);
     assert(r == 1);
     fprim->attrSizes =
-        hell_Malloc(fprim->attrCount * sizeof(Obdn_GeoAttributeSize));
-    fprim->indices    = hell_Malloc(fprim->indexCount * sizeof(Obdn_GeoIndex));
+        hell_Malloc(fprim->attrCount * sizeof(Onyx_GeoAttributeSize));
+    fprim->indices    = hell_Malloc(fprim->indexCount * sizeof(Onyx_GeoIndex));
     fprim->attrNames  = hell_Malloc(fprim->attrCount * sizeof(char*));
     fprim->attributes = hell_Malloc(fprim->attrCount * sizeof(void*));
-    r = fread(fprim->attrSizes, fprim->attrCount * sizeof(Obdn_GeoAttributeSize),
+    r = fread(fprim->attrSizes, fprim->attrCount * sizeof(Onyx_GeoAttributeSize),
               1, file);
     assert(r);
     for (int i = 0; i < fprim->attrCount; i++)
     {
-        fprim->attrNames[i] = hell_Malloc(OBDN_R_ATTR_NAME_LEN);
-        r = fread(fprim->attrNames[i], OBDN_R_ATTR_NAME_LEN, 1, file);
+        fprim->attrNames[i] = hell_Malloc(ONYX_R_ATTR_NAME_LEN);
+        r = fread(fprim->attrNames[i], ONYX_R_ATTR_NAME_LEN, 1, file);
         assert(r);
     }
     for (int i = 0; i < fprim->attrCount; i++)
@@ -229,30 +229,30 @@ obdn_ReadFileGeo(const char* filename, Obdn_FileGeo* fprim)
                   fprim->vertexCount * fprim->attrSizes[i], 1, file);
         assert(r);
     }
-    fread(fprim->indices, fprim->indexCount * sizeof(Obdn_GeoIndex), 1, file);
+    fread(fprim->indices, fprim->indexCount * sizeof(Onyx_GeoIndex), 1, file);
     assert(r == 1);
     return 1;
 }
 
-Obdn_Geometry
-obdn_LoadGeo(Obdn_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags, const char* filename,
+Onyx_Geometry
+onyx_LoadGeo(Onyx_Memory* memory, VkBufferUsageFlags extraBufferUsageFlags, const char* filename,
                  const bool transferToDevice)
 {
-    Obdn_FileGeo fprim;
+    Onyx_FileGeo fprim;
     int              r;
-    r = obdn_ReadFileGeo(filename, &fprim);
+    r = onyx_ReadFileGeo(filename, &fprim);
     assert(r);
-    Obdn_Geometry rprim = obdn_CreateGeoFromFileGeo(memory, extraBufferUsageFlags, &fprim);
-    obdn_FreeFileGeo(&fprim);
+    Onyx_Geometry rprim = onyx_CreateGeoFromFileGeo(memory, extraBufferUsageFlags, &fprim);
+    onyx_FreeFileGeo(&fprim);
     if (transferToDevice)
     {
-        obdn_TransferGeoToDevice(memory, &rprim);
+        onyx_TransferGeoToDevice(memory, &rprim);
     }
     return rprim;
 }
 
 void
-obdn_FreeFileGeo(Obdn_FileGeo* fprim)
+onyx_FreeFileGeo(Onyx_FileGeo* fprim)
 {
     for (int i = 0; i < fprim->attrCount; i++)
     {
@@ -263,5 +263,5 @@ obdn_FreeFileGeo(Obdn_FileGeo* fprim)
     hell_Free(fprim->indices);
     hell_Free(fprim->attrNames);
     hell_Free(fprim->attrSizes);
-    memset(fprim, 0, sizeof(Obdn_FileGeo));
+    memset(fprim, 0, sizeof(Onyx_FileGeo));
 }

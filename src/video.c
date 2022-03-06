@@ -19,7 +19,7 @@
 #include <string.h>
 
 #define DPRINT_VK(fmt, ...)                                                    \
-    hell_DebugPrint(OBDN_DEBUG_TAG_VK, fmt, ##__VA_ARGS__)
+    hell_DebugPrint(ONYX_DEBUG_TAG_VK, fmt, ##__VA_ARGS__)
 
 static VkBool32
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
@@ -41,7 +41,7 @@ checkForAvailableLayers(u32          enabledInstanceLayerCount,
         hell_Malloc(sizeof(VkLayerProperties) * availableCount);
     vkEnumerateInstanceLayerProperties(&availableCount, propertiesAvailable);
     const char* listAvailableLayers =
-        getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_LAYERS");
+        getenv("ONYX_LIST_AVAILABLE_INSTANCE_LAYERS");
     if (listAvailableLayers)
     {
         DPRINT_VK("%s\n", "Vulkan Instance layers available:");
@@ -78,7 +78,7 @@ checkForAvailableLayers(u32          enabledInstanceLayerCount,
         }
         if (!matched)
         {
-            obdn_Announce(
+            onyx_Announce(
                 "WARNING: Requested Vulkan Instance Layer not available: %s\n",
                 layerName);
         }
@@ -97,10 +97,10 @@ checkForAvailableExtensions(u32          enabledInstanceExentensionCount,
     vkEnumerateInstanceExtensionProperties(NULL, &availableCount,
                                            propertiesAvailable);
     const char* listAvailableExtensions =
-        getenv("OBSIDIAN_LIST_AVAILABLE_INSTANCE_EXTENSIONS");
+        getenv("ONYX_LIST_AVAILABLE_INSTANCE_EXTENSIONS");
     if (listAvailableExtensions)
     {
-        obdn_Announce("%s\n", "Vulkan Instance extensions available:");
+        onyx_Announce("%s\n", "Vulkan Instance extensions available:");
         for (int i = 0; i < availableCount; i++)
         {
             hell_Print("%s\n", propertiesAvailable[i].extensionName);
@@ -121,7 +121,7 @@ checkForAvailableExtensions(u32          enabledInstanceExentensionCount,
         }
         if (!matched)
         {
-            obdn_Announce("WARNING: Requested Vulkan Instance Extension not "
+            onyx_Announce("WARNING: Requested Vulkan Instance Extension not "
                           "available: %s\n",
                           extensionName);
         }
@@ -137,7 +137,7 @@ getVkVersionAvailable(void)
     uint32_t major = VK_VERSION_MAJOR(v);
     uint32_t minor = VK_VERSION_MINOR(v);
     uint32_t patch = VK_VERSION_PATCH(v);
-    obdn_Announce("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
+    onyx_Announce("Vulkan Version available: %d.%d.%d\n", major, minor, patch);
     return v;
 }
 
@@ -157,7 +157,7 @@ initVkInstance(u32          enabledInstanceExentensionCount,
     // printf("Choosing vulkan version: 1.2.0\n");
 
     const char appName[]    = "Hell";
-    const char engineName[] = "Obsidian";
+    const char engineName[] = "Onyx";
 
     const VkApplicationInfo appInfo = {
         .sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO,
@@ -255,7 +255,7 @@ retrievePhysicalDevice(const VkInstance            instance,
     int selected = 0;
     if (nvidiaCardIndex != -1)
         selected = nvidiaCardIndex;
-    obdn_Announce("Selecting Device: %s\n", props[selected].deviceName);
+    onyx_Announce("Selecting Device: %s\n", props[selected].deviceName);
     *deviceProperties = props[selected];
     return devices[selected];
 }
@@ -285,7 +285,7 @@ initDevice(
     for (int i = 0; i < qfcount; i++)
     {
         VkQueryControlFlags flags = qfprops[i].queueFlags;
-        obdn_Announce("Queue Family %d: count: %d flags: ", i,
+        onyx_Announce("Queue Family %d: count: %d flags: ", i,
                       qfprops[i].queueCount);
         if (flags & VK_QUEUE_GRAPHICS_BIT)
             hell_Print(" Graphics ");
@@ -584,13 +584,13 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
     }
     *presentQueue =
         graphicsQueueFamily->queues[0]; // use the first queue to present
-    obdn_Announce("Obsidian: Queues Initialized\n");
+    onyx_Announce("Onyx: Queues Initialized\n");
 }
 
 void
-obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
+onyx_CreateInstance(const Onyx_InstanceParms* parms, Onyx_Instance* instance)
 {
-    memset(instance, 0, sizeof(Obdn_Instance));
+    memset(instance, 0, sizeof(Onyx_Instance));
     Hell_Array enabled_instance_extension_names, enabled_instance_layer_names,
         enabled_device_extension_names, enabled_validation_features;
     hell_CreateArray(12, sizeof(char*), NULL, NULL,
@@ -622,21 +622,21 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
     }
     switch (parms->surfaceType)
     {
-    case OBDN_SURFACE_TYPE_XCB: {
+    case ONYX_SURFACE_TYPE_XCB: {
         const char* surfext = VK_KHR_SURFACE_EXTENSION_NAME;
         const char* xcbext  = "VK_KHR_xcb_surface";
         hell_ArrayPush(&enabled_instance_extension_names, &surfext);
         hell_ArrayPush(&enabled_instance_extension_names, &xcbext);
         break;
     }
-    case OBDN_SURFACE_TYPE_WIN32: {
+    case ONYX_SURFACE_TYPE_WIN32: {
         const char* surfext = VK_KHR_SURFACE_EXTENSION_NAME;
         const char* xcbext  = "VK_KHR_win32_surface";
         hell_ArrayPush(&enabled_instance_extension_names, &surfext);
         hell_ArrayPush(&enabled_instance_extension_names, &xcbext);
         break;
     }
-    case OBDN_SURFACE_TYPE_NO_WINDOW:
+    case ONYX_SURFACE_TYPE_NO_WINDOW:
         break;
     }
     VkResult r = initVkInstance(
@@ -656,7 +656,7 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
     {
         initDebugMessenger(instance->vkinstance, &instance->debugMessenger);
     }
-    obdn_Announce("Vulkan Instance initilized.\n");
+    onyx_Announce("Vulkan Instance initilized.\n");
     instance->physicalDevice = retrievePhysicalDevice(
         instance->vkinstance, &instance->deviceProperties);
     r = initDevice(
@@ -669,23 +669,23 @@ obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance)
     {
         hell_Error(HELL_ERR_FATAL, "Could not initialize Vulkan device\n");
     }
-    obdn_Announce("Vulkan device initilized.\n");
+    onyx_Announce("Vulkan device initilized.\n");
     if (parms->enableRayTracing) // TODO not all functions have to do with
-        obdn_v_LoadFunctions(instance->device);
+        onyx_v_LoadFunctions(instance->device);
     initQueues(instance->device, &instance->graphicsQueueFamily,
                &instance->computeQueueFamily, &instance->transferQueueFamily,
                &instance->presentQueue);
-    obdn_Announce("Initialized Obsidian Instance.\n");
+    onyx_Announce("Initialized Onyx Instance.\n");
     hell_DestroyArray(&enabled_instance_layer_names, NULL);
     hell_DestroyArray(&enabled_device_extension_names, NULL);
     hell_DestroyArray(&enabled_instance_extension_names, NULL);
 }
 
 void
-obdn_SubmitToQueue(const Obdn_Instance* instance, const VkCommandBuffer* cmdBuf,
-                   const Obdn_V_QueueType queueType, const uint32_t index)
+onyx_SubmitToQueue(const Onyx_Instance* instance, const VkCommandBuffer* cmdBuf,
+                   const Onyx_V_QueueType queueType, const uint32_t index)
 {
-    assert(OBDN_V_QUEUE_GRAPHICS_TYPE == queueType);
+    assert(ONYX_V_QUEUE_GRAPHICS_TYPE == queueType);
     assert(instance->graphicsQueueFamily.queueCount > index);
 
     const VkSubmitInfo info = {.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -699,16 +699,16 @@ obdn_SubmitToQueue(const Obdn_Instance* instance, const VkCommandBuffer* cmdBuf,
 }
 
 void
-obdn_SubmitToQueueWait(const Obdn_Instance*   instance,
+onyx_SubmitToQueueWait(const Onyx_Instance*   instance,
                        const VkCommandBuffer* buffer,
-                       const Obdn_V_QueueType type, const uint32_t queueIndex)
+                       const Onyx_V_QueueType type, const uint32_t queueIndex)
 {
-    obdn_SubmitToQueue(instance, buffer, type, queueIndex);
+    onyx_SubmitToQueue(instance, buffer, type, queueIndex);
     V_ASSERT(vkQueueWaitIdle(instance->graphicsQueueFamily.queues[queueIndex]));
 }
 
 void
-obdn_DestroyInstance(Obdn_Instance* instance)
+onyx_DestroyInstance(Onyx_Instance* instance)
 {
     PFN_vkDestroyDebugUtilsMessengerEXT vkDestroyDebugUtilsMessengerEXT =
         (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr(
@@ -719,25 +719,25 @@ obdn_DestroyInstance(Obdn_Instance* instance)
         vkDestroyDebugUtilsMessengerEXT(instance->vkinstance,
                                         instance->debugMessenger, NULL);
     vkDestroyInstance(instance->vkinstance, NULL);
-    obdn_Announce("Cleaned up.\n");
+    onyx_Announce("Cleaned up.\n");
 }
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR
-obdn_GetPhysicalDeviceRayTracingProperties(const Obdn_Instance* instance)
+onyx_GetPhysicalDeviceRayTracingProperties(const Onyx_Instance* instance)
 {
     return instance->rtProperties;
 }
 
 uint32_t
-obdn_GetQueueFamilyIndex(const Obdn_Instance* instance, Obdn_V_QueueType type)
+onyx_GetQueueFamilyIndex(const Onyx_Instance* instance, Onyx_V_QueueType type)
 {
     switch (type)
     {
-    case OBDN_V_QUEUE_GRAPHICS_TYPE:
+    case ONYX_V_QUEUE_GRAPHICS_TYPE:
         return instance->graphicsQueueFamily.index;
-    case OBDN_V_QUEUE_TRANSFER_TYPE:
+    case ONYX_V_QUEUE_TRANSFER_TYPE:
         return instance->transferQueueFamily.index;
-    case OBDN_V_QUEUE_COMPUTE_TYPE:
+    case ONYX_V_QUEUE_COMPUTE_TYPE:
         assert(0);
         return -1; // not supported yet
     }
@@ -745,33 +745,33 @@ obdn_GetQueueFamilyIndex(const Obdn_Instance* instance, Obdn_V_QueueType type)
 }
 
 VkDevice
-obdn_GetDevice(const Obdn_Instance* instance)
+onyx_GetDevice(const Onyx_Instance* instance)
 {
     return instance->device;
 }
 
 VkQueue
-obdn_GetPresentQueue(const Obdn_Instance* instance)
+onyx_GetPresentQueue(const Onyx_Instance* instance)
 {
     return instance->presentQueue;
 }
 
 VkQueue
-obdn_GetGraphicsQueue(const Obdn_Instance* inst, u32 index)
+onyx_GetGraphicsQueue(const Onyx_Instance* inst, u32 index)
 {
     assert(index < inst->graphicsQueueFamily.queueCount);
     return inst->graphicsQueueFamily.queues[index];
 }
 
 VkQueue
-obdn_GetTransferQueue(const Obdn_Instance* inst, u32 index)
+onyx_GetTransferQueue(const Onyx_Instance* inst, u32 index)
 {
     assert(index < inst->transferQueueFamily.queueCount);
     return inst->transferQueueFamily.queues[index];
 }
 
 void
-obdn_SubmitGraphicsCommands(const Obdn_Instance* instance,
+onyx_SubmitGraphicsCommands(const Onyx_Instance* instance,
                             const uint32_t       queueIndex,
                             const uint32_t       submitInfoCount,
                             const VkSubmitInfo* submitInfos, VkFence fence)
@@ -781,7 +781,7 @@ obdn_SubmitGraphicsCommands(const Obdn_Instance* instance,
 }
 
 void
-obdn_SubmitGraphicsCommand(const Obdn_Instance*       instance,
+onyx_SubmitGraphicsCommand(const Onyx_Instance*       instance,
                            const uint32_t             queueIndex,
                            const VkPipelineStageFlags waitDstStageMask,
                            uint32_t                   waitCount,
@@ -807,11 +807,11 @@ obdn_SubmitGraphicsCommand(const Obdn_Instance*       instance,
 }
 
 void
-obdn_SubmitTransferCommand(const Obdn_Instance*       instance,
+onyx_SubmitTransferCommand(const Onyx_Instance*       instance,
                            const uint32_t             queueIndex,
                            const VkPipelineStageFlags waitDstStageMask,
                            const VkSemaphore* pWaitSemephore, VkFence fence,
-                           const Obdn_Command* cmd)
+                           const Onyx_Command* cmd)
 {
     VkSubmitInfo si = {
         .sType                = VK_STRUCTURE_TYPE_SUBMIT_INFO,
@@ -829,56 +829,56 @@ obdn_SubmitTransferCommand(const Obdn_Instance*       instance,
 }
 
 VkPhysicalDevice
-obdn_GetPhysicalDevice(const Obdn_Instance* instance)
+onyx_GetPhysicalDevice(const Onyx_Instance* instance)
 {
     return instance->physicalDevice;
 }
 
 const VkPhysicalDeviceProperties*
-obdn_GetPhysicalDeviceProperties(const Obdn_Instance* instance)
+onyx_GetPhysicalDeviceProperties(const Onyx_Instance* instance)
 {
     return &instance->deviceProperties;
 }
 
 VkPhysicalDeviceAccelerationStructurePropertiesKHR
-obdn_GetPhysicalDeviceAccelerationStructureProperties(
-    const Obdn_Instance* instance)
+onyx_GetPhysicalDeviceAccelerationStructureProperties(
+    const Onyx_Instance* instance)
 {
     return instance->accelStructProperties;
 }
 
 const VkInstance*
-obdn_GetVkInstance(const Obdn_Instance* instance)
+onyx_GetVkInstance(const Onyx_Instance* instance)
 {
     return &instance->vkinstance;
 }
 
 void
-obdn_PresentQueueWaitIdle(const Obdn_Instance* instance)
+onyx_PresentQueueWaitIdle(const Onyx_Instance* instance)
 {
     vkQueueWaitIdle(instance->presentQueue);
 }
 
 void
-obdn_DeviceWaitIdle(const Obdn_Instance* instance)
+onyx_DeviceWaitIdle(const Onyx_Instance* instance)
 {
     vkDeviceWaitIdle(instance->device);
 }
 
 uint64_t
-obdn_SizeOfInstance(void)
+onyx_SizeOfInstance(void)
 {
-    return sizeof(Obdn_Instance);
+    return sizeof(Onyx_Instance);
 }
 
-Obdn_Instance*
-obdn_AllocInstance(void)
+Onyx_Instance*
+onyx_AllocInstance(void)
 {
-    return hell_Malloc(sizeof(Obdn_Instance));
+    return hell_Malloc(sizeof(Onyx_Instance));
 }
 
 void
-obdn_QueueSubmit(
+onyx_QueueSubmit(
     VkQueue                                     queue,
     uint32_t                                    submitCount,
     const VkSubmitInfo*                         pSubmits,
@@ -888,7 +888,7 @@ obdn_QueueSubmit(
 }
 
 void
-obdn_QueueSubmit2(
+onyx_QueueSubmit2(
     VkQueue                                     queue,
     uint32_t                                    submitCount,
     const VkSubmitInfo2*                        pSubmits,

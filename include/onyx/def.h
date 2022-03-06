@@ -1,10 +1,10 @@
-#ifndef OBDN_V_DEF_H
-#define OBDN_V_DEF_H
+#ifndef ONYX_V_DEF_H
+#define ONYX_V_DEF_H
 
 #include "vulkan.h"
 #include <stdbool.h>
 
-#define OBDN_FRAME_COUNT 2
+#define ONYX_FRAME_COUNT 2
 
 #endif /* end of include guard: V_DEF_H */
 

@@ -1,14 +1,14 @@
 #include <hell/hell.h>
 #include <hell/len.h>
-#include <obsidian/obsidian.h>
+#include <onyx/onyx.h>
 
-static Obdn_Instance*  oInstance;
-static Obdn_Memory*    oMemory;
+static Onyx_Instance*  oInstance;
+static Onyx_Memory*    oMemory;
 
 int main(int argc, char *argv[])
 {
-    oInstance = obdn_AllocInstance();
-    oMemory   = obdn_AllocMemory();
+    oInstance = onyx_AllocInstance();
+    oMemory   = onyx_AllocMemory();
     #if UNIX
     const char* instanceExtensions[] = {
         VK_KHR_SURFACE_EXTENSION_NAME,
@@ -20,13 +20,13 @@ int main(int argc, char *argv[])
         VK_KHR_WIN32_SURFACE_EXTENSION_NAME
     };
     #endif
-    Obdn_InstanceParms ip = {
+    Onyx_InstanceParms ip = {
         .enabledInstanceExentensionCount = LEN(instanceExtensions),
         .ppEnabledInstanceExtensionNames = instanceExtensions,
     };
-    obdn_CreateInstance(&ip, oInstance);
+    onyx_CreateInstance(&ip, oInstance);
     hell_Print("Memory time\n");
     hell_DPrint("Debug says hello\n");
-    obdn_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
+    onyx_CreateMemory(oInstance, 100, 100, 100, 0, 0, oMemory);
     return 0;
 }

@@ -15,22 +15,22 @@
 #define ARCBALL_CAMERA_IMPLEMENTATION
 #include "arcball_camera.h"
 
-typedef Obdn_Primitive     Primitive;
-typedef Obdn_Xform         Xform;
-typedef Obdn_Scene         Scene;
-typedef Obdn_Light         Light;
-typedef Obdn_Material      Material;
-typedef Obdn_Camera        Camera;
-typedef Obdn_Texture       Texture;
+typedef Onyx_Primitive     Primitive;
+typedef Onyx_Xform         Xform;
+typedef Onyx_Scene         Scene;
+typedef Onyx_Light         Light;
+typedef Onyx_Material      Material;
+typedef Onyx_Camera        Camera;
+typedef Onyx_Texture       Texture;
 
-typedef Obdn_SceneObjectInt obint;
+typedef Onyx_SceneObjectInt obint;
 
-typedef Obdn_PrimitiveHandle PrimitiveHandle;
-typedef Obdn_LightHandle LightHandle;
-typedef Obdn_MaterialHandle MaterialHandle;
-typedef Obdn_TextureHandle TextureHandle;
+typedef Onyx_PrimitiveHandle PrimitiveHandle;
+typedef Onyx_LightHandle LightHandle;
+typedef Onyx_MaterialHandle MaterialHandle;
+typedef Onyx_TextureHandle TextureHandle;
 
-typedef Obdn_PrimitiveList PrimitiveList;
+typedef Onyx_PrimitiveList PrimitiveList;
 
 #define INIT_PRIM_CAP 16
 #define INIT_LIGHT_CAP 8
@@ -42,7 +42,7 @@ typedef Obdn_PrimitiveList PrimitiveList;
 #define LIGHT(scene, handle) scene->lights[scene->lightMap.indices[handle.id]]
 #define MATERIAL(scene, handle) scene->materials[scene->matMap.indices[handle.id]]
 
-#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_SCENE, fmt, ##__VA_ARGS__)
+#define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_SCENE, fmt, ##__VA_ARGS__)
 
 // lightMap is an indirection from Light Id to the actual light data in the scene.
 // invariants are that the active lights in the scene are tightly packed and
@@ -60,9 +60,9 @@ typedef struct {
     Hell_Array availableIds;
 } ObjectMap;
 
-typedef struct Obdn_Scene {
-    Obdn_SceneDirtyFlags dirt;
-    Obdn_Memory*         memory;
+typedef struct Onyx_Scene {
+    Onyx_SceneDirtyFlags dirt;
+    Onyx_Memory*         memory;
     Hell_Array           dirtyTextures;
     Hell_Array           dirtyMaterials;
     Hell_Array           dirtyPrims;
@@ -70,24 +70,24 @@ typedef struct Obdn_Scene {
     obint                lightCount;
     obint                materialCount;
     obint                textureCount;
-    Obdn_Camera          camera;
+    Onyx_Camera          camera;
     obint                primCapacity;
-    Obdn_Primitive*      prims;
+    Onyx_Primitive*      prims;
     obint                materialCapacity;
-    Obdn_Material*       materials;
+    Onyx_Material*       materials;
     obint                textureCapacity;
-    Obdn_Texture*        textures;
+    Onyx_Texture*        textures;
     obint                lightCapacity;
-    Obdn_Light*          lights;
-    Obdn_Geometry        defaultGeo;
-    Obdn_Image           defaultImage;
+    Onyx_Light*          lights;
+    Onyx_Geometry        defaultGeo;
+    Onyx_Image           defaultImage;
     ObjectMap            primMap;
     ObjectMap            lightMap;
     ObjectMap            matMap;
     ObjectMap            texMap;
-} Obdn_Scene;
+} Onyx_Scene;
 
-static void addTextureToDirtyTextures(Obdn_Scene* s, TextureHandle handle)
+static void addTextureToDirtyTextures(Onyx_Scene* s, TextureHandle handle)
 {
     TextureHandle* texs = s->dirtyTextures.elems;
     for (int i = 0; i < s->dirtyTextures.count; i++)
@@ -97,7 +97,7 @@ static void addTextureToDirtyTextures(Obdn_Scene* s, TextureHandle handle)
     hell_ArrayPush(&s->dirtyTextures, &handle);
 }
 
-static void addMaterialToDirtyMaterials(Obdn_Scene* s, MaterialHandle handle)
+static void addMaterialToDirtyMaterials(Onyx_Scene* s, MaterialHandle handle)
 {
     MaterialHandle* mats = s->dirtyMaterials.elems;
     for (int i = 0; i < s->dirtyMaterials.count; i++)
@@ -107,7 +107,7 @@ static void addMaterialToDirtyMaterials(Obdn_Scene* s, MaterialHandle handle)
     hell_ArrayPush(&s->dirtyMaterials, &handle);
 }
 
-static void addPrimToDirtyPrims(Obdn_Scene* s, PrimitiveHandle handle)
+static void addPrimToDirtyPrims(Onyx_Scene* s, PrimitiveHandle handle)
 {
     PrimitiveHandle* prims = s->dirtyPrims.elems;
     for (int i = 0; i < s->dirtyPrims.count; i++)
@@ -166,13 +166,13 @@ static void removeSceneObject(obint id, void* objectArray, obint* objectCount, c
     hell_ArrayPush(&map->availableIds, &id);
 }
 
-static PrimitiveHandle addPrim(Scene* s, Obdn_Primitive prim)
+static PrimitiveHandle addPrim(Scene* s, Onyx_Primitive prim)
 {
     obint id = addSceneObject(&prim, s->prims, &s->primCount, &s->primCapacity, sizeof(prim), &s->primMap);
     PrimitiveHandle handle = {id};
     addPrimToDirtyPrims(s, handle);
-    PRIM(s, handle).dirt |= OBDN_PRIM_ADDED_BIT;
-    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+    PRIM(s, handle).dirt |= ONYX_PRIM_ADDED_BIT;
+    s->dirt |= ONYX_SCENE_PRIMS_BIT;
     return handle;
 }
 
@@ -180,66 +180,66 @@ static LightHandle addLight(Scene* s, Light light)
 {
     obint id = addSceneObject(&light, s->lights, &s->lightCount, &s->lightCapacity, sizeof(light), &s->lightMap);
     LightHandle handle = {id};
-    s->dirt |= OBDN_SCENE_LIGHTS_BIT;
+    s->dirt |= ONYX_SCENE_LIGHTS_BIT;
     return handle;
 }
 
-static TextureHandle addTexture(Scene* s, Obdn_Texture texture)
+static TextureHandle addTexture(Scene* s, Onyx_Texture texture)
 {
     obint id = addSceneObject(&texture, s->textures, &s->textureCount, &s->textureCapacity, sizeof(texture), &s->texMap);
     TextureHandle handle = {id};
     addTextureToDirtyTextures(s, handle);
-    TEXTURE(s, handle).dirt |= OBDN_TEX_ADDED_BIT;
-    s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+    TEXTURE(s, handle).dirt |= ONYX_TEX_ADDED_BIT;
+    s->dirt |= ONYX_SCENE_TEXTURES_BIT;
     return handle;
 }
 
-static MaterialHandle addMaterial(Scene* s, Obdn_Material material)
+static MaterialHandle addMaterial(Scene* s, Onyx_Material material)
 {
     obint id = addSceneObject(&material, s->materials, &s->materialCount, &s->materialCapacity, sizeof(s->materials[0]), &s->matMap);
     MaterialHandle handle = {id};
     addMaterialToDirtyMaterials(s, handle);
-    MATERIAL(s, handle).dirt |= OBDN_MAT_ADDED_BIT;
-    s->dirt |= OBDN_SCENE_MATERIALS_BIT;
+    MATERIAL(s, handle).dirt |= ONYX_MAT_ADDED_BIT;
+    s->dirt |= ONYX_SCENE_MATERIALS_BIT;
     return handle;
 }
 
-static void removePrim(Scene* s, Obdn_PrimitiveHandle handle)
+static void removePrim(Scene* s, Onyx_PrimitiveHandle handle)
 {
     assert(handle.id < s->primCapacity);
     assert(handle.id > 0); //cant remove the default prim
-    PRIM(s, handle).dirt |= OBDN_PRIM_REMOVED_BIT;
+    PRIM(s, handle).dirt |= ONYX_PRIM_REMOVED_BIT;
     addPrimToDirtyPrims(s, handle);
-    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+    s->dirt |= ONYX_SCENE_PRIMS_BIT;
 }
 
-static void removeLight(Scene* s, Obdn_LightHandle handle)
+static void removeLight(Scene* s, Onyx_LightHandle handle)
 {
     assert(handle.id < s->lightCapacity);
     removeSceneObject(handle.id, s->lights, &s->lightCount, sizeof(s->lights[0]), &s->lightMap);
-    s->dirt |= OBDN_SCENE_LIGHTS_BIT;
+    s->dirt |= ONYX_SCENE_LIGHTS_BIT;
 }
 
-static void removeTexture(Scene* s, Obdn_TextureHandle handle)
+static void removeTexture(Scene* s, Onyx_TextureHandle handle)
 {
     assert(handle.id < s->textureCapacity);
     assert(handle.id > 0); //cant remove the default prim
-    TEXTURE(s, handle).dirt |= OBDN_TEX_REMOVED_BIT;
+    TEXTURE(s, handle).dirt |= ONYX_TEX_REMOVED_BIT;
     addTextureToDirtyTextures(s, handle);
-    s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+    s->dirt |= ONYX_SCENE_TEXTURES_BIT;
 }
 
-static void removeMaterial(Scene* s, Obdn_MaterialHandle handle)
+static void removeMaterial(Scene* s, Onyx_MaterialHandle handle)
 {
     assert(handle.id < s->materialCapacity);
     removeSceneObject(handle.id, s->materials, &s->materialCount, sizeof(s->materials[0]), &s->matMap);
-    s->dirt |= OBDN_SCENE_MATERIALS_BIT;
+    s->dirt |= ONYX_SCENE_MATERIALS_BIT;
 }
 
 static LightHandle addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_Vec3 color, const float intensity)
 {
     Light light = {
-        .type = OBDN_DIRECTION_LIGHT_TYPE,
+        .type = ONYX_DIRECTION_LIGHT_TYPE,
         .intensity = intensity,
     };
     light.structure.directionLight.dir = dir;
@@ -250,7 +250,7 @@ static LightHandle addDirectionLight(Scene* s, const Coal_Vec3 dir, const Coal_V
 static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 color, const float intensity)
 {
     Light light = {
-        .type = OBDN_LIGHT_POINT_TYPE,
+        .type = ONYX_LIGHT_POINT_TYPE,
         .intensity = intensity
     };
     light.structure.pointLight.pos = pos;
@@ -260,29 +260,29 @@ static LightHandle addPointLight(Scene* s, const Coal_Vec3 pos, const Coal_Vec3 
 
 #define DEFAULT_TEX_DIM 4
 
-static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* texture)
+static void createDefaultTexture(Scene* scene, Onyx_Memory* memory, Texture* texture)
 {
-    scene->defaultImage = obdn_CreateImageAndSampler(
+    scene->defaultImage = onyx_CreateImageAndSampler(
         memory, DEFAULT_TEX_DIM, DEFAULT_TEX_DIM, VK_FORMAT_R8G8B8A8_UNORM,
         VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
         VK_IMAGE_ASPECT_COLOR_BIT, VK_SAMPLE_COUNT_1_BIT, 1, VK_FILTER_LINEAR,
-        OBDN_MEMORY_DEVICE_TYPE);
+        ONYX_MEMORY_DEVICE_TYPE);
 
-    Obdn_Command cmd = obdn_CreateCommand(obdn_GetMemoryInstance(memory), OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Onyx_Command cmd = onyx_CreateCommand(onyx_GetMemoryInstance(memory), ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBufferOneTimeSubmit(cmd.buffer);
+    onyx_BeginCommandBufferOneTimeSubmit(cmd.buffer);
 
-    Obdn_Barrier b = {};
+    Onyx_Barrier b = {};
     b.srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
     b.dstStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
     b.srcAccessMask = 0;
     b.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    obdn_CmdTransitionImageLayout(cmd.buffer, b, VK_IMAGE_LAYOUT_UNDEFINED,
+    onyx_CmdTransitionImageLayout(cmd.buffer, b, VK_IMAGE_LAYOUT_UNDEFINED,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             scene->defaultImage.mipLevels, scene->defaultImage.handle);
 
-    obdn_CmdClearColorImage(cmd.buffer, scene->defaultImage.handle,
+    onyx_CmdClearColorImage(cmd.buffer, scene->defaultImage.handle,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, 1, 1.0, 1.0, 1.0, 1.0);
 
     b.srcStageFlags = b.dstStageFlags;
@@ -290,27 +290,27 @@ static void createDefaultTexture(Scene* scene, Obdn_Memory* memory, Texture* tex
     b.srcAccessMask = b.dstAccessMask;
     b.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
 
-    obdn_CmdTransitionImageLayout(cmd.buffer, b,
+    onyx_CmdTransitionImageLayout(cmd.buffer, b,
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             scene->defaultImage.mipLevels, scene->defaultImage.handle);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
     texture->devImage = &scene->defaultImage;
 }
 
 static void printPrimInfoCmd(Hell_Grimoire* grim, void* scene)
 {
-    obdn_PrintPrimInfo(scene);
+    onyx_PrintPrimInfo(scene);
 }
 
 static void printTexInfoCmd(Hell_Grimoire* grim, void* scene)
 {
-    obdn_PrintTextureInfo(scene);
+    onyx_PrintTextureInfo(scene);
 }
 
 static Coal_Mat4
@@ -330,7 +330,7 @@ projectionMatrix(float fov, float aspect_ratio, float n, float f)
 }
 
 void
-obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float fov,
+onyx_CreateScene(Hell_Grimoire* grim, Onyx_Memory* memory, float fov,
                  float aspect_ratio, float nearClip, float farClip, Scene* scene)
 {
     memset(scene, 0, sizeof(*scene));
@@ -357,21 +357,21 @@ obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float fov,
     scene->textures = hell_Malloc(scene->textureCapacity * sizeof(scene->textures[0]));
 
     // 8 is arbitrary initial capacity
-    hell_CreateArray(8, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &scene->dirtyPrims);
-    hell_CreateArray(8, sizeof(Obdn_MaterialHandle), NULL, NULL, &scene->dirtyMaterials);
-    hell_CreateArray(8, sizeof(Obdn_TextureHandle), NULL, NULL, &scene->dirtyTextures);
+    hell_CreateArray(8, sizeof(Onyx_PrimitiveHandle), NULL, NULL, &scene->dirtyPrims);
+    hell_CreateArray(8, sizeof(Onyx_MaterialHandle), NULL, NULL, &scene->dirtyMaterials);
+    hell_CreateArray(8, sizeof(Onyx_TextureHandle), NULL, NULL, &scene->dirtyTextures);
 
     // create defaults
     Texture tex = {0};
     createDefaultTexture(scene, memory, &tex);
     TextureHandle texhandle = addTexture(scene, tex);
-    MaterialHandle defaultMat = obdn_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
-    Obdn_Primitive prim = {};
-    scene->defaultGeo = obdn_CreateCube(memory, false);
+    MaterialHandle defaultMat = onyx_SceneCreateMaterial(scene, (Vec3){0, 0.937, 1.0}, 0.8, texhandle, NULL_TEXTURE, NULL_TEXTURE);
+    Onyx_Primitive prim = {};
+    scene->defaultGeo = onyx_CreateCube(memory, false);
     prim.geo = &scene->defaultGeo;
     prim.xform = COAL_MAT4_IDENT;
     prim.material = defaultMat;
-    prim.flags = OBDN_PRIM_INVISIBLE_BIT;
+    prim.flags = ONYX_PRIM_INVISIBLE_BIT;
     addPrim(scene, prim);
 
     scene->dirt = -1; // dirty everything
@@ -383,25 +383,25 @@ obdn_CreateScene(Hell_Grimoire* grim, Obdn_Memory* memory, float fov,
     }
 }
 
-void obdn_BindPrimToMaterial(Scene* scene, Obdn_PrimitiveHandle primhandle, Obdn_MaterialHandle mathandle)
+void onyx_BindPrimToMaterial(Scene* scene, Onyx_PrimitiveHandle primhandle, Onyx_MaterialHandle mathandle)
 {
     assert(scene->materialCount > mathandle.id);
     PRIM(scene, primhandle).material = mathandle;
 
-    scene->dirt |= OBDN_SCENE_PRIMS_BIT;
+    scene->dirt |= ONYX_SCENE_PRIMS_BIT;
 }
 
-void obdn_BindPrimToMaterialDirect(Scene* scene, uint32_t directIndex, Obdn_MaterialHandle mathandle)
+void onyx_BindPrimToMaterialDirect(Scene* scene, uint32_t directIndex, Onyx_MaterialHandle mathandle)
 {
     assert(scene->materialCount > mathandle.id);
     scene->prims[directIndex].material = mathandle;
 
-    scene->dirt |= OBDN_SCENE_PRIMS_BIT;
+    scene->dirt |= ONYX_SCENE_PRIMS_BIT;
 }
 
-Obdn_PrimitiveHandle obdn_SceneAddPrim(Scene* scene, Obdn_Geometry* geo, const Coal_Mat4 xform, MaterialHandle mat)
+Onyx_PrimitiveHandle onyx_SceneAddPrim(Scene* scene, Onyx_Geometry* geo, const Coal_Mat4 xform, MaterialHandle mat)
 {
-    Obdn_Primitive prim = {
+    Onyx_Primitive prim = {
         .geo = geo,
         .xform = COAL_MAT4_IDENT,
         .material = mat
@@ -412,10 +412,10 @@ Obdn_PrimitiveHandle obdn_SceneAddPrim(Scene* scene, Obdn_Geometry* geo, const C
     return handle;
 }
 
-Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, float roughness,
-        Obdn_TextureHandle albedoId, Obdn_TextureHandle roughnessId, Obdn_TextureHandle normalId)
+Onyx_MaterialHandle onyx_SceneCreateMaterial(Onyx_Scene* scene, Vec3 color, float roughness,
+        Onyx_TextureHandle albedoId, Onyx_TextureHandle roughnessId, Onyx_TextureHandle normalId)
 {
-    Obdn_Material mat = {0};
+    Onyx_Material mat = {0};
 
     mat.color = color;
     mat.roughness = roughness;
@@ -426,12 +426,12 @@ Obdn_MaterialHandle obdn_SceneCreateMaterial(Obdn_Scene* scene, Vec3 color, floa
     return addMaterial(scene, mat);
 }
 
-Obdn_LightHandle obdn_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
+Onyx_LightHandle onyx_CreateDirectionLight(Scene* scene, const Vec3 color, const Vec3 direction)
 {
     return addDirectionLight(scene, direction, color, 1.0);
 }
 
-Obdn_LightHandle obdn_SceneCreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
+Onyx_LightHandle onyx_SceneCreatePointLight(Scene* scene, const Vec3 color, const Vec3 position)
 {
     return addPointLight(scene, position, color, 1.0);
 }
@@ -443,18 +443,18 @@ Obdn_LightHandle obdn_SceneCreatePointLight(Scene* scene, const Vec3 color, cons
 #define PAN_RATE    0.1
 #define TUMBLE_RATE 2
 
-void obdn_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
+void onyx_UpdateCamera_LookAt(Scene* scene, Vec3 pos, Vec3 target, Vec3 up)
 {
     scene->camera.xform = coal_LookAt(pos, target, up);
     scene->camera.view  = coal_Invert4x4(scene->camera.xform);
-    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+    scene->dirt |= ONYX_SCENE_CAMERA_VIEW_BIT;
 }
 
 static Vec3 prevpos;
 static Vec3 prevtarget;
 static Vec3 prevup;
 
-void obdn_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home)
+void onyx_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int screenHeight, float dt, int xprev, int x, int yprev, int y, bool panning, bool tumbling, bool zooming, bool home)
 {
     Vec3 pos = coal_GetTranslation_Mat4(scene->camera.xform);
     Vec3 up = coal_GetLocalY_Mat4(scene->camera.xform);
@@ -476,79 +476,79 @@ void obdn_UpdateCamera_ArcBall(Scene* scene, Vec3* target, int screenWidth, int 
     Mat4 m = coal_LookAt(pos, *target, up);
     scene->camera.xform = m;
     scene->camera.view  = coal_Invert4x4(scene->camera.xform);
-    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+    scene->dirt |= ONYX_SCENE_CAMERA_VIEW_BIT;
 }
 
-void obdn_SceneUpdateCamera_Pos(Obdn_Scene* scene, float dx, float dy, float dz)
+void onyx_SceneUpdateCamera_Pos(Onyx_Scene* scene, float dx, float dy, float dz)
 {
     scene->camera.xform = coal_Translate_Mat4((Vec3){dx, dy, dz}, scene->camera.xform);
     scene->camera.view  = coal_Invert4x4(scene->camera.xform);
-    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+    scene->dirt |= ONYX_SCENE_CAMERA_VIEW_BIT;
 }
 
-void obdn_UpdateLight(Scene* scene, LightHandle handle, float intensity)
+void onyx_UpdateLight(Scene* scene, LightHandle handle, float intensity)
 {
     LIGHT(scene, handle).intensity = intensity;
-    scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
+    scene->dirt |= ONYX_SCENE_LIGHTS_BIT;
 }
 
-void obdn_UpdatePrimXform(Scene* scene, PrimitiveHandle handle, const Mat4 delta)
+void onyx_UpdatePrimXform(Scene* scene, PrimitiveHandle handle, const Mat4 delta)
 {
     Coal_Mat4 M = coal_Mult_Mat4(PRIM(scene, handle).xform, delta);
     PRIM(scene, handle).xform = M;
-    scene->dirt |= OBDN_SCENE_XFORMS_BIT;
+    scene->dirt |= ONYX_SCENE_XFORMS_BIT;
 }
 
-void obdn_SetPrimXform(Obdn_Scene* scene, Obdn_PrimitiveHandle handle, Mat4 newXform)
+void onyx_SetPrimXform(Onyx_Scene* scene, Onyx_PrimitiveHandle handle, Mat4 newXform)
 {
     PRIM(scene, handle).xform = newXform;
-    scene->dirt |= OBDN_SCENE_XFORMS_BIT;
+    scene->dirt |= ONYX_SCENE_XFORMS_BIT;
 }
 
-Obdn_PrimitiveList obdn_CreatePrimList(uint32_t initial_cap)
+Onyx_PrimitiveList onyx_CreatePrimList(uint32_t initial_cap)
 {
-    Obdn_PrimitiveList pl = {};
-    hell_CreateArray(initial_cap, sizeof(Obdn_PrimitiveHandle), NULL, NULL, &pl.array);
+    Onyx_PrimitiveList pl = {};
+    hell_CreateArray(initial_cap, sizeof(Onyx_PrimitiveHandle), NULL, NULL, &pl.array);
     return pl;
 }
 
-void obdn_AddPrimToList(Obdn_PrimitiveHandle handle, Obdn_PrimitiveList* list)
+void onyx_AddPrimToList(Onyx_PrimitiveHandle handle, Onyx_PrimitiveList* list)
 {
     hell_ArrayPush(&list->array, &handle);
     // need to reset the pointer in case we realloc'd
 }
 
-void obdn_ClearPrimList(Obdn_PrimitiveList* list)
+void onyx_ClearPrimList(Onyx_PrimitiveList* list)
 {
     hell_ArrayClear(&list->array);
 }
 
-void obdn_DestroyScene(Obdn_Scene* scene)
+void onyx_DestroyScene(Onyx_Scene* scene)
 {
     memset(scene, 0, sizeof(*scene));
 }
 
-void obdn_SceneRemovePrim(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
+void onyx_SceneRemovePrim(Onyx_Scene* s, Onyx_PrimitiveHandle handle)
 {
     removePrim(s, handle);
 }
 
-Obdn_LightHandle obdn_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
+Onyx_LightHandle onyx_SceneAddDirectionLight(Scene* s, Coal_Vec3 dir, Coal_Vec3 color, float intensity)
 {
     return addDirectionLight(s, dir, color, intensity);
 }
 
-Obdn_LightHandle obdn_SceneAddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity)
+Onyx_LightHandle onyx_SceneAddPointLight(Scene* s, Coal_Vec3 pos, Coal_Vec3 color, float intensity)
 {
     return addPointLight(s, pos, color, intensity);
 }
 
-void obdn_SceneRemoveLight(Scene* s, LightHandle id)
+void onyx_SceneRemoveLight(Scene* s, LightHandle id)
 {
     removeLight(s, id);
 }
 
-void obdn_PrintLightInfo(const Scene* s)
+void onyx_PrintLightInfo(const Scene* s)
 {
     hell_Print("====== Scene: light info =======\n");
     hell_Print("Light count: %d\n", s->lightCount);
@@ -568,14 +568,14 @@ void obdn_PrintLightInfo(const Scene* s)
     hell_Print("\n");
 }
 
-void obdn_PrintTextureInfo(const Scene* s)
+void onyx_PrintTextureInfo(const Scene* s)
 {
     hell_Print("====== Scene: texture info =======\n");
     hell_Print("Texture count: %d\n", s->textureCount);
     for (int i = 0; i < s->textureCount; i++)
     {
         const Texture* tex = &s->textures[i];
-        const Obdn_Image* img = tex->devImage;
+        const Onyx_Image* img = tex->devImage;
         hell_Print("Texture index %d\n", i);
         hell_Print("Width %d Height %d Size %d \n", img->extent.width, img->extent.height, img->size);
         hell_Print("Format %d \n", img->format);
@@ -589,7 +589,7 @@ void obdn_PrintTextureInfo(const Scene* s)
     hell_Print("\n");
 }
 
-void obdn_PrintPrimInfo(const Scene* s)
+void onyx_PrintPrimInfo(const Scene* s)
 {
     hell_Print("====== Scene: primitive info =======\n");
     hell_Print("Prim count: %d\n", s->primCount);
@@ -610,89 +610,89 @@ void obdn_PrintPrimInfo(const Scene* s)
     hell_Print("\n");
 }
 
-void obdn_UpdateLightColor(Obdn_Scene* scene, Obdn_LightHandle handle, float r, float g, float b)
+void onyx_UpdateLightColor(Onyx_Scene* scene, Onyx_LightHandle handle, float r, float g, float b)
 {
     LIGHT(scene, handle).color.r = r;
     LIGHT(scene, handle).color.g = g;
     LIGHT(scene, handle).color.b = b;
-    scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
+    scene->dirt |= ONYX_SCENE_LIGHTS_BIT;
 }
 
-void obdn_UpdateLightPos(Obdn_Scene* scene, Obdn_LightHandle handle, float x, float y, float z)
+void onyx_UpdateLightPos(Onyx_Scene* scene, Onyx_LightHandle handle, float x, float y, float z)
 {
     LIGHT(scene, handle).structure.pointLight.pos.x = x;
     LIGHT(scene, handle).structure.pointLight.pos.y = y;
     LIGHT(scene, handle).structure.pointLight.pos.z = z;
-    scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
+    scene->dirt |= ONYX_SCENE_LIGHTS_BIT;
 }
 
-void obdn_UpdateLightIntensity(Obdn_Scene* scene, Obdn_LightHandle handle, float i)
+void onyx_UpdateLightIntensity(Onyx_Scene* scene, Onyx_LightHandle handle, float i)
 {
     LIGHT(scene, handle).intensity = i;
-    scene->dirt |= OBDN_SCENE_LIGHTS_BIT;
+    scene->dirt |= ONYX_SCENE_LIGHTS_BIT;
 }
 
-Obdn_Scene* obdn_AllocScene(void)
+Onyx_Scene* onyx_AllocScene(void)
 {
     return hell_Malloc(sizeof(Scene));
 }
 
-Mat4 obdn_SceneGetCameraView(const Obdn_Scene* scene)
+Mat4 onyx_SceneGetCameraView(const Onyx_Scene* scene)
 {
     return scene->camera.view;
 }
 
-Mat4 obdn_SceneGetCameraProjection(const Obdn_Scene* scene)
+Mat4 onyx_SceneGetCameraProjection(const Onyx_Scene* scene)
 {
     return scene->camera.proj;
 }
 
-Coal_Mat4 obdn_SceneGetCameraXform(const Obdn_Scene* scene)
+Coal_Mat4 onyx_SceneGetCameraXform(const Onyx_Scene* scene)
 {
     return scene->camera.xform;
 }
 
-Obdn_Primitive* obdn_GetPrimitive(const Obdn_Scene* s, uint32_t id)
+Onyx_Primitive* onyx_GetPrimitive(const Onyx_Scene* s, uint32_t id)
 {
     PrimitiveHandle handle = {id};
     return &PRIM(s, handle);
 }
 
-uint32_t obdn_SceneGetPrimCount(const Obdn_Scene* s)
+uint32_t onyx_SceneGetPrimCount(const Onyx_Scene* s)
 {
     return s->primCount;
 }
 
-uint32_t obdn_SceneGetLightCount(const Obdn_Scene* s)
+uint32_t onyx_SceneGetLightCount(const Onyx_Scene* s)
 {
     return s->lightCount;
 }
 
-Obdn_Light* obdn_SceneGetLights(const Obdn_Scene* scene, uint32_t* count)
+Onyx_Light* onyx_SceneGetLights(const Onyx_Scene* scene, uint32_t* count)
 {
     *count = scene->lightCount;
     return scene->lights;
 }
 
-const Obdn_Light* Obdn_SceneGetLight(const Obdn_Scene* s, Obdn_LightHandle h)
+const Onyx_Light* Onyx_SceneGetLight(const Onyx_Scene* s, Onyx_LightHandle h)
 {
     return &LIGHT(s, h);
 }
 
-Obdn_SceneDirtyFlags obdn_SceneGetDirt(const Obdn_Scene* s)
+Onyx_SceneDirtyFlags onyx_SceneGetDirt(const Onyx_Scene* s)
 {
     return s->dirt;
 }
 
-void obdn_SceneEndFrame(Obdn_Scene* s)
+void onyx_SceneEndFrame(Onyx_Scene* s)
 {
-    if (s->dirt & OBDN_SCENE_TEXTURES_BIT)
+    if (s->dirt & ONYX_SCENE_TEXTURES_BIT)
     {
         u32 c = s->dirtyTextures.count;
         TextureHandle* handles = s->dirtyTextures.elems;
         for (u32 i = 0; i < c; i++)
         {
-            if (TEXTURE(s, handles[i]).dirt & OBDN_TEX_REMOVED_BIT)
+            if (TEXTURE(s, handles[i]).dirt & ONYX_TEX_REMOVED_BIT)
             {
                 u32 matcount = s->materialCount;
                 for (u32 j = 0; j < matcount; j++)
@@ -713,14 +713,14 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
             }
         }
     }
-    if (s->dirt & OBDN_SCENE_MATERIALS_BIT)
+    if (s->dirt & ONYX_SCENE_MATERIALS_BIT)
     {
         u32 c = s->dirtyMaterials.count;
         MaterialHandle* handles = s->dirtyMaterials.elems;
         for (u32 i = 0; i < c; i++)
         {
-            Obdn_SceneObjectInt id = handles[i].id;
-            if (MATERIAL(s, handles[i]).dirt & OBDN_MAT_REMOVED_BIT)
+            Onyx_SceneObjectInt id = handles[i].id;
+            if (MATERIAL(s, handles[i]).dirt & ONYX_MAT_REMOVED_BIT)
             {
                 u32 primcount = s->primCount;
                 for (u32 j = 0; j < primcount; j++)
@@ -737,7 +737,7 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
             }
         }
     }
-    if (s->dirt & OBDN_SCENE_PRIMS_BIT)
+    if (s->dirt & ONYX_SCENE_PRIMS_BIT)
     {
         u32 c = s->dirtyPrims.count;
         PrimitiveHandle* dp = s->dirtyPrims.elems;
@@ -746,7 +746,7 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
             PrimitiveHandle handle = dp[i];
             // remove prims at the end of the frame so scene consumers can react to the prim
             // having the remove bit set
-            if (PRIM(s, handle).dirt & OBDN_PRIM_REMOVED_BIT)
+            if (PRIM(s, handle).dirt & ONYX_PRIM_REMOVED_BIT)
             {
                 removeSceneObject(handle.id, s->prims, &s->primCount, sizeof(s->prims[0]), &s->primMap);
             }
@@ -762,158 +762,158 @@ void obdn_SceneEndFrame(Obdn_Scene* s)
     s->dirtyPrims.count = 0;
 }
 
-Obdn_Texture* obdn_GetTexture(const Obdn_Scene* s, Obdn_TextureHandle handle)
+Onyx_Texture* onyx_GetTexture(const Onyx_Scene* s, Onyx_TextureHandle handle)
 {
     return &TEXTURE(s, handle);
 }
 
-Obdn_Material* obdn_GetMaterial(const Obdn_Scene* s, Obdn_MaterialHandle handle)
+Onyx_Material* onyx_GetMaterial(const Onyx_Scene* s, Onyx_MaterialHandle handle)
 {
     return &MATERIAL(s, handle);
 }
 
-Obdn_TextureHandle obdn_SceneAddTexture(Obdn_Scene* scene, Obdn_Image* image)
+Onyx_TextureHandle onyx_SceneAddTexture(Onyx_Scene* scene, Onyx_Image* image)
 {
-    Obdn_Texture tex = {0};
+    Onyx_Texture tex = {0};
     tex.devImage = image;
     return addTexture(scene, tex);
 }
 
 void
-obdn_SceneRemoveTexture(Obdn_Scene* scene, Obdn_TextureHandle tex)
+onyx_SceneRemoveTexture(Onyx_Scene* scene, Onyx_TextureHandle tex)
 {
     removeTexture(scene, tex);
 }
 
 void
-obdn_SceneRemoveMaterial(Obdn_Scene* scene, Obdn_MaterialHandle mat)
+onyx_SceneRemoveMaterial(Onyx_Scene* scene, Onyx_MaterialHandle mat)
 {
     removeMaterial(scene, mat);
 }
 
-uint32_t obdn_SceneGetTextureCount(const Obdn_Scene* s)
+uint32_t onyx_SceneGetTextureCount(const Onyx_Scene* s)
 {
     return s->textureCount;
 }
 
-Obdn_Texture* obdn_SceneGetTextures(const Obdn_Scene* s, Obdn_SceneObjectInt* count)
+Onyx_Texture* onyx_SceneGetTextures(const Onyx_Scene* s, Onyx_SceneObjectInt* count)
 {
     *count = s->textureCount;
     return s->textures;
 }
 
-uint32_t       obdn_SceneGetMaterialCount(const Obdn_Scene* s)
+uint32_t       onyx_SceneGetMaterialCount(const Onyx_Scene* s)
 {
     return s->materialCount;
 }
 
-Obdn_Material* obdn_SceneGetMaterials(const Obdn_Scene* s, Obdn_SceneObjectInt* count)
+Onyx_Material* onyx_SceneGetMaterials(const Onyx_Scene* s, Onyx_SceneObjectInt* count)
 {
     *count = s->materialCount;
     return s->materials;
 }
 
-uint32_t obdn_SceneGetMaterialIndex(const Obdn_Scene* s, Obdn_MaterialHandle handle)
+uint32_t onyx_SceneGetMaterialIndex(const Onyx_Scene* s, Onyx_MaterialHandle handle)
 {
     return s->matMap.indices[handle.id];
 }
 
-uint32_t obdn_SceneGetTextureIndex(const Obdn_Scene* s, Obdn_TextureHandle handle)
+uint32_t onyx_SceneGetTextureIndex(const Onyx_Scene* s, Onyx_TextureHandle handle)
 {
     return s->texMap.indices[handle.id];
 }
 
-void obdn_SceneDirtyTextures(Obdn_Scene* s)
+void onyx_SceneDirtyTextures(Onyx_Scene* s)
 {
-    s->dirt |= OBDN_SCENE_TEXTURES_BIT;
+    s->dirt |= ONYX_SCENE_TEXTURES_BIT;
 }
 
-void obdn_SceneSetGeoDirect(Obdn_Scene* s, Obdn_Geometry* geo, u32 directIndex)
+void onyx_SceneSetGeoDirect(Onyx_Scene* s, Onyx_Geometry* geo, u32 directIndex)
 {
     s->prims[directIndex].geo = geo;
-    s->dirt |= OBDN_SCENE_PRIMS_BIT;
+    s->dirt |= ONYX_SCENE_PRIMS_BIT;
 }
 
-void obdn_SceneFreeGeoDirect(Obdn_Scene* s, u32 directIndex)
+void onyx_SceneFreeGeoDirect(Onyx_Scene* s, u32 directIndex)
 {
-    obdn_FreeGeo(s->prims[directIndex].geo);
+    onyx_FreeGeo(s->prims[directIndex].geo);
     memset(s->prims[directIndex].geo, 0, sizeof(*s->prims[directIndex].geo));;
     s->prims[directIndex].geo = NULL;
 }
 
-bool obdn_SceneHasGeoDirect(Obdn_Scene* s, u32 directIndex)
+bool onyx_SceneHasGeoDirect(Onyx_Scene* s, u32 directIndex)
 {
     if (s->prims[0].geo) return true;
     return false;
 }
 
-void obdn_SceneSetCameraXform(Obdn_Scene* scene, const Coal_Mat4 m)
+void onyx_SceneSetCameraXform(Onyx_Scene* scene, const Coal_Mat4 m)
 {
     scene->camera.xform = m;
     scene->camera.view = coal_Invert4x4(m);
-    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+    scene->dirt |= ONYX_SCENE_CAMERA_VIEW_BIT;
 }
 
-void obdn_SceneSetCameraView(Obdn_Scene* scene, const Coal_Mat4 m)
+void onyx_SceneSetCameraView(Onyx_Scene* scene, const Coal_Mat4 m)
 {
     scene->camera.view = m;
     scene->camera.xform = coal_Invert4x4(m);
-    scene->dirt |= OBDN_SCENE_CAMERA_VIEW_BIT;
+    scene->dirt |= ONYX_SCENE_CAMERA_VIEW_BIT;
 }
 
-const Obdn_Camera*
-obdn_SceneGetCamera(const Obdn_Scene* scene)
+const Onyx_Camera*
+onyx_SceneGetCamera(const Onyx_Scene* scene)
 {
     return &scene->camera;
 }
 
-void obdn_SceneSetCameraProjection(Obdn_Scene* scene, const Coal_Mat4 m)
+void onyx_SceneSetCameraProjection(Onyx_Scene* scene, const Coal_Mat4 m)
 {
     scene->camera.proj = m;
-    scene->dirt |= OBDN_SCENE_CAMERA_PROJ_BIT;
+    scene->dirt |= ONYX_SCENE_CAMERA_PROJ_BIT;
 }
 
-Obdn_Geometry* obdn_SceneGetPrimGeo(Obdn_Scene* scene, PrimitiveHandle prim, Obdn_PrimDirtyFlags flags)
+Onyx_Geometry* onyx_SceneGetPrimGeo(Onyx_Scene* scene, PrimitiveHandle prim, Onyx_PrimDirtyFlags flags)
 {
     addPrimToDirtyPrims(scene, prim);
     PRIM(scene, prim).dirt |= flags;
-    scene->dirt |= OBDN_SCENE_PRIMS_BIT;
+    scene->dirt |= ONYX_SCENE_PRIMS_BIT;
     return PRIM(scene, prim).geo;
 }
 
-Obdn_Primitive*
-obdn_SceneGetPrimitive(Obdn_Scene* s, Obdn_PrimitiveHandle handle)
+Onyx_Primitive*
+onyx_SceneGetPrimitive(Onyx_Scene* s, Onyx_PrimitiveHandle handle)
 {
     return &PRIM(s, handle);
 }
 
-const Obdn_Primitive*
-obdn_SceneGetPrimitiveConst(const Obdn_Scene* s, Obdn_PrimitiveHandle handle)
+const Onyx_Primitive*
+onyx_SceneGetPrimitiveConst(const Onyx_Scene* s, Onyx_PrimitiveHandle handle)
 {
     return &PRIM(s, handle);
 }
 
-const Obdn_Primitive* obdn_SceneGetPrimitives(const Obdn_Scene* s, Obdn_SceneObjectInt* count)
+const Onyx_Primitive* onyx_SceneGetPrimitives(const Onyx_Scene* s, Onyx_SceneObjectInt* count)
 {
     *count = s->primCount;
     return s->prims;
 }
 
-void obdn_SceneDirtyAll(Obdn_Scene* s)
+void onyx_SceneDirtyAll(Onyx_Scene* s)
 {
     s->dirt = -1;
 }
 
-const Obdn_PrimitiveHandle* obdn_SceneGetDirtyPrimitives(const Obdn_Scene* s, uint32_t* count)
+const Onyx_PrimitiveHandle* onyx_SceneGetDirtyPrimitives(const Onyx_Scene* s, uint32_t* count)
 {
     *count = s->dirtyPrims.count;
     return s->dirtyPrims.elems;
 }
 
-void obdn_SceneCameraUpdateAspectRatio(Obdn_Scene* s, float ar)
+void onyx_SceneCameraUpdateAspectRatio(Onyx_Scene* s, float ar)
 {
     float fov = -s->camera.proj.e[1][1];
     float p   = fov / ar;
     s->camera.proj.e[0][0] = p;
-    s->dirt |= OBDN_SCENE_CAMERA_PROJ_BIT;
+    s->dirt |= ONYX_SCENE_CAMERA_PROJ_BIT;
 }

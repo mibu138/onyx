@@ -95,7 +95,7 @@ static void initFT(const size_t fontSize)
     initialized = true;
 }
 
-Obdn_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, const size_t height, 
+Onyx_Image onyx_t_CreateTextImage(Onyx_Memory* memory, const size_t width, const size_t height, 
         const size_t x, const size_t y,
         const size_t fontSize, const char* text)
 {
@@ -104,41 +104,41 @@ Obdn_Image obdn_t_CreateTextImage(Obdn_Memory* memory, const size_t width, const
         initFT(fontSize);
     }
 
-    Obdn_Image image = obdn_CreateImageAndSampler(memory, width, height, VK_FORMAT_R8_UINT, 
+    Onyx_Image image = onyx_CreateImageAndSampler(memory, width, height, VK_FORMAT_R8_UINT, 
             VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT, 
             VK_IMAGE_ASPECT_COLOR_BIT, 
             VK_SAMPLE_COUNT_1_BIT,
             1,
             VK_FILTER_NEAREST,
-            OBDN_MEMORY_DEVICE_TYPE);
+            ONYX_MEMORY_DEVICE_TYPE);
 
-    obdn_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
+    onyx_TransitionImageLayout(image.layout, VK_IMAGE_LAYOUT_GENERAL, &image);
 
-    Obdn_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
+    Onyx_BufferRegion region = onyx_RequestBufferRegion(memory, width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+            ONYX_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 
-    obdn_CopyBufferToImage(&region, &image);
+    onyx_CopyBufferToImage(&region, &image);
 
-    obdn_FreeBufferRegion(&region);
+    onyx_FreeBufferRegion(&region);
 
     return image;
 }
 
-void obdn_t_UpdateTextImage(Obdn_Memory* memory, const size_t x, const size_t y, const char* text, Obdn_Image* image)
+void onyx_t_UpdateTextImage(Onyx_Memory* memory, const size_t x, const size_t y, const char* text, Onyx_Image* image)
 {
     const size_t width  = image->extent.width;
     const size_t height = image->extent.height;
 
-    Obdn_BufferRegion region = obdn_RequestBufferRegion(memory, width * height, 
+    Onyx_BufferRegion region = onyx_RequestBufferRegion(memory, width * height, 
             VK_BUFFER_USAGE_TRANSFER_SRC_BIT, 
-            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+            ONYX_MEMORY_HOST_GRAPHICS_TYPE);
 
     drawString(text, width, height, x, y, region.hostData);
 
-    obdn_CopyBufferToImage(&region, image);
+    onyx_CopyBufferToImage(&region, image);
 
-    obdn_FreeBufferRegion(&region);
+    onyx_FreeBufferRegion(&region);
 }

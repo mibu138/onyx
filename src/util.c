@@ -1,9 +1,9 @@
 #include "util.h"
 
-void obdn_PrintFormatProperties(const Obdn_Instance* instance, VkFormat format)
+void onyx_PrintFormatProperties(const Onyx_Instance* instance, VkFormat format)
 {
     VkFormatProperties formatProps;
-    vkGetPhysicalDeviceFormatProperties(obdn_GetPhysicalDevice(instance), format, &formatProps);
+    vkGetPhysicalDeviceFormatProperties(onyx_GetPhysicalDevice(instance), format, &formatProps);
     hell_Print("VkFormat %d features:\n", format);
     hell_Print("linearTiling features: ");
     hell_BitPrint(&formatProps.linearTilingFeatures, 32);

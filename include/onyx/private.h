@@ -1,39 +1,39 @@
-#ifndef OBSIDIAN_V_PRIVATE_H
-#define OBSIDIAN_V_PRIVATE_H
+#ifndef ONYX_V_PRIVATE_H
+#define ONYX_V_PRIVATE_H
 
 #include "vulkan.h"
 
 #define MAX_QUEUES 32
 #define MAX_BLOCKS 1000
 
-typedef struct Obdn_QueueFamily {
+typedef struct Onyx_QueueFamily {
     uint32_t index;
     uint32_t queueCount;
     VkQueue  queues[MAX_QUEUES];
-} Obdn_QueueFamily;
+} Onyx_QueueFamily;
 
-typedef Obdn_QueueFamily QueueFamily;
+typedef Onyx_QueueFamily QueueFamily;
 
-typedef struct Obdn_Instance {
+typedef struct Onyx_Instance {
     VkInstance                                         vkinstance;
     VkPhysicalDevice                                   physicalDevice;
     VkDevice                                           device;
-    Obdn_QueueFamily                                   graphicsQueueFamily;
-    Obdn_QueueFamily                                   computeQueueFamily;
-    Obdn_QueueFamily                                   transferQueueFamily;
+    Onyx_QueueFamily                                   graphicsQueueFamily;
+    Onyx_QueueFamily                                   computeQueueFamily;
+    Onyx_QueueFamily                                   transferQueueFamily;
     VkQueue                                            presentQueue;
     VkDebugUtilsMessengerEXT                           debugMessenger;
     VkPhysicalDeviceRayTracingPipelinePropertiesKHR    rtProperties;
     VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProperties;
     VkPhysicalDeviceProperties                         deviceProperties;
-} Obdn_Instance;
+} Onyx_Instance;
 
-typedef struct Obdn_MemBlock {
+typedef struct Onyx_MemBlock {
     VkDeviceSize   size; // note this is the actual available space at this block. the resource might not be using all of it.
     VkDeviceSize   offset;
     _Bool          inUse;
     uint32_t       id; // global unique identifier
-} Obdn_MemBlock;
+} Onyx_MemBlock;
 
 typedef struct BlockChain {
     char                 name[16]; // for debugging
@@ -48,11 +48,11 @@ typedef struct BlockChain {
     VkBuffer             buffer;
     VkBufferUsageFlags   bufferFlags;
     uint8_t*             hostData;
-    Obdn_MemBlock        blocks[MAX_BLOCKS];
-    struct Obdn_Memory*  memory;
+    Onyx_MemBlock        blocks[MAX_BLOCKS];
+    struct Onyx_Memory*  memory;
 } BlockChain;
 
-typedef struct Obdn_Memory {
+typedef struct Onyx_Memory {
     VkPhysicalDeviceMemoryProperties properties;
     BlockChain                       blockChainHostGraphicsBuffer;
     BlockChain                       blockChainDeviceGraphicsBuffer;
@@ -65,8 +65,8 @@ typedef struct Obdn_Memory {
     uint32_t hostVisibleCoherentTypeIndex;
     uint32_t deviceLocalTypeIndex;
 
-    const Obdn_Instance* instance;
-} Obdn_Memory;
+    const Onyx_Instance* instance;
+} Onyx_Memory;
 
 
-#endif /* end of include guard: OBSIDIAN_V_PRIVATE_H */
+#endif /* end of include guard: ONYX_V_PRIVATE_H */

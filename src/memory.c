@@ -17,7 +17,7 @@
 
 #define MB 0x100000
 
-typedef Obdn_BufferRegion BufferRegion;
+typedef Onyx_BufferRegion BufferRegion;
 //
 // static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 // __attribute__ ((unused));
@@ -28,7 +28,7 @@ static void printBlockChainInfo(const BlockChain* chain)
     __attribute__((unused));
 #endif
 
-#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_MEM, fmt, ##__VA_ARGS__)
+#define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_MEM, fmt, ##__VA_ARGS__)
 
 static void
 printBufferMemoryReqs(const VkMemoryRequirements* reqs)
@@ -47,7 +47,7 @@ printBlockChainInfo(const BlockChain* chain)
     DPRINT("Blocks: \n");
     for (int i = 0; i < chain->count; i++)
     {
-        const Obdn_MemBlock* block = &chain->blocks[i];
+        const Onyx_MemBlock* block = &chain->blocks[i];
         DPRINT("{ Block %d: size = %zu, offset = %zu, inUse = %s, id: %d}, ", i,
                block->size, block->offset, block->inUse ? "true" : "false",
                block->id);
@@ -56,7 +56,7 @@ printBlockChainInfo(const BlockChain* chain)
 }
 
 static uint32_t
-findMemoryType(const Obdn_Memory* memory, uint32_t memoryTypeBitsRequirement)
+findMemoryType(const Onyx_Memory* memory, uint32_t memoryTypeBitsRequirement)
 {
     const uint32_t memoryCount = memory->properties.memoryTypeCount;
     for (uint32_t memoryIndex = 0; memoryIndex < memoryCount; ++memoryIndex)
@@ -69,7 +69,7 @@ findMemoryType(const Obdn_Memory* memory, uint32_t memoryTypeBitsRequirement)
 }
 
 static uint32_t
-alignmentForBufferUsage(const Obdn_Memory* memory, VkBufferUsageFlags flags)
+alignmentForBufferUsage(const Onyx_Memory* memory, VkBufferUsageFlags flags)
 {
     uint32_t alignment = 16; // arbitrary default alignment for all allocations. should test lower values.
     if (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT & flags)
@@ -89,7 +89,7 @@ alignmentForBufferUsage(const Obdn_Memory* memory, VkBufferUsageFlags flags)
 }
 
 static void
-initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
+initBlockChain(Onyx_Memory* memory, const Onyx_MemoryType memType,
                const VkDeviceSize memorySize, const uint32_t memTypeIndex,
                const VkBufferUsageFlags bufferUsageFlags, const bool mapBuffer,
                const char* name, struct BlockChain* chain)
@@ -125,7 +125,7 @@ initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
 
     VkExportMemoryAllocateInfo exportMemoryAllocInfo;
     const void*                pNext = NULL;
-    if (memType == OBDN_MEMORY_EXTERNAL_DEVICE_TYPE)
+    if (memType == ONYX_MEMORY_EXTERNAL_DEVICE_TYPE)
     {
         exportMemoryAllocInfo.sType =
             VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO;
@@ -161,16 +161,16 @@ initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
         uint32_t queueFamilyIndex;
         switch (memType)
         {
-        case OBDN_MEMORY_HOST_GRAPHICS_TYPE:
+        case ONYX_MEMORY_HOST_GRAPHICS_TYPE:
             queueFamilyIndex = memory->instance->graphicsQueueFamily.index;
             break;
-        case OBDN_MEMORY_HOST_TRANSFER_TYPE:
+        case ONYX_MEMORY_HOST_TRANSFER_TYPE:
             queueFamilyIndex = memory->instance->transferQueueFamily.index;
             break;
-        case OBDN_MEMORY_DEVICE_TYPE:
+        case ONYX_MEMORY_DEVICE_TYPE:
             queueFamilyIndex = memory->instance->graphicsQueueFamily.index;
             break;
-        case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
+        case ONYX_MEMORY_EXTERNAL_DEVICE_TYPE:
             queueFamilyIndex = memory->instance->graphicsQueueFamily.index;
             break;
         default:
@@ -185,7 +185,7 @@ initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
             .pQueueFamilyIndices   = &queueFamilyIndex,
             .sharingMode = VK_SHARING_MODE_EXCLUSIVE, // queue family determined
                                                       // by first use
-            // TODO this sharing mode is why we need to expand Obdn_V_MemoryType
+            // TODO this sharing mode is why we need to expand Onyx_V_MemoryType
             // to specify queue usage as well. So we do need graphics type,
             // transfer type, and compute types
             .size        = memorySize};
@@ -224,9 +224,9 @@ initBlockChain(Obdn_Memory* memory, const Obdn_MemoryType memType,
 }
 
 static void
-freeBlockChain(Obdn_Memory* memory, struct BlockChain* chain)
+freeBlockChain(Onyx_Memory* memory, struct BlockChain* chain)
 {
-    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Obdn_MemBlock));
+    memset(chain->blocks, 0, MAX_BLOCKS * sizeof(Onyx_MemBlock));
     if (chain->buffer != VK_NULL_HANDLE)
     {
         vkDestroyBuffer(memory->instance->device, chain->buffer, NULL);
@@ -255,7 +255,7 @@ findAvailableBlockIndex(struct BlockChain* chain, VkDeviceSize size, VkDeviceSiz
     assert(alignment != 0);
     for (u32 i = 0; i < count; i++)
     {
-        const Obdn_MemBlock* block = &chain->blocks[i];
+        const Onyx_MemBlock* block = &chain->blocks[i];
         if (block->inUse || block->size < size) continue;
         // nextPossibleOffset may be the same as or greater than block->offset.
         u64 nextPossibleOffset = hell_Align(block->offset, alignment);
@@ -279,7 +279,7 @@ rotateBlockUp(const size_t fromIndex, const size_t toIndex,
     assert(toIndex > fromIndex);
     for (int i = fromIndex; i < toIndex; i++)
     {
-        Obdn_MemBlock temp = chain->blocks[i];
+        Onyx_MemBlock temp = chain->blocks[i];
         chain->blocks[i]     = chain->blocks[i + 1];
         chain->blocks[i + 1] = temp;
     }
@@ -294,7 +294,7 @@ rotateBlockDown(const size_t fromIndex, const size_t toIndex,
     assert(fromIndex > toIndex);
     for (int i = fromIndex; i > toIndex; i--)
     {
-        Obdn_MemBlock temp = chain->blocks[i];
+        Onyx_MemBlock temp = chain->blocks[i];
         chain->blocks[i]     = chain->blocks[i - 1];
         chain->blocks[i - 1] = temp;
         assert(chain->blocks[i - 1].size < chain->totalSize);
@@ -307,8 +307,8 @@ mergeBlocks(struct BlockChain* chain)
     assert(chain->count > 1); // must have at least 2 blocks to defragment
     for (int i = 0; i < chain->count - 1; i++)
     {
-        Obdn_MemBlock* curr = &chain->blocks[i];
-        Obdn_MemBlock* next = &chain->blocks[i + 1];
+        Onyx_MemBlock* curr = &chain->blocks[i];
+        Onyx_MemBlock* next = &chain->blocks[i + 1];
         if (!curr->inUse && !next->inUse)
         {
             // combine them together
@@ -316,7 +316,7 @@ mergeBlocks(struct BlockChain* chain)
             // we could make the other id available for re-use as well
             curr->size               = cSize;
             // set next block to 0
-            memset(next, 0, sizeof(Obdn_MemBlock));
+            memset(next, 0, sizeof(Onyx_MemBlock));
             // rotate blocks down past i so that next goes to chain->count - 1
             // and the block at chain->size - 1 goes to chain->count - 2
             if (i + 1 != chain->count - 1)
@@ -342,15 +342,15 @@ chainIsOrdered(const struct BlockChain* chain)
 {
     for (int i = 0; i < chain->count - 1; i++)
     {
-        const Obdn_MemBlock* curr = &chain->blocks[i];
-        const Obdn_MemBlock* next = &chain->blocks[i + 1];
+        const Onyx_MemBlock* curr = &chain->blocks[i];
+        const Onyx_MemBlock* next = &chain->blocks[i + 1];
         if (curr->offset > next->offset)
             return false;
     }
     return true;
 }
 
-static Obdn_MemBlock*
+static Onyx_MemBlock*
 requestBlock(const u64 size, const u64 alignment,
              struct BlockChain* chain)
 {
@@ -365,7 +365,7 @@ requestBlock(const u64 size, const u64 alignment,
             exit(0);
         }
     }
-    Obdn_MemBlock* curBlock = &chain->blocks[availInfo.index];
+    Onyx_MemBlock* curBlock = &chain->blocks[availInfo.index];
     if (curBlock->size == size &&
         (curBlock->offset % alignment == 0)) // just reuse this block;
     {
@@ -379,7 +379,7 @@ requestBlock(const u64 size, const u64 alignment,
     }
     // split the block
     const size_t     newBlockIndex = chain->count++;
-    Obdn_MemBlock*   newBlock = &chain->blocks[newBlockIndex];
+    Onyx_MemBlock*   newBlock = &chain->blocks[newBlockIndex];
     assert(newBlockIndex < MAX_BLOCKS);
     assert(newBlock->inUse == false);
     // we will assume correct alignment for the first block... TODO Make sure this is enforced somehow.
@@ -424,7 +424,7 @@ freeBlock(struct BlockChain* chain, const uint32_t id)
             break;
     }
     assert(blockIndex < blockCount); // block must not have come from this chain
-    Obdn_MemBlock*   block = &chain->blocks[blockIndex];
+    Onyx_MemBlock*   block = &chain->blocks[blockIndex];
     const VkDeviceSize size  = block->size;
     block->inUse             = false;
     mergeBlocks(chain);
@@ -435,20 +435,20 @@ freeBlock(struct BlockChain* chain, const uint32_t id)
 }
 
 void
-obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphicsBufferMB,
+onyx_CreateMemory(const Onyx_Instance* instance, const uint32_t hostGraphicsBufferMB,
                   const uint32_t deviceGraphicsBufferMB,
                   const uint32_t deviceGraphicsImageMB, const uint32_t hostTransferBufferMB,
-                  const uint32_t deviceExternalGraphicsImageMB, Obdn_Memory* memory)
+                  const uint32_t deviceExternalGraphicsImageMB, Onyx_Memory* memory)
 {
     assert(hostGraphicsBufferMB < 10000); // maximum 10 GB
     assert(deviceGraphicsBufferMB < 10000); // maximum 10 GB
     assert(deviceGraphicsImageMB < 10000); // maximum 10 GB
     assert(hostTransferBufferMB < 10000); // maximum 10 GB
     assert(deviceExternalGraphicsImageMB < 10000); // maximum 10 GB
-    memset(memory, 0, sizeof(Obdn_Memory));
+    memset(memory, 0, sizeof(Onyx_Memory));
     memory->instance                 = instance;
 
-    memory->deviceProperties = obdn_GetPhysicalDeviceProperties(instance);
+    memory->deviceProperties = onyx_GetPhysicalDeviceProperties(instance);
 
     vkGetPhysicalDeviceMemoryProperties(instance->physicalDevice,
                                         &memory->properties);
@@ -533,52 +533,52 @@ obdn_CreateMemory(const Obdn_Instance* instance, const uint32_t hostGraphicsBuff
         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
-    DPRINT("Obsidian: Initializing memory block chains...\n");
-    initBlockChain(memory, OBDN_MEMORY_HOST_GRAPHICS_TYPE,
+    DPRINT("Onyx: Initializing memory block chains...\n");
+    initBlockChain(memory, ONYX_MEMORY_HOST_GRAPHICS_TYPE,
                    hostGraphicsBufferMB * MB,
                    memory->hostVisibleCoherentTypeIndex, hostGraphicsFlags,
                    true, "hstGraphBuffer",
                    &memory->blockChainHostGraphicsBuffer);
-    initBlockChain(memory, OBDN_MEMORY_HOST_TRANSFER_TYPE,
+    initBlockChain(memory, ONYX_MEMORY_HOST_TRANSFER_TYPE,
                    hostTransferBufferMB * MB,
                    memory->hostVisibleCoherentTypeIndex, hostTransferFlags,
                    true, "hstTransBuffer",
                    &memory->blockChainHostTransferBuffer);
-    initBlockChain(memory, OBDN_MEMORY_DEVICE_TYPE,
+    initBlockChain(memory, ONYX_MEMORY_DEVICE_TYPE,
                    deviceGraphicsBufferMB * MB,
                    memory->deviceLocalTypeIndex, devBufFlags, false,
                    "devBuffer", &memory->blockChainDeviceGraphicsBuffer);
-    initBlockChain(memory, OBDN_MEMORY_DEVICE_TYPE,
+    initBlockChain(memory, ONYX_MEMORY_DEVICE_TYPE,
                    deviceGraphicsImageMB * MB,
                    memory->deviceLocalTypeIndex, 0, false, "devImage",
                    &memory->blockChainDeviceGraphicsImage);
-    initBlockChain(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE,
+    initBlockChain(memory, ONYX_MEMORY_EXTERNAL_DEVICE_TYPE,
                    deviceExternalGraphicsImageMB * MB,
                    memory->deviceLocalTypeIndex, 0, false, "devExtImage",
                    &memory->blockChainExternalDeviceGraphicsImage);
 }
 
-Obdn_BufferRegion
-obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
+Onyx_BufferRegion
+onyx_RequestBufferRegionAligned(Onyx_Memory* memory, const size_t size,
                                 uint32_t                alignment,
-                                const Obdn_MemoryType memType)
+                                const Onyx_MemoryType memType)
 {
     assert(size > 0);
     if (size % 4 != 0) // only allow for word-sized blocks
     {
         hell_Error(HELL_ERR_FATAL, "Size %zu is not 4 byte aligned.", size);
     }
-    Obdn_MemBlock*   block = NULL;
+    Onyx_MemBlock*   block = NULL;
     struct BlockChain* chain = NULL;
     switch (memType)
     {
-    case OBDN_MEMORY_HOST_GRAPHICS_TYPE:
+    case ONYX_MEMORY_HOST_GRAPHICS_TYPE:
         chain = &memory->blockChainHostGraphicsBuffer;
         break;
-    case OBDN_MEMORY_HOST_TRANSFER_TYPE:
+    case ONYX_MEMORY_HOST_TRANSFER_TYPE:
         chain = &memory->blockChainHostTransferBuffer;
         break;
-    case OBDN_MEMORY_DEVICE_TYPE:
+    case ONYX_MEMORY_DEVICE_TYPE:
         chain = &memory->blockChainDeviceGraphicsBuffer;
         break;
     default:
@@ -590,7 +590,7 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
         alignment = chain->defaultAlignment;
     block = requestBlock(size, alignment, chain);
 
-    Obdn_BufferRegion region = {0};
+    Onyx_BufferRegion region = {0};
     region.offset              = block->offset;
     region.memBlockId          = block->id;
     region.size                = size;
@@ -601,8 +601,8 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     // to a mask with flags for the different requirements. One bit for host or
     // device, one bit for transfer capabale, one bit for external, one bit for
     // image or buffer
-    if (memType == OBDN_MEMORY_HOST_TRANSFER_TYPE ||
-        memType == OBDN_MEMORY_HOST_GRAPHICS_TYPE)
+    if (memType == ONYX_MEMORY_HOST_TRANSFER_TYPE ||
+        memType == ONYX_MEMORY_HOST_GRAPHICS_TYPE)
         region.hostData = chain->hostData + block->offset;
     else
         region.hostData = NULL;
@@ -610,34 +610,34 @@ obdn_RequestBufferRegionAligned(Obdn_Memory* memory, const size_t size,
     return region;
 }
 
-Obdn_BufferRegion
-obdn_RequestBufferRegion(Obdn_Memory* memory, const size_t size,
+Onyx_BufferRegion
+onyx_RequestBufferRegion(Onyx_Memory* memory, const size_t size,
                          const VkBufferUsageFlags flags,
-                         const Obdn_MemoryType  memType)
+                         const Onyx_MemoryType  memType)
 {
     uint32_t alignment = alignmentForBufferUsage(memory, flags);
-    return obdn_RequestBufferRegionAligned(memory, 
+    return onyx_RequestBufferRegionAligned(memory, 
         size, alignment,
         memType); // TODO: fix this. find the maximum alignment and choose that
 }
 
-Obdn_BufferRegion
-obdn_RequestBufferRegionArray(Obdn_Memory* memory, uint32_t elemSize, uint32_t elemCount,
+Onyx_BufferRegion
+onyx_RequestBufferRegionArray(Onyx_Memory* memory, uint32_t elemSize, uint32_t elemCount,
                               VkBufferUsageFlags flags,
-                              Obdn_MemoryType  memType)
+                              Onyx_MemoryType  memType)
 {
     // calculate the size needed and call requestBufferRegionAligned.
     // make sure to set the stride.
     uint32_t alignment = alignmentForBufferUsage(memory, flags);
     uint32_t stride    = hell_Align(elemSize, alignment);
     uint64_t size      = stride * elemCount;
-    Obdn_BufferRegion region = obdn_RequestBufferRegionAligned(memory, size, alignment, memType);
+    Onyx_BufferRegion region = onyx_RequestBufferRegionAligned(memory, size, alignment, memType);
     region.stride = stride;
     return region;
 }
 
 uint32_t
-obdn_GetMemoryType(const Obdn_Memory* memory, uint32_t typeBits,
+onyx_GetMemoryType(const Onyx_Memory* memory, uint32_t typeBits,
                    const VkMemoryPropertyFlags properties)
 {
     for (uint32_t i = 0; i < memory->properties.memoryTypeCount; i++)
@@ -653,17 +653,17 @@ obdn_GetMemoryType(const Obdn_Memory* memory, uint32_t typeBits,
     return ~0u;
 }
 
-Obdn_Image
-obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
+Onyx_Image
+onyx_CreateImage(Onyx_Memory* memory, const uint32_t width,
                  const uint32_t height, const VkFormat format,
                  const VkImageUsageFlags  usageFlags,
                  const VkImageAspectFlags aspectMask,
                  const VkSampleCountFlags sampleCount, const uint32_t mipLevels,
-                 const Obdn_MemoryType memType)
+                 const Onyx_MemoryType memType)
 {
     assert(mipLevels > 0);
-    assert(memType == OBDN_MEMORY_DEVICE_TYPE ||
-           memType == OBDN_MEMORY_EXTERNAL_DEVICE_TYPE);
+    assert(memType == ONYX_MEMORY_DEVICE_TYPE ||
+           memType == ONYX_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(memory->deviceProperties->limits.framebufferColorSampleCounts >=
            sampleCount);
@@ -673,7 +673,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
     void* pNext = NULL;
 
     VkExternalMemoryImageCreateInfo externalImageInfo;
-    if (memType == OBDN_MEMORY_EXTERNAL_DEVICE_TYPE)
+    if (memType == ONYX_MEMORY_EXTERNAL_DEVICE_TYPE)
     {
         externalImageInfo.sType =
             VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO;
@@ -699,7 +699,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
                                    .pQueueFamilyIndices   = &queueFamilyIndex,
                                    .initialLayout = VK_IMAGE_LAYOUT_UNDEFINED};
 
-    Obdn_Image image = {0};
+    Onyx_Image image = {0};
 
     V_ASSERT(vkCreateImage(memory->instance->device, &imageInfo, NULL, &image.handle));
 
@@ -722,17 +722,17 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
 
     switch (memType)
     {
-    case OBDN_MEMORY_DEVICE_TYPE:
+    case ONYX_MEMORY_DEVICE_TYPE:
         image.pChain = &memory->blockChainDeviceGraphicsImage;
         break;
-    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case ONYX_MEMORY_EXTERNAL_DEVICE_TYPE:
         image.pChain = &memory->blockChainExternalDeviceGraphicsImage;
         break;
     default:
         assert(0);
     }
 
-    const Obdn_MemBlock* block =
+    const Onyx_MemBlock* block =
         requestBlock(memReqs.size, memReqs.alignment, image.pChain);
     image.memBlockId = block->id;
     image.offset     = block->offset;
@@ -761,7 +761,7 @@ obdn_CreateImage(Obdn_Memory* memory, const uint32_t width,
 }
 
 void
-obdn_FreeImage(Obdn_Image* image)
+onyx_FreeImage(Onyx_Image* image)
 {
     assert(image->size != 0);
     if (image->sampler != VK_NULL_HANDLE)
@@ -771,27 +771,27 @@ obdn_FreeImage(Obdn_Image* image)
     vkDestroyImageView(image->pChain->memory->instance->device, image->view, NULL);
     vkDestroyImage(image->pChain->memory->instance->device, image->handle, NULL);
     freeBlock(image->pChain, image->memBlockId);
-    memset(image, 0, sizeof(Obdn_Image));
+    memset(image, 0, sizeof(Onyx_Image));
 }
 
 void
-obdn_FreeBufferRegion(Obdn_BufferRegion* pRegion)
+onyx_FreeBufferRegion(Onyx_BufferRegion* pRegion)
 {
     assert(pRegion->size != 0);
     freeBlock(pRegion->pChain, pRegion->memBlockId);
     if (pRegion->hostData)
         memset(pRegion->hostData, 0, pRegion->size);
-    memset(pRegion, 0, sizeof(Obdn_BufferRegion));
+    memset(pRegion, 0, sizeof(Onyx_BufferRegion));
 }
 
 void
-obdn_CopyBufferRegion(const Obdn_BufferRegion* src,
-                        Obdn_BufferRegion*       dst)
+onyx_CopyBufferRegion(const Onyx_BufferRegion* src,
+                        Onyx_BufferRegion*       dst)
 {
-    Obdn_Command cmd =
-        obdn_CreateCommand(src->pChain->memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE); // arbitrary index;
+    Onyx_Command cmd =
+        onyx_CreateCommand(src->pChain->memory->instance, ONYX_V_QUEUE_GRAPHICS_TYPE); // arbitrary index;
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     VkBufferCopy copy;
     copy.srcOffset = src->offset;
@@ -800,39 +800,39 @@ obdn_CopyBufferRegion(const Obdn_BufferRegion* src,
 
     vkCmdCopyBuffer(cmd.buffer, src->buffer, dst->buffer, 1, &copy);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 }
 
 void
-obdn_v_CopyImageToBufferRegion(const Obdn_Image*  image,
-                               Obdn_BufferRegion* bufferRegion)
+onyx_v_CopyImageToBufferRegion(const Onyx_Image*  image,
+                               Onyx_BufferRegion* bufferRegion)
 {
     // TODO
 }
 
 void
-obdn_TransferToDevice(Obdn_Memory* memory, Obdn_BufferRegion* pRegion)
+onyx_TransferToDevice(Onyx_Memory* memory, Onyx_BufferRegion* pRegion)
 {
-    const Obdn_BufferRegion srcRegion = *pRegion;
+    const Onyx_BufferRegion srcRegion = *pRegion;
     assert(srcRegion.pChain ==
            &memory->blockChainHostGraphicsBuffer); // only chain it makes sense
                                                    // to transfer from
-    Obdn_BufferRegion destRegion = obdn_RequestBufferRegion(memory, 
-        srcRegion.size, 0, OBDN_MEMORY_DEVICE_TYPE);
+    Onyx_BufferRegion destRegion = onyx_RequestBufferRegion(memory, 
+        srcRegion.size, 0, ONYX_MEMORY_DEVICE_TYPE);
 
-    obdn_CopyBufferRegion(&srcRegion, &destRegion);
+    onyx_CopyBufferRegion(&srcRegion, &destRegion);
 
-    obdn_FreeBufferRegion(pRegion);
+    onyx_FreeBufferRegion(pRegion);
 
     *pRegion = destRegion;
 }
 
 void
-obdn_DestroyMemory(Obdn_Memory* memory)
+onyx_DestroyMemory(Onyx_Memory* memory)
 {
     freeBlockChain(memory, &memory->blockChainHostGraphicsBuffer);
     freeBlockChain(memory, &memory->blockChainHostTransferBuffer);
@@ -842,32 +842,32 @@ obdn_DestroyMemory(Obdn_Memory* memory)
 }
 
 VkDeviceAddress
-obdn_GetBufferRegionAddress(const BufferRegion* region)
+onyx_GetBufferRegionAddress(const BufferRegion* region)
 {
     assert(region->pChain->bufferAddress != 0);
     return region->pChain->bufferAddress + region->offset;
 }
 
 void
-obdn_CreateUnmanagedBuffer(Obdn_Memory*             memory,
+onyx_CreateUnmanagedBuffer(Onyx_Memory*             memory,
                            const VkBufferUsageFlags bufferUsageFlags,
                            const uint32_t           memorySize,
-                           const Obdn_MemoryType  type,
+                           const Onyx_MemoryType  type,
                            VkDeviceMemory* pMemory, VkBuffer* pBuffer)
 {
     uint32_t typeIndex;
     switch (type)
     {
-    case OBDN_MEMORY_HOST_GRAPHICS_TYPE:
+    case ONYX_MEMORY_HOST_GRAPHICS_TYPE:
         typeIndex = memory->hostVisibleCoherentTypeIndex;
         break;
-    case OBDN_MEMORY_HOST_TRANSFER_TYPE:
+    case ONYX_MEMORY_HOST_TRANSFER_TYPE:
         typeIndex = memory->hostVisibleCoherentTypeIndex;
         break;
-    case OBDN_MEMORY_DEVICE_TYPE:
+    case ONYX_MEMORY_DEVICE_TYPE:
         typeIndex = memory->deviceLocalTypeIndex;
         break;
-    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case ONYX_MEMORY_EXTERNAL_DEVICE_TYPE:
         typeIndex = memory->deviceLocalTypeIndex;
         break;
     }
@@ -892,11 +892,11 @@ obdn_CreateUnmanagedBuffer(Obdn_Memory*             memory,
 }
 
 VkDeviceMemory
-obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_MemoryType memType)
+onyx_GetDeviceMemory(const Onyx_Memory* memory, const Onyx_MemoryType memType)
 {
     switch (memType)
     {
-    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case ONYX_MEMORY_EXTERNAL_DEVICE_TYPE:
         return memory->blockChainExternalDeviceGraphicsImage.vkmemory;
     default:
         assert(0); // TODO
@@ -905,11 +905,11 @@ obdn_GetDeviceMemory(const Obdn_Memory* memory, const Obdn_MemoryType memType)
 }
 
 VkDeviceSize
-obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_MemoryType memType)
+onyx_GetMemorySize(const Onyx_Memory* memory, const Onyx_MemoryType memType)
 {
     switch (memType)
     {
-    case OBDN_MEMORY_EXTERNAL_DEVICE_TYPE:
+    case ONYX_MEMORY_EXTERNAL_DEVICE_TYPE:
         return memory->blockChainExternalDeviceGraphicsImage.totalSize;
     default:
         assert(0); // TODO
@@ -918,34 +918,34 @@ obdn_GetMemorySize(const Obdn_Memory* memory, const Obdn_MemoryType memType)
 }
 
 #ifdef WIN32
-bool obdn_GetExternalMemoryWin32Handle(const Obdn_Memory* memory, HANDLE* handle, uint64_t* size)
+bool onyx_GetExternalMemoryWin32Handle(const Onyx_Memory* memory, HANDLE* handle, uint64_t* size)
 {
     VkMemoryGetWin32HandleInfoKHR handleInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_GET_WIN32_HANDLE_INFO_KHR,
-        .memory = obdn_GetDeviceMemory(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE),
+        .memory = onyx_GetDeviceMemory(memory, ONYX_MEMORY_EXTERNAL_DEVICE_TYPE),
         .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_WIN32_BIT,
     };
 
-    V_ASSERT( vkGetMemoryWin32HandleKHR(obdn_GetDevice(memory->instance), &handleInfo, handle) );
+    V_ASSERT( vkGetMemoryWin32HandleKHR(onyx_GetDevice(memory->instance), &handleInfo, handle) );
 
-    *size = obdn_GetMemorySize(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE);
+    *size = onyx_GetMemorySize(memory, ONYX_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(*size);
     return true;
 }
 #else
-bool obdn_GetExternalMemoryFd(const Obdn_Memory* memory, int* fd, uint64_t* size)
+bool onyx_GetExternalMemoryFd(const Onyx_Memory* memory, int* fd, uint64_t* size)
 {
     // fast path
     VkMemoryGetFdInfoKHR fdInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_GET_FD_INFO_KHR,
-        .memory = obdn_GetDeviceMemory(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE),
+        .memory = onyx_GetDeviceMemory(memory, ONYX_MEMORY_EXTERNAL_DEVICE_TYPE),
         .handleType = VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT,
     };
 
-    V_ASSERT( vkGetMemoryFdKHR(obdn_GetDevice(memory->instance), &fdInfo, fd) );
+    V_ASSERT( vkGetMemoryFdKHR(onyx_GetDevice(memory->instance), &fdInfo, fd) );
 
-    *size = obdn_GetMemorySize(memory, OBDN_MEMORY_EXTERNAL_DEVICE_TYPE);
+    *size = onyx_GetMemorySize(memory, ONYX_MEMORY_EXTERNAL_DEVICE_TYPE);
 
     assert(*size);
     return true;
@@ -953,14 +953,14 @@ bool obdn_GetExternalMemoryFd(const Obdn_Memory* memory, int* fd, uint64_t* size
 #endif
 
 uint64_t
-obdn_SizeOfMemory(void)
+onyx_SizeOfMemory(void)
 {
-    return sizeof(Obdn_Memory);
+    return sizeof(Onyx_Memory);
 }
 
-Obdn_Memory* obdn_AllocMemory(void)
+Onyx_Memory* onyx_AllocMemory(void)
 {
-    return hell_Malloc(sizeof(Obdn_Memory));
+    return hell_Malloc(sizeof(Onyx_Memory));
 }
 
 static void 
@@ -971,7 +971,7 @@ simpleBlockchainReport(const BlockChain* chain)
 }
 
 void 
-obdn_MemoryReportSimple(const Obdn_Memory* memory)
+onyx_MemoryReportSimple(const Onyx_Memory* memory)
 {
     hell_Print("Memory Report\n");
     simpleBlockchainReport(&memory->blockChainHostGraphicsBuffer);
@@ -982,13 +982,13 @@ obdn_MemoryReportSimple(const Obdn_Memory* memory)
 }
 
 void 
-obdn_GetImageMemoryUsage(const Obdn_Memory* memory, uint64_t* bytes_in_use, uint64_t* total_bytes)
+onyx_GetImageMemoryUsage(const Onyx_Memory* memory, uint64_t* bytes_in_use, uint64_t* total_bytes)
 {
     *bytes_in_use = memory->blockChainDeviceGraphicsImage.usedSize;
     *total_bytes = memory->blockChainDeviceGraphicsImage.totalSize;
 }
 
-const Obdn_Instance* obdn_GetMemoryInstance(const Obdn_Memory* memory)
+const Onyx_Instance* onyx_GetMemoryInstance(const Onyx_Memory* memory)
 {
     return memory->instance;
 }

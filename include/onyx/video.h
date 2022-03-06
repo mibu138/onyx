@@ -1,37 +1,37 @@
 /*
 video.c
  */
-#ifndef OBDN_V_VIDEO_H
-#define OBDN_V_VIDEO_H
+#ifndef ONYX_V_VIDEO_H
+#define ONYX_V_VIDEO_H
 
 #include "def.h"
 #include "types.h"
 
 typedef enum {
-    OBDN_V_QUEUE_GRAPHICS_TYPE,
-    OBDN_V_QUEUE_TRANSFER_TYPE,
-    OBDN_V_QUEUE_COMPUTE_TYPE,
-} Obdn_V_QueueType;
+    ONYX_V_QUEUE_GRAPHICS_TYPE,
+    ONYX_V_QUEUE_TRANSFER_TYPE,
+    ONYX_V_QUEUE_COMPUTE_TYPE,
+} Onyx_V_QueueType;
 
-typedef enum Obdn_SurfaceType {
-    OBDN_SURFACE_TYPE_NO_WINDOW,
-    OBDN_SURFACE_TYPE_XCB,
-    OBDN_SURFACE_TYPE_WIN32
-} Obdn_SurfaceType;
+typedef enum Onyx_SurfaceType {
+    ONYX_SURFACE_TYPE_NO_WINDOW,
+    ONYX_SURFACE_TYPE_XCB,
+    ONYX_SURFACE_TYPE_WIN32
+} Onyx_SurfaceType;
 
-struct Obdn_V_Command;
-typedef struct Obdn_Instance Obdn_Instance;
+struct Onyx_V_Command;
+typedef struct Onyx_Instance Onyx_Instance;
 
-uint64_t obdn_SizeOfInstance(void);
-Obdn_Instance* obdn_AllocInstance(void);
+uint64_t onyx_SizeOfInstance(void);
+Onyx_Instance* onyx_AllocInstance(void);
 
 // enabling/disabling validation and/or raytracing
 // will automatically enable the required layers and
 // extensions for those to be used effectively
-typedef struct Obdn_InstanceParms {
+typedef struct Onyx_InstanceParms {
     bool                                disableValidation;
     bool                                enableRayTracing;
-    Obdn_SurfaceType                    surfaceType;
+    Onyx_SurfaceType                    surfaceType;
     uint32_t                            enabledInstanceLayerCount;
     const char**                        ppEnabledInstanceLayerNames;
     uint32_t                            enabledInstanceExentensionCount;
@@ -40,34 +40,34 @@ typedef struct Obdn_InstanceParms {
     const VkValidationFeatureEnableEXT* pValidationFeatures;
     uint32_t                            enabledDeviceExtensionCount;
     const char**                        ppEnabledDeviceExtensionNames;
-} Obdn_InstanceParms;
+} Onyx_InstanceParms;
 
-void obdn_CreateInstance(const Obdn_InstanceParms* parms, Obdn_Instance* instance);
-const VkInstance* obdn_GetVkInstance(const Obdn_Instance*);
-void obdn_SubmitToQueue(const Obdn_Instance*, const VkCommandBuffer* buffer,
-                        Obdn_V_QueueType, uint32_t queueIndex);
-void obdn_SubmitToQueueWait(const Obdn_Instance*, const VkCommandBuffer* buffer,
-                            Obdn_V_QueueType, uint32_t queueIndex);
+void onyx_CreateInstance(const Onyx_InstanceParms* parms, Onyx_Instance* instance);
+const VkInstance* onyx_GetVkInstance(const Onyx_Instance*);
+void onyx_SubmitToQueue(const Onyx_Instance*, const VkCommandBuffer* buffer,
+                        Onyx_V_QueueType, uint32_t queueIndex);
+void onyx_SubmitToQueueWait(const Onyx_Instance*, const VkCommandBuffer* buffer,
+                            Onyx_V_QueueType, uint32_t queueIndex);
 
 void
-obdn_QueueSubmit(
+onyx_QueueSubmit(
     VkQueue                                     queue,
     uint32_t                                    submitCount,
     const VkSubmitInfo*                         pSubmits,
     VkFence                                     fence);
-void obdn_DestroyInstance(Obdn_Instance*);
-void obdn_SubmitGraphicsCommands(const Obdn_Instance*,
+void onyx_DestroyInstance(Onyx_Instance*);
+void onyx_SubmitGraphicsCommands(const Onyx_Instance*,
                                  uint32_t      queueIndex,
                                  uint32_t      submitInfoCount,
                                  const VkSubmitInfo* submitInfos,
                                  VkFence             fence);
-void obdn_SubmitTransferCommand(const Obdn_Instance*, uint32_t queueIndex,
+void onyx_SubmitTransferCommand(const Onyx_Instance*, uint32_t queueIndex,
                                 VkPipelineStageFlags   waitDstStageMask,
                                 const VkSemaphore*           pWaitSemephore,
                                 VkFence                      fence,
-                                const struct Obdn_V_Command* cmd);
+                                const struct Onyx_V_Command* cmd);
 
-void obdn_SubmitGraphicsCommand(const Obdn_Instance*, uint32_t queueIndex,
+void onyx_SubmitGraphicsCommand(const Onyx_Instance*, uint32_t queueIndex,
                                 VkPipelineStageFlags waitDstStageMask,
                                 uint32_t                   waitCount,
                                 VkSemaphore waitSemephores[],
@@ -75,32 +75,32 @@ void obdn_SubmitGraphicsCommand(const Obdn_Instance*, uint32_t queueIndex,
                                 VkSemaphore signalSemphores[],
                                 VkFence fence, VkCommandBuffer cmdBuf);
 
-uint32_t obdn_GetQueueFamilyIndex(const Obdn_Instance*, Obdn_V_QueueType type);
-VkDevice obdn_GetDevice(const Obdn_Instance*);
-VkQueue  obdn_GetPresentQueue(const Obdn_Instance*);
-VkQueue  obdn_GetGraphicsQueue(const Obdn_Instance*, u32 index);
-VkQueue  obdn_GetTransferQueue(const Obdn_Instance*, u32 index);
-VkPhysicalDevice obdn_GetPhysicalDevice(const Obdn_Instance*);
+uint32_t onyx_GetQueueFamilyIndex(const Onyx_Instance*, Onyx_V_QueueType type);
+VkDevice onyx_GetDevice(const Onyx_Instance*);
+VkQueue  onyx_GetPresentQueue(const Onyx_Instance*);
+VkQueue  onyx_GetGraphicsQueue(const Onyx_Instance*, u32 index);
+VkQueue  onyx_GetTransferQueue(const Onyx_Instance*, u32 index);
+VkPhysicalDevice onyx_GetPhysicalDevice(const Onyx_Instance*);
 
-void obdn_PresentQueueWaitIdle(const Obdn_Instance*);
+void onyx_PresentQueueWaitIdle(const Onyx_Instance*);
 
-void obdn_DeviceWaitIdle(const Obdn_Instance*);
+void onyx_DeviceWaitIdle(const Onyx_Instance*);
 
 const VkPhysicalDeviceProperties*
-obdn_GetPhysicalDeviceProperties(const Obdn_Instance*);
+onyx_GetPhysicalDeviceProperties(const Onyx_Instance*);
 
 void
-obdn_QueueSubmit2(
+onyx_QueueSubmit2(
     VkQueue                                     queue,
     uint32_t                                    submitCount,
     const VkSubmitInfo2*                        pSubmits,
     VkFence                                     fence);
 
 VkPhysicalDeviceRayTracingPipelinePropertiesKHR
-obdn_GetPhysicalDeviceRayTracingProperties(const Obdn_Instance*);
+onyx_GetPhysicalDeviceRayTracingProperties(const Onyx_Instance*);
 
 VkPhysicalDeviceAccelerationStructurePropertiesKHR
-obdn_GetPhysicalDeviceAccelerationStructureProperties(const Obdn_Instance*);
+onyx_GetPhysicalDeviceAccelerationStructureProperties(const Onyx_Instance*);
 
 
 #endif /* end of include guard: V_VIDEO_H */

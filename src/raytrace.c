@@ -13,14 +13,14 @@
 #include "coal/types.h"
 #include "coal/linalg.h"
 
-typedef Obdn_BufferRegion          BufferRegion;
-typedef Obdn_AccelerationStructure AccelerationStructure;
-typedef Obdn_Command               Command;
-typedef Obdn_ShaderBindingTable    ShaderBindingTable;
+typedef Onyx_BufferRegion          BufferRegion;
+typedef Onyx_AccelerationStructure AccelerationStructure;
+typedef Onyx_Command               Command;
+typedef Onyx_ShaderBindingTable    ShaderBindingTable;
 
-#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_RAYTRACE, fmt, ##__VA_ARGS__)
+#define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_RAYTRACE, fmt, ##__VA_ARGS__)
 
-void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, AccelerationStructure* blas)
+void onyx_BuildBlas(Onyx_Memory* memory, const Onyx_Geometry* prim, AccelerationStructure* blas)
 {
     VkBufferDeviceAddressInfo addrInfo = {
         .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
@@ -35,9 +35,9 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     const VkAccelerationStructureGeometryTrianglesDataKHR triData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR,
-        .vertexFormat  = OBDN_VERT_POS_FORMAT,
+        .vertexFormat  = ONYX_VERT_POS_FORMAT,
         .vertexStride  = sizeof(Vec3),
-        .indexType     = OBDN_VERT_INDEX_TYPE,
+        .indexType     = ONYX_VERT_INDEX_TYPE,
         .maxVertex     = prim->vertexCount,
         .vertexData.deviceAddress = vertAddr,
         .indexData.deviceAddress = indexAddr,
@@ -68,9 +68,9 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     vkGetAccelerationStructureBuildSizesKHR(memory->instance->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &buildAS, &numTrianlges, &buildSizes); 
 
-    blas->bufferRegion = obdn_RequestBufferRegion(memory, buildSizes.accelerationStructureSize, 
+    blas->bufferRegion = onyx_RequestBufferRegion(memory, buildSizes.accelerationStructureSize, 
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT, 
-            OBDN_MEMORY_DEVICE_TYPE);
+            ONYX_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR accelStructInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -82,15 +82,15 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     V_ASSERT( vkCreateAccelerationStructureKHR(memory->instance->device, &accelStructInfo, NULL, &blas->handle) );
 
-    VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProps = obdn_GetPhysicalDeviceAccelerationStructureProperties(memory->instance);
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProps = onyx_GetPhysicalDeviceAccelerationStructureProperties(memory->instance);
 
-    Obdn_BufferRegion scratchBufferRegion = obdn_RequestBufferRegionAligned(memory, buildSizes.buildScratchSize, 
+    Onyx_BufferRegion scratchBufferRegion = onyx_RequestBufferRegionAligned(memory, buildSizes.buildScratchSize, 
             accelStructProps.minAccelerationStructureScratchOffsetAlignment,
-            OBDN_MEMORY_DEVICE_TYPE);
+            ONYX_MEMORY_DEVICE_TYPE);
 
     buildAS.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     buildAS.dstAccelerationStructure = blas->handle;
-    buildAS.scratchData.deviceAddress = obdn_GetBufferRegionAddress(&scratchBufferRegion);
+    buildAS.scratchData.deviceAddress = onyx_GetBufferRegionAddress(&scratchBufferRegion);
 
     VkAccelerationStructureBuildRangeInfoKHR buildRange = {
         .firstVertex = 0,
@@ -101,22 +101,22 @@ void obdn_BuildBlas(Obdn_Memory* memory, const Obdn_Geometry* prim, Acceleration
 
     const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
 
-    Command cmd = obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = onyx_CreateCommand(memory->instance, ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &buildAS, ranges);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
-    obdn_FreeBufferRegion(&scratchBufferRegion);
+    onyx_FreeBufferRegion(&scratchBufferRegion);
 }
 
-void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const AccelerationStructure blasses[],
+void onyx_BuildTlas(Onyx_Memory* memory, const uint32_t count, const AccelerationStructure blasses[],
         const Coal_Mat4 xforms[],
         AccelerationStructure* tlas)
 {
@@ -141,7 +141,7 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
                 transform.matrix[i][j] = xformT.e[i][j]; 
             }
         }
-        instances[i].accelerationStructureReference = obdn_GetBufferRegionAddress(&blasses[i].bufferRegion);
+        instances[i].accelerationStructureReference = onyx_GetBufferRegionAddress(&blasses[i].bufferRegion);
         instances[i].instanceCustomIndex = 0; // 0'th instance it
         instances[i].instanceShaderBindingTableRecordOffset = 0;
         instances[i].flags = VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR;
@@ -150,9 +150,9 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
     }
 
 
-    BufferRegion instBuffer = obdn_RequestBufferRegion(memory, sizeof(*instances) * count,
+    BufferRegion instBuffer = onyx_RequestBufferRegion(memory, sizeof(*instances) * count,
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+            ONYX_MEMORY_HOST_GRAPHICS_TYPE);
 
     assert(instBuffer.hostData);
     memcpy(instBuffer.hostData, instances, sizeof(instances[0]) * count);
@@ -160,7 +160,7 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     const VkAccelerationStructureGeometryInstancesDataKHR instanceData = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_INSTANCES_DATA_KHR,
-        .data.deviceAddress = obdn_GetBufferRegionAddress(&instBuffer),
+        .data.deviceAddress = onyx_GetBufferRegionAddress(&instBuffer),
         .arrayOfPointers = VK_FALSE
     };
 
@@ -187,9 +187,9 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     vkGetAccelerationStructureBuildSizesKHR(memory->instance->device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR, &topAsInfo, &maxPrimCount, &buildSizes); 
 
-    tlas->bufferRegion = obdn_RequestBufferRegion(memory, buildSizes.accelerationStructureSize, 
+    tlas->bufferRegion = onyx_RequestBufferRegion(memory, buildSizes.accelerationStructureSize, 
             VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            OBDN_MEMORY_DEVICE_TYPE);
+            ONYX_MEMORY_DEVICE_TYPE);
 
     const VkAccelerationStructureCreateInfoKHR asCreateInfo = {
         .sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR,
@@ -203,13 +203,13 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     // allocate and bind memory
 
-    BufferRegion scratchBuffer = obdn_RequestBufferRegion(memory, buildSizes.buildScratchSize,
+    BufferRegion scratchBuffer = onyx_RequestBufferRegion(memory, buildSizes.buildScratchSize,
             VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-            OBDN_MEMORY_DEVICE_TYPE);
+            ONYX_MEMORY_DEVICE_TYPE);
 
     topAsInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
     topAsInfo.dstAccelerationStructure = tlas->handle;
-    topAsInfo.scratchData.deviceAddress = obdn_GetBufferRegionAddress(&scratchBuffer);
+    topAsInfo.scratchData.deviceAddress = onyx_GetBufferRegionAddress(&scratchBuffer);
 
     // so this is weird but ill break it down 
     // for each acceleration structure we want to build, we provide 
@@ -228,26 +228,26 @@ void obdn_BuildTlas(Obdn_Memory* memory, const uint32_t count, const Acceleratio
 
     const VkAccelerationStructureBuildRangeInfoKHR* ranges[1] = {&buildRange};
 
-    Command cmd = obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = onyx_CreateCommand(memory->instance, ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     vkCmdBuildAccelerationStructuresKHR(cmd.buffer, 1, &topAsInfo, ranges);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    onyx_SubmitAndWait(&cmd, ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_DestroyCommand(cmd);
-    obdn_FreeBufferRegion(&scratchBuffer);
-    obdn_FreeBufferRegion(&instBuffer);
+    onyx_DestroyCommand(cmd);
+    onyx_FreeBufferRegion(&scratchBuffer);
+    onyx_FreeBufferRegion(&instBuffer);
 }
 
-void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
+void onyx_CreateShaderBindingTable(Onyx_Memory* memory, const uint32_t groupCount, const VkPipeline pipeline, ShaderBindingTable* sbt)
 {
     memset(sbt, 0, sizeof(*sbt));
 
-    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = obdn_GetPhysicalDeviceRayTracingProperties(memory->instance);
+    const VkPhysicalDeviceRayTracingPipelinePropertiesKHR rtprops = onyx_GetPhysicalDeviceRayTracingProperties(memory->instance);
     const uint32_t groupHandleSize = rtprops.shaderGroupHandleSize;
     const uint32_t baseAlignment = rtprops.shaderGroupBaseAlignment;
     const uint32_t sbtSize = groupCount * baseAlignment; // 3 shader groups: raygen, miss, closest hit
@@ -261,7 +261,7 @@ void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCoun
     VkResult r;
     r = vkGetRayTracingShaderGroupHandlesKHR(memory->instance->device, pipeline, 0, groupCount, sbtSize, shaderHandleData);
     assert( VK_SUCCESS == r );
-    sbt->bufferRegion = obdn_RequestBufferRegionAligned(memory, sbtSize, baseAlignment, OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+    sbt->bufferRegion = onyx_RequestBufferRegionAligned(memory, sbtSize, baseAlignment, ONYX_MEMORY_HOST_GRAPHICS_TYPE);
     sbt->groupCount = groupCount;
 
     uint8_t* pSrc    = shaderHandleData;
@@ -273,7 +273,7 @@ void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCoun
         pTarget += baseAlignment;
     }
 
-    VkDeviceAddress bufferRegionAddress = obdn_GetBufferRegionAddress(&sbt->bufferRegion);
+    VkDeviceAddress bufferRegionAddress = onyx_GetBufferRegionAddress(&sbt->bufferRegion);
     sbt->raygenTable.deviceAddress = bufferRegionAddress;
     sbt->raygenTable.size          = baseAlignment;
     sbt->raygenTable.stride        = sbt->raygenTable.size; // must be this according to spec. stride not used for rgen.
@@ -292,16 +292,16 @@ void obdn_CreateShaderBindingTable(Obdn_Memory* memory, const uint32_t groupCoun
     DPRINT("Created shader binding table\n");
 }
 
-void obdn_DestroyAccelerationStruct(VkDevice device, AccelerationStructure* as)
+void onyx_DestroyAccelerationStruct(VkDevice device, AccelerationStructure* as)
 {
     vkDestroyAccelerationStructureKHR(device, as->handle, NULL);
-    obdn_FreeBufferRegion(&as->bufferRegion);
+    onyx_FreeBufferRegion(&as->bufferRegion);
     memset(as, 0, sizeof(*as));
 }
 
-void obdn_DestroyShaderBindingTable(Obdn_ShaderBindingTable* sb)
+void onyx_DestroyShaderBindingTable(Onyx_ShaderBindingTable* sb)
 {
-    obdn_FreeBufferRegion(&sb->bufferRegion);
+    onyx_FreeBufferRegion(&sb->bufferRegion);
     memset(sb, 0, sizeof(*sb));
 }
 

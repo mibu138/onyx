@@ -1,5 +1,5 @@
-#ifndef OBDN_V_LOADER_H
-#define OBDN_V_LOADER_H
+#ifndef ONYX_V_LOADER_H
+#define ONYX_V_LOADER_H
 
 #include "vulkan.h"
 
@@ -73,7 +73,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSemaphoreFdKHR(
     int*                                        pFd);
 #endif
 
-void obdn_v_LoadFunctions(const VkDevice device);
+void onyx_v_LoadFunctions(const VkDevice device);
 
-#endif /* end of include guard: OBDN_V_LOADER_H */
+#endif /* end of include guard: ONYX_V_LOADER_H */
 

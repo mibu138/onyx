@@ -20,7 +20,7 @@ enum shaderStageType { VERT, FRAG };
 // universal prefix path to search at runtime for shaders.
 static char* runtimeSpvPrefix; 
 
-void obdn_SetRuntimeSpvPrefix(const char* prefix)
+void onyx_SetRuntimeSpvPrefix(const char* prefix)
 {
     assert(runtimeSpvPrefix == NULL); // should only be set once
     runtimeSpvPrefix = hell_CopyString(prefix);
@@ -118,14 +118,14 @@ static void initShaderModule(const VkDevice device, const char* filepath, VkShad
     hell_Free(code);
 }
 
-#define SPVDIR "obsidian"
+#define SPVDIR "onyx"
 
 static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
 {
-    const int shaderNameLen = strnlen(shaderName, OBDN_MAX_PATH_LEN);
-    if (shaderNameLen >= OBDN_MAX_PATH_LEN)
+    const int shaderNameLen = strnlen(shaderName, ONYX_MAX_PATH_LEN);
+    if (shaderNameLen >= ONYX_MAX_PATH_LEN)
         hell_Error(HELL_ERR_FATAL, "Shader path length exceeds limit.");
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", shaderName);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", shaderName);
     if (hell_FileExists(shaderName)) // check if shader name is actually a valid path to an spv file
     {
         strcpy(pathBuffer, shaderName);
@@ -135,47 +135,47 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
     {
         strcpy(pathBuffer, runtimeSpvPrefix);
         strcat(pathBuffer, shaderName);
-        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+        hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
         if (hell_FileExists(pathBuffer))
             return;
         strcpy(pathBuffer, runtimeSpvPrefix);
-        strcat(pathBuffer, "obsidian/");
+        strcat(pathBuffer, "onyx/");
         strcat(pathBuffer, shaderName);
-        hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+        hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
         if (hell_FileExists(pathBuffer))
             return;
     }
     const char* localShaderDir = "./shaders/";
     strcpy(pathBuffer, localShaderDir);
     strcat(pathBuffer, shaderName);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
     strcpy(pathBuffer, localShaderDir);
-    strcat(pathBuffer, "obsidian/");
+    strcat(pathBuffer, "onyx/");
     strcat(pathBuffer, shaderName);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
     const char* unixShaderDir = "/usr/local/share/shaders/";
     strcpy(pathBuffer, unixShaderDir);
     strcat(pathBuffer, shaderName);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
     strcpy(pathBuffer, unixShaderDir);
-    strcat(pathBuffer, "obsidian/");
+    strcat(pathBuffer, "onyx/");
     strcat(pathBuffer, shaderName);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
-    const char* obdnRoot = obdn_GetObdnRoot();
-    if (strlen(obdnRoot) + shaderNameLen + strlen(SPVDIR) > OBDN_MAX_PATH_LEN)
+    const char* onyxRoot = onyx_GetOnyxRoot();
+    if (strlen(onyxRoot) + shaderNameLen + strlen(SPVDIR) > ONYX_MAX_PATH_LEN)
         hell_Error(HELL_ERR_FATAL, "Cumulative shader path length exceeds limit.");
-    strcpy(pathBuffer, obdnRoot);
+    strcpy(pathBuffer, onyxRoot);
     strcat(pathBuffer, SPVDIR);
     strcat(pathBuffer, shaderName);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Looking for shader at %s\n", pathBuffer);
     if (hell_FileExists(pathBuffer))
         return;
     hell_Error(HELL_ERR_FATAL, "Shader %s not found.", shaderName);
@@ -183,40 +183,40 @@ static void setResolvedShaderPath(const char* shaderName, char* pathBuffer)
 
 static const char* getResolvedSprivPath(const char* shaderName)
 {
-    static char spvpath[OBDN_MAX_PATH_LEN];
+    static char spvpath[ONYX_MAX_PATH_LEN];
     setResolvedShaderPath(shaderName, spvpath);
-    hell_DebugPrint(OBDN_DEBUG_TAG_SHADE, "Resolved spv path: %s\n", spvpath);
+    hell_DebugPrint(ONYX_DEBUG_TAG_SHADE, "Resolved spv path: %s\n", spvpath);
     return spvpath;
 }
 
 #define MAX_GP_SHADER_STAGES 4
 #define MAX_ATTACHMENT_STATES 8
 
-void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, const Obdn_GraphicsPipelineInfo pipelineInfos[/*count*/], 
+void onyx_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, const Onyx_GraphicsPipelineInfo pipelineInfos[/*count*/], 
         VkPipeline pipelines[/*count*/])
 {
     // worrisome amount of stack allocations here.. may want to transistion to dynamic allocations for these buffers.
-    VkPipelineShaderStageCreateInfo           shaderStages[OBDN_MAX_PIPELINES][MAX_GP_SHADER_STAGES];
-    VkPipelineVertexInputStateCreateInfo      vertexInputStates[OBDN_MAX_PIPELINES];
-    VkPipelineInputAssemblyStateCreateInfo    inputAssemblyStates[OBDN_MAX_PIPELINES];
-    VkPipelineTessellationStateCreateInfo     tessellationStates[OBDN_MAX_PIPELINES];
-    VkPipelineViewportStateCreateInfo         viewportStates[OBDN_MAX_PIPELINES];
-    VkPipelineRasterizationStateCreateInfo    rasterizationStates[OBDN_MAX_PIPELINES];
-    VkPipelineMultisampleStateCreateInfo      multisampleStates[OBDN_MAX_PIPELINES];
-    VkPipelineDepthStencilStateCreateInfo     depthStencilStates[OBDN_MAX_PIPELINES];
-    VkPipelineColorBlendStateCreateInfo       colorBlendStates[OBDN_MAX_PIPELINES];
-    VkPipelineDynamicStateCreateInfo          dynamicStates[OBDN_MAX_PIPELINES];
+    VkPipelineShaderStageCreateInfo           shaderStages[ONYX_MAX_PIPELINES][MAX_GP_SHADER_STAGES];
+    VkPipelineVertexInputStateCreateInfo      vertexInputStates[ONYX_MAX_PIPELINES];
+    VkPipelineInputAssemblyStateCreateInfo    inputAssemblyStates[ONYX_MAX_PIPELINES];
+    VkPipelineTessellationStateCreateInfo     tessellationStates[ONYX_MAX_PIPELINES];
+    VkPipelineViewportStateCreateInfo         viewportStates[ONYX_MAX_PIPELINES];
+    VkPipelineRasterizationStateCreateInfo    rasterizationStates[ONYX_MAX_PIPELINES];
+    VkPipelineMultisampleStateCreateInfo      multisampleStates[ONYX_MAX_PIPELINES];
+    VkPipelineDepthStencilStateCreateInfo     depthStencilStates[ONYX_MAX_PIPELINES];
+    VkPipelineColorBlendStateCreateInfo       colorBlendStates[ONYX_MAX_PIPELINES];
+    VkPipelineDynamicStateCreateInfo          dynamicStates[ONYX_MAX_PIPELINES];
 
-    VkViewport viewports[OBDN_MAX_PIPELINES];
-    VkRect2D   scissors[OBDN_MAX_PIPELINES];
+    VkViewport viewports[ONYX_MAX_PIPELINES];
+    VkRect2D   scissors[ONYX_MAX_PIPELINES];
 
-    VkPipelineColorBlendAttachmentState attachmentStates[OBDN_MAX_PIPELINES][MAX_ATTACHMENT_STATES];
+    VkPipelineColorBlendAttachmentState attachmentStates[ONYX_MAX_PIPELINES][MAX_ATTACHMENT_STATES];
 
-    VkGraphicsPipelineCreateInfo createInfos[OBDN_MAX_PIPELINES];
+    VkGraphicsPipelineCreateInfo createInfos[ONYX_MAX_PIPELINES];
 
     for (int i = 0; i < count; i++) 
     {
-        const Obdn_GraphicsPipelineInfo* rasterInfo = &pipelineInfos[i];
+        const Onyx_GraphicsPipelineInfo* rasterInfo = &pipelineInfos[i];
         assert( rasterInfo->vertShader && rasterInfo->fragShader ); // must have at least these 2
 
         VkShaderModule vertModule;
@@ -262,7 +262,7 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
         }
 
         if (rasterInfo->vertexDescription.attributeCount == 0)
-                hell_DebugPrint(OBDN_DEBUG_TAG_GRAPHIC_PIPE, "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.\n");
+                hell_DebugPrint(ONYX_DEBUG_TAG_GRAPHIC_PIPE, "rasterInfo.vertexDescription.attributeCount == 0. Assuming verts defined in shader.\n");
 
         vertexInputStates[i] = (VkPipelineVertexInputStateCreateInfo){
             .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
@@ -292,7 +292,7 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
             }
             assert(hasDynamicViewportEnabled);
             assert(hasDynamicScissorEnabled);
-            // no longer allow this not to rely on OBDN_WINDOW_* .
+            // no longer allow this not to rely on ONYX_WINDOW_* .
             // if we don't specify a viewportDim parameter then we must
             // enable dynamic viewport state
         }
@@ -348,19 +348,19 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
                     VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT, /* need this to actually
                                                                             write anything to the
                                                                             framebuffer */
-                .blendEnable = (rasterInfo->blendMode == OBDN_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
+                .blendEnable = (rasterInfo->blendMode == ONYX_BLEND_MODE_NONE) ? VK_FALSE : VK_TRUE, 
             };
         }
 
         switch (rasterInfo->blendMode)
         {
-            case OBDN_BLEND_MODE_OVER:                      setBlendModeOver(&attachmentStates[i][0]); break;
-            case OBDN_BLEND_MODE_OVER_NO_PREMUL:            setBlendModeOverNoPremul(&attachmentStates[i][0]); break;
-            case OBDN_BLEND_MODE_ERASE:                     setBlendModeErase(&attachmentStates[i][0]); break;
-            case OBDN_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&attachmentStates[i][0]); break;
-            case OBDN_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&attachmentStates[i][0]); break;
-            case OBDN_BLEND_MODE_ERASE_MONOCHROME:          setBlendModeEraseMonochrome(&attachmentStates[i][0]); break;
-            case OBDN_BLEND_MODE_NONE: break;
+            case ONYX_BLEND_MODE_OVER:                      setBlendModeOver(&attachmentStates[i][0]); break;
+            case ONYX_BLEND_MODE_OVER_NO_PREMUL:            setBlendModeOverNoPremul(&attachmentStates[i][0]); break;
+            case ONYX_BLEND_MODE_ERASE:                     setBlendModeErase(&attachmentStates[i][0]); break;
+            case ONYX_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&attachmentStates[i][0]); break;
+            case ONYX_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&attachmentStates[i][0]); break;
+            case ONYX_BLEND_MODE_ERASE_MONOCHROME:          setBlendModeEraseMonochrome(&attachmentStates[i][0]); break;
+            case ONYX_BLEND_MODE_NONE: break;
         }
 
         colorBlendStates[i] = (VkPipelineColorBlendStateCreateInfo){
@@ -434,17 +434,17 @@ void obdn_CreateGraphicsPipelines(const VkDevice device, const uint8_t count, co
 
 #define MAX_RT_SHADER_COUNT 10
 
-void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const uint8_t count, const Obdn_RayTracePipelineInfo pipelineInfos[/*count*/], 
-        VkPipeline pipelines[/*count*/], Obdn_ShaderBindingTable shaderBindingTables[/*count*/])
+void onyx_CreateRayTracePipelines(VkDevice device, Onyx_Memory* memory, const uint8_t count, const Onyx_RayTracePipelineInfo pipelineInfos[/*count*/], 
+        VkPipeline pipelines[/*count*/], Onyx_ShaderBindingTable shaderBindingTables[/*count*/])
 {
     assert(count > 0);
-    assert(count < OBDN_MAX_PIPELINES);
+    assert(count < ONYX_MAX_PIPELINES);
 
-    VkRayTracingPipelineCreateInfoKHR createInfos[OBDN_MAX_PIPELINES];
+    VkRayTracingPipelineCreateInfoKHR createInfos[ONYX_MAX_PIPELINES];
 
-    VkPipelineShaderStageCreateInfo               shaderStages[OBDN_MAX_PIPELINES][MAX_RT_SHADER_COUNT];
-    VkRayTracingShaderGroupCreateInfoKHR          shaderGroups[OBDN_MAX_PIPELINES][MAX_RT_SHADER_COUNT];
-    VkPipelineLibraryCreateInfoKHR                libraryInfos[OBDN_MAX_PIPELINES];
+    VkPipelineShaderStageCreateInfo               shaderStages[ONYX_MAX_PIPELINES][MAX_RT_SHADER_COUNT];
+    VkRayTracingShaderGroupCreateInfoKHR          shaderGroups[ONYX_MAX_PIPELINES][MAX_RT_SHADER_COUNT];
+    VkPipelineLibraryCreateInfoKHR                libraryInfos[ONYX_MAX_PIPELINES];
     //VkRayTracingPipelineInterfaceCreateInfoKHR    libraryInterfaces[count];
     //VkPipelineDynamicStateCreateInfo              dynamicStates[count];
     
@@ -455,7 +455,7 @@ void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const ui
 
     for (int p = 0; p < count; p++) 
     {
-        const Obdn_RayTracePipelineInfo* rayTraceInfo = &pipelineInfos[p];
+        const Onyx_RayTracePipelineInfo* rayTraceInfo = &pipelineInfos[p];
 
         assert(rayTraceInfo->layout != VK_NULL_HANDLE);
 
@@ -554,7 +554,7 @@ void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const ui
 
     for (int i = 0; i < count; i++) 
     {
-        obdn_CreateShaderBindingTable(memory, createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
+        onyx_CreateShaderBindingTable(memory, createInfos[i].groupCount, pipelines[i], &shaderBindingTables[i]);
     }
 
     for (int i = 0; i < count; i++) 
@@ -567,18 +567,18 @@ void obdn_CreateRayTracePipelines(VkDevice device, Obdn_Memory* memory, const ui
     }
 }
 
-void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[/*count*/],
+void onyx_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const Onyx_DescriptorSetInfo sets[/*count*/],
         VkDescriptorSetLayout layouts[/*count*/])
 {
     // counters for different descriptors
-    assert( count < OBDN_MAX_DESCRIPTOR_SETS);
+    assert( count < ONYX_MAX_DESCRIPTOR_SETS);
     for (int i = 0; i < count; i++) 
     {
-        const Obdn_DescriptorSetInfo set = sets[i];
+        const Onyx_DescriptorSetInfo set = sets[i];
         assert(set.bindingCount > 0);
-        assert(set.bindingCount <= OBDN_MAX_BINDINGS);
-        VkDescriptorBindingFlags     bindFlags[OBDN_MAX_BINDINGS];
-        VkDescriptorSetLayoutBinding bindings[OBDN_MAX_BINDINGS];
+        assert(set.bindingCount <= ONYX_MAX_BINDINGS);
+        VkDescriptorBindingFlags     bindFlags[ONYX_MAX_BINDINGS];
+        VkDescriptorSetLayoutBinding bindings[ONYX_MAX_BINDINGS];
         for (int b = 0; b < set.bindingCount; b++) 
         {
             const uint32_t dCount = set.bindings[b].descriptorCount;
@@ -612,21 +612,21 @@ void obdn_CreateDescriptorSetLayouts(VkDevice device, const uint8_t count, const
     }
 }
 
-void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_DescriptorSetInfo sets[/*count*/], 
+void onyx_CreateDescriptorSets(VkDevice device, const uint8_t count, const Onyx_DescriptorSetInfo sets[/*count*/], 
         const VkDescriptorSetLayout layouts[/*count*/],
-        Obdn_R_Description* out)
+        Onyx_R_Description* out)
 {
     // counters for different descriptors
-    assert( count < OBDN_MAX_DESCRIPTOR_SETS);
+    assert( count < ONYX_MAX_DESCRIPTOR_SETS);
 
     out->descriptorSetCount = count;
 
     int dcUbo = 0, dcAs = 0, dcSi = 0, dcSb = 0, dcCis = 0, dcIa = 0;
     for (int i = 0; i < count; i++) 
     {
-        const Obdn_DescriptorSetInfo set = sets[i];
+        const Onyx_DescriptorSetInfo set = sets[i];
         assert(set.bindingCount > 0);
-        assert(set.bindingCount <= OBDN_MAX_BINDINGS);
+        assert(set.bindingCount <= ONYX_MAX_BINDINGS);
         assert(out->descriptorSets[i] == VK_NULL_HANDLE);
         for (int b = 0; b < set.bindingCount; b++) 
         {
@@ -692,17 +692,17 @@ void obdn_CreateDescriptorSets(VkDevice device, const uint8_t count, const Obdn_
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, out->descriptorSets));
 }
 
-void obdn_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Obdn_PipelineLayoutInfo layoutInfos[/*static count*/], 
+void onyx_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Onyx_PipelineLayoutInfo layoutInfos[/*static count*/], 
         VkPipelineLayout pipelineLayouts[/*count*/])
 {
-    assert(count < OBDN_MAX_PIPELINES);
+    assert(count < ONYX_MAX_PIPELINES);
     for (int i = 0; i < count; i++) 
     {
-        const Obdn_PipelineLayoutInfo* layoutInfo = &layoutInfos[i];
-        assert(layoutInfo->pushConstantCount  < OBDN_MAX_PUSH_CONSTANTS);
-        assert(layoutInfo->descriptorSetCount < OBDN_MAX_DESCRIPTOR_SETS);
+        const Onyx_PipelineLayoutInfo* layoutInfo = &layoutInfos[i];
+        assert(layoutInfo->pushConstantCount  < ONYX_MAX_PUSH_CONSTANTS);
+        assert(layoutInfo->descriptorSetCount < ONYX_MAX_DESCRIPTOR_SETS);
 
-        //assert(dsCount > 0 && dsCount < OBDN_MAX_DESCRIPTOR_SETS);
+        //assert(dsCount > 0 && dsCount < ONYX_MAX_DESCRIPTOR_SETS);
 
         VkPipelineLayoutCreateInfo info = {
             .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
@@ -718,33 +718,33 @@ void obdn_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Obdn
     }
 }
 
-void obdn_r_CleanUpPipelines()
+void onyx_r_CleanUpPipelines()
 {
-    hell_DebugPrint(OBDN_DEBUG_TAG_PIPE, "called. no longer does anything\n");
+    hell_DebugPrint(ONYX_DEBUG_TAG_PIPE, "called. no longer does anything\n");
 }
 
-void obdn_DestroyDescription(const VkDevice device, Obdn_R_Description* d)
+void onyx_DestroyDescription(const VkDevice device, Onyx_R_Description* d)
 {
     vkDestroyDescriptorPool(device, d->descriptorPool, NULL);
     memset(d, 0, sizeof(*d));
 }
 
-void obdn_CreateDescriptionsAndLayouts(VkDevice device, const uint32_t descSetCount, const Obdn_DescriptorSetInfo sets[/*descSetCount*/], 
+void onyx_CreateDescriptionsAndLayouts(VkDevice device, const uint32_t descSetCount, const Onyx_DescriptorSetInfo sets[/*descSetCount*/], 
         VkDescriptorSetLayout layouts[/*descSetCount*/], 
-        const uint32_t descriptionCount, Obdn_R_Description descriptions[/*descSetCount*/])
+        const uint32_t descriptionCount, Onyx_R_Description descriptions[/*descSetCount*/])
 {
-    obdn_CreateDescriptorSetLayouts(device, descSetCount, sets, layouts);
+    onyx_CreateDescriptorSetLayouts(device, descSetCount, sets, layouts);
     for (int i = 0; i < descriptionCount; i++)
     {
-        obdn_CreateDescriptorSets(device, descSetCount, sets, layouts, &descriptions[i]);
+        onyx_CreateDescriptorSets(device, descSetCount, sets, layouts, &descriptions[i]);
     }
 }
 
-void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass renderPass, const VkPipelineLayout layout, const VkPolygonMode mode, VkPipeline* pipeline)
+void onyx_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass renderPass, const VkPipelineLayout layout, const VkPolygonMode mode, VkPipeline* pipeline)
 {
     uint8_t attrSize = 3 * sizeof(float);
     VkDynamicState dynamicStates[2] = {VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT};
-    Obdn_GraphicsPipelineInfo gpi = {
+    Onyx_GraphicsPipelineInfo gpi = {
         .renderPass = renderPass,
         .layout = layout,
         .attachmentCount = 1,
@@ -753,20 +753,20 @@ void obdn_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass rend
         .polygonMode = mode,
         .dynamicStateCount = 2,
         .pDynamicStates = dynamicStates,
-        .vertexDescription = obdn_GetVertexDescription(1, &attrSize),
-        .vertShader = "obsidian/simple.vert.spv",
-        .fragShader = "obsidian/simple.frag.spv"
+        .vertexDescription = onyx_GetVertexDescription(1, &attrSize),
+        .vertShader = "onyx/simple.vert.spv",
+        .fragShader = "onyx/simple.frag.spv"
     };
-    obdn_CreateGraphicsPipelines(device, 1, &gpi, pipeline);
+    onyx_CreateGraphicsPipelines(device, 1, &gpi, pipeline);
 }
 
 #define MAX_BINDING_COUNT 8 //arbitrary... we should check if there is a device limit on this
 
 void
-obdn_CreateDescriptorSetLayout(
+onyx_CreateDescriptorSetLayout(
     VkDevice device,
     const uint8_t                  bindingCount,
-    const Obdn_DescriptorBinding   bindings[/*bindingCount*/],
+    const Onyx_DescriptorBinding   bindings[/*bindingCount*/],
     VkDescriptorSetLayout*         layout)
 {
     assert(bindingCount <= MAX_BINDING_COUNT);
@@ -804,7 +804,7 @@ obdn_CreateDescriptorSetLayout(
 #define MAX_POOL_SIZES 8
 
 void
-obdn_CreateDescriptorPool(VkDevice device,
+onyx_CreateDescriptorPool(VkDevice device,
                             uint32_t uniformBufferCount,
                             uint32_t dynamicUniformBufferCount,
                           uint32_t combinedImageSamplerCount,
@@ -867,7 +867,7 @@ obdn_CreateDescriptorPool(VkDevice device,
 
     VkDescriptorPoolCreateInfo poolInfo = {
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
-        .maxSets = OBDN_MAX_DESCRIPTOR_SETS,
+        .maxSets = ONYX_MAX_DESCRIPTOR_SETS,
         .poolSizeCount = psCount,
         .pPoolSizes = poolSizes
     };
@@ -876,7 +876,7 @@ obdn_CreateDescriptorPool(VkDevice device,
 }
 
 void
-obdn_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32_t descSetCount,
+onyx_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32_t descSetCount,
                             const VkDescriptorSetLayout layouts[/*descSetCount*/],
                             VkDescriptorSet*      sets)
 {
@@ -890,25 +890,25 @@ obdn_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, sets));
 }
 
-#ifdef OBSIDIAN_SHADERC_ENABLED
+#ifdef ONYX_SHADERC_ENABLED
 void 
-obdn_CreateShaderModule(VkDevice device, const char* shader_string, 
-        const char* name, Obdn_ShaderType type, VkShaderModule* module)
+onyx_CreateShaderModule(VkDevice device, const char* shader_string, 
+        const char* name, Onyx_ShaderType type, VkShaderModule* module)
 {
     shaderc_shader_kind shader_kind = 0;
     switch (type)
     {
-    case OBDN_SHADER_TYPE_VERTEX:   shader_kind = shaderc_vertex_shader; break;
-    case OBDN_SHADER_TYPE_FRAGMENT: shader_kind = shaderc_fragment_shader; break;
-    case OBDN_SHADER_TYPE_COMPUTE:  
-    case OBDN_SHADER_TYPE_GEOMETRY: 
-    case OBDN_SHADER_TYPE_TESS_CONTROL: 
-    case OBDN_SHADER_TYPE_TESS_EVALUATION: 
-    case OBDN_SHADER_TYPE_RAY_GEN: 
-    case OBDN_SHADER_TYPE_ANY_HIT: 
-    case OBDN_SHADER_TYPE_CLOSEST_HIT: 
-    case OBDN_SHADER_TYPE_MISS: 
-    default: hell_Error(HELL_ERR_FATAL, "Obsidian: shader type not supported\n");
+    case ONYX_SHADER_TYPE_VERTEX:   shader_kind = shaderc_vertex_shader; break;
+    case ONYX_SHADER_TYPE_FRAGMENT: shader_kind = shaderc_fragment_shader; break;
+    case ONYX_SHADER_TYPE_COMPUTE:  
+    case ONYX_SHADER_TYPE_GEOMETRY: 
+    case ONYX_SHADER_TYPE_TESS_CONTROL: 
+    case ONYX_SHADER_TYPE_TESS_EVALUATION: 
+    case ONYX_SHADER_TYPE_RAY_GEN: 
+    case ONYX_SHADER_TYPE_ANY_HIT: 
+    case ONYX_SHADER_TYPE_CLOSEST_HIT: 
+    case ONYX_SHADER_TYPE_MISS: 
+    default: hell_Error(HELL_ERR_FATAL, "Onyx: shader type not supported\n");
     }
     shaderc_compiler_t compiler = shaderc_compiler_initialize();
     shaderc_compilation_result_t result = shaderc_compile_into_spv(
@@ -926,14 +926,14 @@ obdn_CreateShaderModule(VkDevice device, const char* shader_string,
         hell_Error(HELL_ERR_FATAL, "ERROR: shader compilation failed\n");
     const char* bytes = shaderc_result_get_bytes(result);
     size_t num_bytes  = shaderc_result_get_length(result);
-    VkShaderModuleCreateInfo ci = obdn_ShaderModuleCreateInfo(num_bytes, bytes);
+    VkShaderModuleCreateInfo ci = onyx_ShaderModuleCreateInfo(num_bytes, bytes);
     V_ASSERT(vkCreateShaderModule(device, &ci, NULL, module));
     shaderc_result_release(result);
 }
 #endif
 
 void 
-obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
+onyx_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
         VkRenderPass renderPass, uint32_t subpass, 
         uint32_t stageCount, const VkPipelineShaderStageCreateInfo* pStages,
         const VkPipelineVertexInputStateCreateInfo* pVertexInputState,
@@ -941,11 +941,11 @@ obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
         uint32_t viewport_height, bool dynamicViewport,
         VkPolygonMode polygonMode, VkFrontFace frontFace, float lineWidth, bool depthTestEnable, 
         bool depthWriteEnable,
-        Obdn_BlendMode blendMode,
+        Onyx_BlendMode blendMode,
         VkPipeline* pipeline)
 {
-    VkPipelineInputAssemblyStateCreateInfo input_assem = obdn_PipelineInputAssemblyStateCreateInfo(topology, false);
-    VkPipelineTessellationStateCreateInfo tess = obdn_PipelineTessellationStateCreateInfo(patchControlPoints);
+    VkPipelineInputAssemblyStateCreateInfo input_assem = onyx_PipelineInputAssemblyStateCreateInfo(topology, false);
+    VkPipelineTessellationStateCreateInfo tess = onyx_PipelineTessellationStateCreateInfo(patchControlPoints);
     VkViewport viewport = {
         .width  = viewport_width,
         .height = viewport_height,
@@ -960,45 +960,45 @@ obdn_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
         .offset.x = 0,
         .offset.y = 0
     };
-    VkPipelineViewportStateCreateInfo view = obdn_PipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
-    VkPipelineRasterizationStateCreateInfo raster = obdn_PipelineRasterizationStateCreateInfo(false,
+    VkPipelineViewportStateCreateInfo view = onyx_PipelineViewportStateCreateInfo(1, &viewport, 1, &scissor);
+    VkPipelineRasterizationStateCreateInfo raster = onyx_PipelineRasterizationStateCreateInfo(false,
             false, polygonMode, VK_CULL_MODE_BACK_BIT, frontFace, false, 0.0, 0.0, 0.0, lineWidth);
-    VkPipelineMultisampleStateCreateInfo multisamp = obdn_PipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT,
+    VkPipelineMultisampleStateCreateInfo multisamp = onyx_PipelineMultisampleStateCreateInfo(VK_SAMPLE_COUNT_1_BIT,
             false, 0.0, NULL, false, false);
     VkStencilOpState stencilopstate = {};
-    VkPipelineDepthStencilStateCreateInfo depthstencil = obdn_PipelineDepthStencilStateCreateInfo(depthTestEnable, 
+    VkPipelineDepthStencilStateCreateInfo depthstencil = onyx_PipelineDepthStencilStateCreateInfo(depthTestEnable, 
             depthWriteEnable, VK_COMPARE_OP_LESS_OR_EQUAL, false, false, stencilopstate, stencilopstate, 0.0, 0.0);
-    bool do_blend = blendMode == OBDN_BLEND_MODE_NONE ? false : true;
+    bool do_blend = blendMode == ONYX_BLEND_MODE_NONE ? false : true;
     VkColorComponentFlags write_all = 
         VK_COLOR_COMPONENT_R_BIT |
         VK_COLOR_COMPONENT_G_BIT |
         VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
-    VkPipelineColorBlendAttachmentState blend_attachment = obdn_PipelineColorBlendAttachmentState(do_blend, VK_BLEND_FACTOR_SRC_ALPHA,
+    VkPipelineColorBlendAttachmentState blend_attachment = onyx_PipelineColorBlendAttachmentState(do_blend, VK_BLEND_FACTOR_SRC_ALPHA,
             VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
             write_all);
     switch (blendMode) 
     {
-        case OBDN_BLEND_MODE_OVER:                      setBlendModeOver(&blend_attachment); break;
-        case OBDN_BLEND_MODE_OVER_NO_PREMUL:            setBlendModeOverNoPremul(&blend_attachment); break;
-        case OBDN_BLEND_MODE_ERASE:                     setBlendModeErase(&blend_attachment); break;
-        case OBDN_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&blend_attachment); break;
-        case OBDN_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&blend_attachment); break;
-        case OBDN_BLEND_MODE_ERASE_MONOCHROME:          setBlendModeEraseMonochrome(&blend_attachment); break;
-        case OBDN_BLEND_MODE_NONE: break;
+        case ONYX_BLEND_MODE_OVER:                      setBlendModeOver(&blend_attachment); break;
+        case ONYX_BLEND_MODE_OVER_NO_PREMUL:            setBlendModeOverNoPremul(&blend_attachment); break;
+        case ONYX_BLEND_MODE_ERASE:                     setBlendModeErase(&blend_attachment); break;
+        case ONYX_BLEND_MODE_OVER_MONOCHROME:           setBlendModeOverMonochrome(&blend_attachment); break;
+        case ONYX_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME: setBlendModeOverNoPremulMonochrome(&blend_attachment); break;
+        case ONYX_BLEND_MODE_ERASE_MONOCHROME:          setBlendModeEraseMonochrome(&blend_attachment); break;
+        case ONYX_BLEND_MODE_NONE: break;
     }
-    VkPipelineColorBlendStateCreateInfo colorblend = obdn_PipelineColorBlendStateCreateInfo(false, 0, 1, &blend_attachment, NULL);
+    VkPipelineColorBlendStateCreateInfo colorblend = onyx_PipelineColorBlendStateCreateInfo(false, 0, 1, &blend_attachment, NULL);
     VkDynamicState dynamicStates[2] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_SCISSOR};
     int dynstateCount = dynamicViewport ? 2 : 0;
-    VkPipelineDynamicStateCreateInfo dynstate = obdn_PipelineDynamicStateCreateInfo(dynstateCount, dynamicStates);
-    VkGraphicsPipelineCreateInfo gpci = obdn_GraphicsPipelineCreateInfo(stageCount, pStages,
+    VkPipelineDynamicStateCreateInfo dynstate = onyx_PipelineDynamicStateCreateInfo(dynstateCount, dynamicStates);
+    VkGraphicsPipelineCreateInfo gpci = onyx_GraphicsPipelineCreateInfo(stageCount, pStages,
             pVertexInputState, &input_assem, &tess, &view, &raster, &multisamp, &depthstencil, 
             &colorblend, &dynstate, layout, renderPass, subpass, VK_NULL_HANDLE, 0);
     V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &gpci, NULL, pipeline) );
 };
 
 const char* 
-obdn_GetFullScreenQuadShaderString(void)
+onyx_GetFullScreenQuadShaderString(void)
 {
     return ""
     "#version 460\n"
