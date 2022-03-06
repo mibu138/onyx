@@ -13,20 +13,20 @@
 
 const int CW = 1;
 
-typedef Obdn_GeoAttributeSize AttrSize;
-typedef Obdn_Geometry         Prim;
+typedef Onyx_GeoAttributeSize AttrSize;
+typedef Onyx_Geometry         Prim;
 
 typedef enum {
-    OBDN_R_ATTRIBUTE_SFLOAT_TYPE,
-} Obdn_R_AttributeType;
+    ONYX_R_ATTRIBUTE_SFLOAT_TYPE,
+} Onyx_R_AttributeType;
 
-#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
+#define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
 // mikkt callbacks
 static int
 mikkt_GetNumFaces(const SMikkTSpaceContext* ctx)
 {
-    const Obdn_Geometry* geo = ctx->m_pUserData;
+    const Onyx_Geometry* geo = ctx->m_pUserData;
     return geo->indexCount / 3;
 }
 
@@ -40,11 +40,11 @@ static void
 mikkt_GetPosition(const SMikkTSpaceContext* ctx, float fvPosOut[],
                   const int iFace, const int iVert)
 {
-    const Obdn_Geometry* geo = ctx->m_pUserData;
+    const Onyx_Geometry* geo = ctx->m_pUserData;
     int         index   = iFace * 3 + iVert;
     int  v = ((int*)geo->indexRegion.hostData)[index];
 
-    Vec3* arr   = obdn_GetGeoAttribute2(geo, POS_NAME);
+    Vec3* arr   = onyx_GetGeoAttribute2(geo, POS_NAME);
     fvPosOut[0] = arr[v].x;
     fvPosOut[1] = arr[v].y;
     fvPosOut[2] = arr[v].z;
@@ -54,11 +54,11 @@ static void
 mikkt_GetNormal(const SMikkTSpaceContext* pContext, float fvNormOut[],
                 const int iFace, const int iVert)
 {
-    const Obdn_Geometry* geo = pContext->m_pUserData;
+    const Onyx_Geometry* geo = pContext->m_pUserData;
     int         index   = iFace * 3 + iVert;
     int  v = ((int*)geo->indexRegion.hostData)[index];
 
-    Vec3* arr    = obdn_GetGeoAttribute2(geo, NORMAL_NAME);
+    Vec3* arr    = onyx_GetGeoAttribute2(geo, NORMAL_NAME);
     fvNormOut[0] = arr[v].x;
     fvNormOut[1] = arr[v].y;
     fvNormOut[2] = arr[v].z;
@@ -68,11 +68,11 @@ static void
 mikkt_GetTexCoord(const SMikkTSpaceContext* pContext, float fvTexcOut[],
                   const int iFace, const int iVert)
 {
-    const Obdn_Geometry* geo = pContext->m_pUserData;
+    const Onyx_Geometry* geo = pContext->m_pUserData;
     int         index   = iFace * 3 + iVert;
     int  v = ((int*)geo->indexRegion.hostData)[index];
 
-    Vec2* arr    = obdn_GetGeoAttribute2(geo, UV_NAME);
+    Vec2* arr    = onyx_GetGeoAttribute2(geo, UV_NAME);
     fvTexcOut[0] = arr[v].x;
     fvTexcOut[1] = arr[v].y;
 }
@@ -82,12 +82,12 @@ mikkt_SetTSpaceBasic(const SMikkTSpaceContext* pContext,
                      const float fvTangent[], const float fSign,
                      const int iFace, const int iVert)
 {
-    Obdn_Geometry* geo = pContext->m_pUserData;
+    Onyx_Geometry* geo = pContext->m_pUserData;
     int         index   = iFace * 3 + iVert;
     int  v = ((int*)geo->indexRegion.hostData)[index];
 
-    Vec3* tangents = obdn_GetGeoAttribute2(geo, TANGENT_NAME);
-    float* signs  = obdn_GetGeoAttribute2(geo, SIGN_NAME);
+    Vec3* tangents = onyx_GetGeoAttribute2(geo, TANGENT_NAME);
+    float* signs  = onyx_GetGeoAttribute2(geo, SIGN_NAME);
 
     tangents[v].x = fvTangent[0]; 
     tangents[v].y = fvTangent[1]; 
@@ -96,12 +96,12 @@ mikkt_SetTSpaceBasic(const SMikkTSpaceContext* pContext,
 }
 
 static void
-initPrimBuffers(Obdn_Memory* memory, VkBufferUsageFlags extraFlags,
-                Obdn_Geometry* prim)
+initPrimBuffers(Onyx_Memory* memory, VkBufferUsageFlags extraFlags,
+                Onyx_Geometry* prim)
 {
     assert(prim->attrCount > 0);
     assert(prim->vertexCount > 0);
-    assert(prim->attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
+    assert(prim->attrCount < ONYX_R_MAX_VERT_ATTRIBUTES);
 
     size_t vertexBufferSize = 0;
     for (int i = 0; i < prim->attrCount; i++)
@@ -114,16 +114,16 @@ initPrimBuffers(Obdn_Memory* memory, VkBufferUsageFlags extraFlags,
     }
 
     prim->vertexRegion =
-        obdn_RequestBufferRegion(memory, vertexBufferSize,
+        onyx_RequestBufferRegion(memory, vertexBufferSize,
                                  VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | extraFlags,
-                                 OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+                                 ONYX_MEMORY_HOST_GRAPHICS_TYPE);
 
     if (prim->indexCount > 0)
     {
-        prim->indexRegion = obdn_RequestBufferRegion(
-            memory, sizeof(Obdn_GeoIndex) * prim->indexCount,
+        prim->indexRegion = onyx_RequestBufferRegion(
+            memory, sizeof(Onyx_GeoIndex) * prim->indexCount,
             VK_BUFFER_USAGE_INDEX_BUFFER_BIT | extraFlags,
-            OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+            ONYX_MEMORY_HOST_GRAPHICS_TYPE);
     }
 }
 
@@ -159,18 +159,18 @@ printPrim(const Prim* prim)
     }
     hell_Print("Indices: ");
     for (int i = 0; i < prim->indexCount; i++)
-        hell_Print("%d%s", ((Obdn_GeoIndex*)prim->indexRegion.hostData)[i],
+        hell_Print("%d%s", ((Onyx_GeoIndex*)prim->indexRegion.hostData)[i],
                    i == prim->indexCount - 1 ? "" : ", ");
     hell_Print("\n");
 }
 
 static VkFormat
-getFormat(const Obdn_GeoAttributeSize attrSize,
-          const Obdn_R_AttributeType  attrType)
+getFormat(const Onyx_GeoAttributeSize attrSize,
+          const Onyx_R_AttributeType  attrType)
 {
     switch (attrType)
     {
-    case OBDN_R_ATTRIBUTE_SFLOAT_TYPE:
+    case ONYX_R_ATTRIBUTE_SFLOAT_TYPE:
         switch (attrSize)
         {
         case 4:
@@ -190,25 +190,25 @@ getFormat(const Obdn_GeoAttributeSize attrSize,
 }
 
 void
-obdn_PrintGeo(const Obdn_Geometry* prim)
+onyx_PrintGeo(const Onyx_Geometry* prim)
 {
     printPrim(prim);
 }
 
 void
-obdn_TransferGeoToDevice(Obdn_Memory* memory, Obdn_Geometry* prim)
+onyx_TransferGeoToDevice(Onyx_Memory* memory, Onyx_Geometry* prim)
 {
-    obdn_TransferToDevice(memory, &prim->vertexRegion);
+    onyx_TransferToDevice(memory, &prim->vertexRegion);
     if (prim->indexCount > 0)
     {
-        obdn_TransferToDevice(memory, &prim->indexRegion);
+        onyx_TransferToDevice(memory, &prim->indexRegion);
     }
 }
 
-Obdn_Geometry
-obdn_CreateTriangle(Obdn_Memory* memory)
+Onyx_Geometry
+onyx_CreateTriangle(Onyx_Memory* memory)
 {
-    Obdn_Geometry prim = {.indexCount  = 3,
+    Onyx_Geometry prim = {.indexCount  = 3,
                           .vertexCount = 3,
                           .attrCount   = 2,
                           .attrSizes   = {12, 12}};
@@ -223,11 +223,11 @@ obdn_CreateTriangle(Obdn_Memory* memory)
 
     Vec3 colors[] = {{0.0, 0.9, 0.0}, {0.9, 0.5, 0.0}, {0.5, 0.3, 0.9}};
 
-    Obdn_GeoIndex indices[] = {0, 1, 2};
+    Onyx_GeoIndex indices[] = {0, 1, 2};
 
-    void*          posData   = obdn_GetGeoAttribute(&prim, 0);
-    void*          colData   = obdn_GetGeoAttribute(&prim, 1);
-    Obdn_GeoIndex* indexData = obdn_GetGeoIndices(&prim);
+    void*          posData   = onyx_GetGeoAttribute(&prim, 0);
+    void*          colData   = onyx_GetGeoAttribute(&prim, 1);
+    Onyx_GeoIndex* indexData = onyx_GetGeoIndices(&prim);
 
     memcpy(posData, positions, sizeof(positions));
     memcpy(colData, colors, sizeof(colors));
@@ -236,30 +236,30 @@ obdn_CreateTriangle(Obdn_Memory* memory)
     return prim;
 }
 
-Obdn_Geometry
-obdn_CreateCube(Obdn_Memory* memory, const bool isClockWise)
+Onyx_Geometry
+onyx_CreateCube(Onyx_Memory* memory, const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     const uint32_t attrCount  = 3; // position, normals, uvw
 
-    Obdn_Geometry prim = {.attrCount   = attrCount,
+    Onyx_Geometry prim = {.attrCount   = attrCount,
                           .indexCount  = indexCount,
                           .vertexCount = vertCount,
                           .attrSizes   = {12, 12, 8}};
 
     initPrimBuffers(memory, 0x0, &prim);
 
-    const char attrNames[3][OBDN_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME,
+    const char attrNames[3][ONYX_R_ATTR_NAME_LEN] = {POS_NAME, NORMAL_NAME,
                                                      UV_NAME};
     for (int i = 0; i < attrCount; i++)
     {
-        memcpy(prim.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
+        memcpy(prim.attrNames[i], attrNames[i], ONYX_R_ATTR_NAME_LEN);
     }
 
-    Vec3* pPositions = obdn_GetGeoAttribute(&prim, 0);
-    Vec3* pNormals   = obdn_GetGeoAttribute(&prim, 1);
-    Vec2* pUvws      = obdn_GetGeoAttribute(&prim, 2);
+    Vec3* pPositions = onyx_GetGeoAttribute(&prim, 0);
+    Vec3* pNormals   = onyx_GetGeoAttribute(&prim, 1);
+    Vec2* pUvws      = onyx_GetGeoAttribute(&prim, 2);
 
     const Vec3 points[8] = {
         {-0.5, 0.5, 0.5},  {-0.5, -0.5, 0.5}, {0.5, -0.5, 0.5},
@@ -343,7 +343,7 @@ obdn_CreateCube(Obdn_Memory* memory, const bool isClockWise)
         pUvws[i + 3] = uvws[3];
     }
 
-    Obdn_GeoIndex* indices = obdn_GetGeoIndices(&prim);
+    Onyx_GeoIndex* indices = onyx_GetGeoIndices(&prim);
 
     if (isClockWise)
         for (int face = 0; face < indexCount / 6; face++)
@@ -366,36 +366,36 @@ obdn_CreateCube(Obdn_Memory* memory, const bool isClockWise)
             indices[face * 6 + 5] = 4 * face + 3;
         }
 
-    // obdn_v_TransferToDevice(&prim.vertexRegion);
-    // obdn_v_TransferToDevice(&prim.indexRegion);
+    // onyx_v_TransferToDevice(&prim.vertexRegion);
+    // onyx_v_TransferToDevice(&prim.indexRegion);
 
     return prim;
 }
 
-Obdn_Geometry
-obdn_CreateCubeWithTangents(Obdn_Memory* memory, const bool isClockWise)
+Onyx_Geometry
+onyx_CreateCubeWithTangents(Onyx_Memory* memory, const bool isClockWise)
 {
     const uint32_t vertCount  = 24;
     const uint32_t indexCount = 36;
     const uint32_t attrCount  = 5; // position, normals, tan, sign, uvw
 
-    Obdn_Geometry geo = {.attrCount   = attrCount,
+    Onyx_Geometry geo = {.attrCount   = attrCount,
                          .indexCount  = indexCount,
                          .vertexCount = vertCount,
                          .attrSizes   = {12, 12, 12, 4, 8}};
 
     initPrimBuffers(memory, 0x0, &geo);
 
-    const char attrNames[5][OBDN_R_ATTR_NAME_LEN] = {
+    const char attrNames[5][ONYX_R_ATTR_NAME_LEN] = {
         POS_NAME, NORMAL_NAME, TANGENT_NAME, SIGN_NAME, UV_NAME};
     for (int i = 0; i < attrCount; i++)
     {
-        memcpy(geo.attrNames[i], attrNames[i], OBDN_R_ATTR_NAME_LEN);
+        memcpy(geo.attrNames[i], attrNames[i], ONYX_R_ATTR_NAME_LEN);
     }
 
-    Vec3* pPositions = obdn_GetGeoAttribute(&geo, 0);
-    Vec3* pNormals   = obdn_GetGeoAttribute(&geo, 1);
-    Vec2* pUvws      = obdn_GetGeoAttribute(&geo, 4);
+    Vec3* pPositions = onyx_GetGeoAttribute(&geo, 0);
+    Vec3* pNormals   = onyx_GetGeoAttribute(&geo, 1);
+    Vec2* pUvws      = onyx_GetGeoAttribute(&geo, 4);
 
     const Vec3 points[8] = {
         {-0.5, 0.5, 0.5},  {-0.5, -0.5, 0.5}, {0.5, -0.5, 0.5},
@@ -479,7 +479,7 @@ obdn_CreateCubeWithTangents(Obdn_Memory* memory, const bool isClockWise)
         pUvws[i + 3] = uvws[3];
     }
 
-    Obdn_GeoIndex* indices = obdn_GetGeoIndices(&geo);
+    Onyx_GeoIndex* indices = onyx_GetGeoIndices(&geo);
 
     if (isClockWise)
         for (int face = 0; face < indexCount / 6; face++)
@@ -514,32 +514,32 @@ obdn_CreateCubeWithTangents(Obdn_Memory* memory, const bool isClockWise)
     SMikkTSpaceContext mikkt_context = {.m_pInterface = &mikkt_interface,
                                         .m_pUserData  = &geo};
     
-    obdn_PrintGeo(&geo);
+    onyx_PrintGeo(&geo);
     tbool r = genTangSpaceDefault(&mikkt_context);
     assert(r);
 
-    obdn_PrintGeo(&geo);
+    onyx_PrintGeo(&geo);
 
-    // obdn_v_TransferToDevice(&prim.vertexRegion);
-    // obdn_v_TransferToDevice(&prim.indexRegion);
+    // onyx_v_TransferToDevice(&prim.vertexRegion);
+    // onyx_v_TransferToDevice(&prim.indexRegion);
 
     return geo;
 }
 
-Obdn_Geometry
-obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
+Onyx_Geometry
+onyx_CreatePoints(Onyx_Memory* memory, const uint32_t count)
 {
-    Obdn_Geometry prim = {
+    Onyx_Geometry prim = {
         .attrCount   = 2,
         .attrSizes   = {12, 12},
         .indexCount  = 0,
         .vertexCount = count,
     };
 
-    prim.vertexRegion = obdn_RequestBufferRegion(
+    prim.vertexRegion = onyx_RequestBufferRegion(
         memory, 12 * prim.attrCount * prim.vertexCount,
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_STORAGE_BUFFER_BIT,
-        OBDN_MEMORY_HOST_GRAPHICS_TYPE);
+        ONYX_MEMORY_HOST_GRAPHICS_TYPE);
 
     const uint32_t posOffset = 0 * prim.vertexCount * 12;
     const uint32_t colOffset = 1 * prim.vertexCount * 12;
@@ -547,8 +547,8 @@ obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
     prim.attrOffsets[0] = posOffset;
     prim.attrOffsets[1] = colOffset;
 
-    Vec3* positions = obdn_GetGeoAttribute(&prim, 0);
-    Vec3* colors    = obdn_GetGeoAttribute(&prim, 1);
+    Vec3* positions = onyx_GetGeoAttribute(&prim, 0);
+    Vec3* colors    = onyx_GetGeoAttribute(&prim, 1);
 
     for (int i = 0; i < count; i++)
     {
@@ -559,14 +559,14 @@ obdn_CreatePoints(Obdn_Memory* memory, const uint32_t count)
     return prim;
 }
 
-Obdn_Geometry
-obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
+Onyx_Geometry
+onyx_CreateCurve(Onyx_Memory* memory, const uint32_t vertCount,
                  const uint32_t patchSize, const uint32_t restartOffset)
 {
     assert(patchSize < vertCount);
     assert(restartOffset < patchSize);
 
-    Obdn_Geometry prim = {
+    Onyx_Geometry prim = {
         .attrCount   = 2,
         .attrSizes   = {12, 12},
         .indexCount  = vertCount * patchSize, // to handle maximum restartOffset
@@ -575,8 +575,8 @@ obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
 
     initPrimBuffers(memory, 0x0, &prim);
 
-    Vec3* positions = obdn_GetGeoAttribute(&prim, 0);
-    Vec3* colors    = obdn_GetGeoAttribute(&prim, 1);
+    Vec3* positions = onyx_GetGeoAttribute(&prim, 0);
+    Vec3* colors    = onyx_GetGeoAttribute(&prim, 1);
 
     for (int i = 0; i < vertCount; i++)
     {
@@ -584,7 +584,7 @@ obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
         colors[i]    = (Vec3){1, 0, 0};
     }
 
-    Obdn_GeoIndex* indices = obdn_GetGeoIndices(&prim);
+    Onyx_GeoIndex* indices = onyx_GetGeoIndices(&prim);
 
     for (int i = 0, vertid = 0; vertid < prim.vertexCount;)
     {
@@ -600,31 +600,31 @@ obdn_CreateCurve(Obdn_Memory* memory, const uint32_t vertCount,
     return prim;
 }
 
-Obdn_Geometry
-obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float y,
+Onyx_Geometry
+onyx_CreateQuadNDC(Onyx_Memory* memory, const float x, const float y,
                    const float width, const float height)
 {
-    Obdn_Geometry prim = {.attrCount   = 2,
+    Onyx_Geometry prim = {.attrCount   = 2,
                           .indexCount  = 6,
                           .vertexCount = 4,
                           .attrSizes   = {12, 12}};
 
     initPrimBuffers(memory, 0x0, &prim);
 
-    Vec3* pos = obdn_GetGeoAttribute(&prim, 0);
+    Vec3* pos = onyx_GetGeoAttribute(&prim, 0);
     // upper left. x, y
     pos[0]    = (Vec3){x, y, 0};
     pos[1]    = (Vec3){x, y + height, 0};
     pos[2]    = (Vec3){x + width, y, 0};
     pos[3]    = (Vec3){x + width, y + height, 0};
 
-    Vec3* uvw = obdn_GetGeoAttribute(&prim, 1);
+    Vec3* uvw = onyx_GetGeoAttribute(&prim, 1);
     uvw[0]    = (Vec3){0, 0, 0};
     uvw[1]    = (Vec3){0, 1, 0};
     uvw[2]    = (Vec3){1, 0, 0};
     uvw[3]    = (Vec3){1, 1, 0};
 
-    Obdn_GeoIndex* index = obdn_GetGeoIndices(&prim);
+    Onyx_GeoIndex* index = onyx_GetGeoIndices(&prim);
     index[0]             = 0;
     index[1]             = 1;
     index[2]             = 2;
@@ -635,11 +635,11 @@ obdn_CreateQuadNDC(Obdn_Memory* memory, const float x, const float y,
     return prim;
 }
 
-Obdn_Geometry
-obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const float y,
+Onyx_Geometry
+onyx_CreateQuadNDC_2(Onyx_Memory* memory, const float x, const float y,
                      const float width, const float height)
 {
-    Obdn_Geometry prim = {.attrCount   = 3,
+    Onyx_Geometry prim = {.attrCount   = 3,
                           .indexCount  = 6,
                           .vertexCount = 4,
                           .attrNames   = {POS_NAME, NORMAL_NAME, UV_NAME},
@@ -647,26 +647,26 @@ obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const float y,
 
     initPrimBuffers(memory, 0x0, &prim);
 
-    Vec3* pos = obdn_GetGeoAttribute(&prim, 0);
+    Vec3* pos = onyx_GetGeoAttribute(&prim, 0);
     // upper left. x, y
     pos[0]    = (Vec3){x, y, 0};
     pos[1]    = (Vec3){x, y + height, 0};
     pos[2]    = (Vec3){x + width, y, 0};
     pos[3]    = (Vec3){x + width, y + height, 0};
 
-    Vec3* n = obdn_GetGeoAttribute(&prim, 1);
+    Vec3* n = onyx_GetGeoAttribute(&prim, 1);
     n[0]    = (Vec3){0, 0, 1};
     n[1]    = (Vec3){0, 0, 1};
     n[2]    = (Vec3){0, 0, 1};
     n[3]    = (Vec3){0, 0, 1};
 
-    Vec2* uvs = obdn_GetGeoAttribute(&prim, 2);
+    Vec2* uvs = onyx_GetGeoAttribute(&prim, 2);
     uvs[0]    = (Vec2){0, 0};
     uvs[1]    = (Vec2){0, 1};
     uvs[2]    = (Vec2){1, 0};
     uvs[3]    = (Vec2){1, 1};
 
-    Obdn_GeoIndex* index = obdn_GetGeoIndices(&prim);
+    Onyx_GeoIndex* index = onyx_GetGeoIndices(&prim);
     index[0]             = 0;
     index[1]             = 1;
     index[2]             = 2;
@@ -677,16 +677,16 @@ obdn_CreateQuadNDC_2(Obdn_Memory* memory, const float x, const float y,
     return prim;
 }
 
-Obdn_Geometry
-obdn_CreateGeometry(Obdn_Memory* memory, VkBufferUsageFlags extraBufferFlags,
+Onyx_Geometry
+onyx_CreateGeometry(Onyx_Memory* memory, VkBufferUsageFlags extraBufferFlags,
                     const uint32_t vertCount, const uint32_t indexCount,
                     const uint8_t attrCount, const uint8_t attrSizes[])
 {
-    Obdn_Geometry prim = {.attrCount   = attrCount,
+    Onyx_Geometry prim = {.attrCount   = attrCount,
                           .indexCount  = indexCount,
                           .vertexCount = vertCount};
 
-    assert(attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
+    assert(attrCount < ONYX_R_MAX_VERT_ATTRIBUTES);
 
     for (int i = 0; i < attrCount; i++)
     {
@@ -698,12 +698,12 @@ obdn_CreateGeometry(Obdn_Memory* memory, VkBufferUsageFlags extraBufferFlags,
     return prim;
 }
 
-Obdn_VertexDescription
-obdn_GetVertexDescription(const uint32_t              attrCount,
-                          const Obdn_GeoAttributeSize attrSizes[])
+Onyx_VertexDescription
+onyx_GetVertexDescription(const uint32_t              attrCount,
+                          const Onyx_GeoAttributeSize attrSizes[])
 {
-    assert(attrCount < OBDN_R_MAX_VERT_ATTRIBUTES);
-    Obdn_VertexDescription desc = {.attributeCount = attrCount,
+    assert(attrCount < ONYX_R_MAX_VERT_ATTRIBUTES);
+    Onyx_VertexDescription desc = {.attributeCount = attrCount,
                                    .bindingCount   = attrCount};
 
     for (int i = 0; i < desc.attributeCount; i++)
@@ -716,7 +716,7 @@ obdn_GetVertexDescription(const uint32_t              attrCount,
         desc.attributeDescriptions[i] = (VkVertexInputAttributeDescription){
             .binding  = i,
             .location = i,
-            .format   = getFormat(attrSizes[i], OBDN_R_ATTRIBUTE_SFLOAT_TYPE),
+            .format   = getFormat(attrSizes[i], ONYX_R_ATTRIBUTE_SFLOAT_TYPE),
             .offset   = 0};
     }
 
@@ -724,23 +724,23 @@ obdn_GetVertexDescription(const uint32_t              attrCount,
 }
 
 void*
-obdn_GetGeoAttribute(const Obdn_Geometry* prim, const uint32_t index)
+onyx_GetGeoAttribute(const Onyx_Geometry* prim, const uint32_t index)
 {
-    assert(index < OBDN_R_MAX_VERT_ATTRIBUTES);
+    assert(index < ONYX_R_MAX_VERT_ATTRIBUTES);
     return (prim->vertexRegion.hostData + prim->attrOffsets[index]);
 }
 
-Obdn_GeoIndex*
-obdn_GetGeoIndices(const Obdn_Geometry* prim)
+Onyx_GeoIndex*
+onyx_GetGeoIndices(const Onyx_Geometry* prim)
 {
-    return (Obdn_GeoIndex*)prim->indexRegion.hostData;
+    return (Onyx_GeoIndex*)prim->indexRegion.hostData;
 }
 
 void
-obdn_BindGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim)
+onyx_BindGeo(const VkCommandBuffer cmdBuf, const Onyx_Geometry* prim)
 {
-    VkBuffer     vertBuffers[OBDN_R_MAX_VERT_ATTRIBUTES];
-    VkDeviceSize attrOffsets[OBDN_R_MAX_VERT_ATTRIBUTES];
+    VkBuffer     vertBuffers[ONYX_R_MAX_VERT_ATTRIBUTES];
+    VkDeviceSize attrOffsets[ONYX_R_MAX_VERT_ATTRIBUTES];
 
     for (int i = 0; i < prim->attrCount; i++)
     {
@@ -752,25 +752,25 @@ obdn_BindGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim)
                            attrOffsets);
 
     vkCmdBindIndexBuffer(cmdBuf, prim->indexRegion.buffer,
-                         prim->indexRegion.offset, OBDN_VERT_INDEX_TYPE);
+                         prim->indexRegion.offset, ONYX_VERT_INDEX_TYPE);
 }
 
 void
-obdn_DrawGeo(const VkCommandBuffer cmdBuf, const Obdn_Geometry* prim)
+onyx_DrawGeo(const VkCommandBuffer cmdBuf, const Onyx_Geometry* prim)
 {
-    obdn_BindGeo(cmdBuf, prim);
+    onyx_BindGeo(cmdBuf, prim);
     vkCmdDrawIndexed(cmdBuf, prim->indexCount, 1, 0, 0, 0);
 }
 
 void
-obdn_FreeGeo(Obdn_Geometry* prim)
+onyx_FreeGeo(Onyx_Geometry* prim)
 {
-    obdn_FreeBufferRegion(&prim->vertexRegion);
-    obdn_FreeBufferRegion(&prim->indexRegion);
+    onyx_FreeBufferRegion(&prim->vertexRegion);
+    onyx_FreeBufferRegion(&prim->indexRegion);
 }
 
 VkDeviceSize
-obdn_GetAttrOffset(const Obdn_Geometry* prim, const char* attrname)
+onyx_GetAttrOffset(const Onyx_Geometry* prim, const char* attrname)
 {
     for (int i = 0; i < prim->attrCount; i++)
     {
@@ -783,20 +783,20 @@ obdn_GetAttrOffset(const Obdn_Geometry* prim, const char* attrname)
 }
 
 VkDeviceSize
-obdn_GetAttrOffset2(const Obdn_Geometry* prim, u32 index)
+onyx_GetAttrOffset2(const Onyx_Geometry* prim, u32 index)
 {
     return prim->vertexRegion.offset + prim->attrOffsets[index];
 }
 
 void*
-obdn_GetGeoAttribute2(const Obdn_Geometry* prim, const char* name)
+onyx_GetGeoAttribute2(const Onyx_Geometry* prim, const char* name)
 {
-    int index = obdn_GetAttrIndex(prim, name);
-    return obdn_GetGeoAttribute(prim, index);
+    int index = onyx_GetAttrIndex(prim, name);
+    return onyx_GetGeoAttribute(prim, index);
 }
 
 int
-obdn_GetAttrIndex(const Obdn_Geometry* prim, const char* attrname)
+onyx_GetAttrIndex(const Onyx_Geometry* prim, const char* attrname)
 {
     for (int i = 0; i < prim->attrCount; i++)
     {
@@ -809,7 +809,7 @@ obdn_GetAttrIndex(const Obdn_Geometry* prim, const char* attrname)
 }
 
 VkDeviceSize
-obdn_GetAttrRange(const Obdn_Geometry* prim, const char* attrname)
+onyx_GetAttrRange(const Onyx_Geometry* prim, const char* attrname)
 {
     for (int i = 0; i < prim->attrCount; i++)
     {

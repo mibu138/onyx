@@ -4,7 +4,7 @@
 #include "video.h"
 #include <hell/len.h>
 
-void obdn_CreateRenderPass(VkDevice device, const Obdn_R_RenderPassInfo *info, VkRenderPass *pRenderPass)
+void onyx_CreateRenderPass(VkDevice device, const Onyx_R_RenderPassInfo *info, VkRenderPass *pRenderPass)
 {
     // only allow one subpass for now
     assert(info->subpassCount == 1);
@@ -46,7 +46,7 @@ void obdn_CreateRenderPass(VkDevice device, const Obdn_R_RenderPassInfo *info, V
     V_ASSERT(vkCreateRenderPass(device, &ci, NULL, pRenderPass));
 }
 
-void obdn_CreateRenderPass_Color(VkDevice device, const VkImageLayout initialLayout, 
+void onyx_CreateRenderPass_Color(VkDevice device, const VkImageLayout initialLayout, 
         const VkImageLayout finalLayout,
         const VkAttachmentLoadOp loadOp, 
         const VkFormat colorFormat,
@@ -109,7 +109,7 @@ void obdn_CreateRenderPass_Color(VkDevice device, const VkImageLayout initialLay
     V_ASSERT( vkCreateRenderPass(device, &rpiInfo, NULL, pRenderPass) );
 }
 
-void obdn_CreateRenderPass_ColorDepth(VkDevice device,
+void onyx_CreateRenderPass_ColorDepth(VkDevice device,
         const VkImageLayout colorInitialLayout, const VkImageLayout colorFinalLayout,
         const VkImageLayout depthInitialLayout, const VkImageLayout depthFinalLayout,
         const VkAttachmentLoadOp  colorLoadOp, const VkAttachmentStoreOp colorStoreOp,
@@ -206,7 +206,7 @@ void obdn_CreateRenderPass_ColorDepth(VkDevice device,
     V_ASSERT( vkCreateRenderPass(device, &ci, NULL, pRenderPass) );
 }
 
-void obdn_CreateRenderPass_ColorDepthMSAA(VkDevice device, const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
+void onyx_CreateRenderPass_ColorDepthMSAA(VkDevice device, const VkSampleCountFlags sampleCount, const VkAttachmentLoadOp loadOp, 
         const VkImageLayout initialLayout, const VkImageLayout finalLayout,
         const VkFormat colorFormat,
         const VkFormat depthFormat,

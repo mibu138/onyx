@@ -3,15 +3,15 @@
 #include "private.h"
 #include <string.h>
 
-void obdn_SubmitAndWait(Obdn_Command* cmd, const uint32_t queueIndex)
+void onyx_SubmitAndWait(Onyx_Command* cmd, const uint32_t queueIndex)
 {
-    obdn_SubmitToQueueWait(cmd->instance, &cmd->buffer, cmd->queueFamily, queueIndex);
+    onyx_SubmitToQueueWait(cmd->instance, &cmd->buffer, cmd->queueFamily, queueIndex);
 }
 
-Obdn_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_QueueType queueFamilyType)
+Onyx_Command onyx_CreateCommand(const Onyx_Instance* instance, const Onyx_V_QueueType queueFamilyType)
 {
-    Obdn_Command cmd = {
-        .queueFamily = obdn_GetQueueFamilyIndex(instance, queueFamilyType),
+    Onyx_Command cmd = {
+        .queueFamily = onyx_GetQueueFamilyIndex(instance, queueFamilyType),
         .instance = instance
     };
 
@@ -48,12 +48,12 @@ Obdn_Command obdn_CreateCommand(const Obdn_Instance* instance, const Obdn_V_Queu
     return cmd;
 }
 
-Obdn_CommandPool obdn_CreateCommandPool(VkDevice device,
+Onyx_CommandPool onyx_CreateCommandPool(VkDevice device,
     uint32_t queueFamilyIndex,
     VkCommandPoolCreateFlags poolflags,
     uint32_t bufcount)
 {
-    Obdn_CommandPool pool = {};
+    Onyx_CommandPool pool = {};
     pool.queueFamily = queueFamilyIndex;
     const VkCommandPoolCreateInfo cmdPoolCi = {
         .queueFamilyIndex = pool.queueFamily,
@@ -79,14 +79,14 @@ Obdn_CommandPool obdn_CreateCommandPool(VkDevice device,
     return pool;
 }
 
-void obdn_DestroyCommandPool(VkDevice device, Obdn_CommandPool* pool)
+void onyx_DestroyCommandPool(VkDevice device, Onyx_CommandPool* pool)
 {
     vkDestroyCommandPool(device, pool->pool, NULL);
     hell_Free(pool->cmdbufs);
     memset(pool, 0, sizeof(*pool));
 }
 
-void obdn_BeginCommandBuffer(VkCommandBuffer cmdBuf)
+void onyx_BeginCommandBuffer(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -95,7 +95,7 @@ void obdn_BeginCommandBuffer(VkCommandBuffer cmdBuf)
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
-void obdn_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
+void onyx_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
 {
     VkCommandBufferBeginInfo beginInfo = {
         .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO,
@@ -105,53 +105,53 @@ void obdn_BeginCommandBufferOneTimeSubmit(VkCommandBuffer cmdBuf)
     V_ASSERT( vkBeginCommandBuffer(cmdBuf, &beginInfo) );
 }
 
-void obdn_EndCommandBuffer(VkCommandBuffer cmdBuf)
+void onyx_EndCommandBuffer(VkCommandBuffer cmdBuf)
 {
     vkEndCommandBuffer(cmdBuf);
 }
 
 
-void obdn_WaitForFence(VkDevice device, VkFence* fence)
+void onyx_WaitForFence(VkDevice device, VkFence* fence)
 {
     V_ASSERT(vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX));
     V_ASSERT(vkResetFences(device, 1, fence));
 }
 
-void obdn_WaitForFence_TimeOut(VkDevice device, VkFence* fence, uint64_t timeout_ns)
+void onyx_WaitForFence_TimeOut(VkDevice device, VkFence* fence, uint64_t timeout_ns)
 {
     V_ASSERT(vkWaitForFences(device, 1, fence, VK_TRUE, timeout_ns));
     V_ASSERT(vkResetFences(device, 1, fence));
 }
 
 
-void obdn_DestroyFence(VkDevice device, VkFence fence)
+void onyx_DestroyFence(VkDevice device, VkFence fence)
 {
     vkDestroyFence(device, fence, NULL);
 }
 
-void obdn_DestroySemaphore(VkDevice device, VkSemaphore semaphore)
+void onyx_DestroySemaphore(VkDevice device, VkSemaphore semaphore)
 {
     vkDestroySemaphore(device, semaphore, NULL);
 }
 
-void obdn_WaitForFenceNoReset(VkDevice device, VkFence* fence)
+void onyx_WaitForFenceNoReset(VkDevice device, VkFence* fence)
 {
     vkWaitForFences(device, 1, fence, VK_TRUE, UINT64_MAX);
 }
 
-void obdn_DestroyCommand(Obdn_Command cmd)
+void onyx_DestroyCommand(Onyx_Command cmd)
 {
     vkDestroyCommandPool(cmd.instance->device, cmd.pool, NULL);
     vkDestroyFence(cmd.instance->device, cmd.fence, NULL);
     vkDestroySemaphore(cmd.instance->device, cmd.semaphore, NULL);
 }
 
-void obdn_ResetCommand(Obdn_Command* cmd)
+void onyx_ResetCommand(Onyx_Command* cmd)
 {
     vkResetCommandPool(cmd->instance->device, cmd->pool, 0);
 }
 
-void obdn_v_MemoryBarrier(
+void onyx_v_MemoryBarrier(
     VkCommandBuffer      commandBuffer,
     VkPipelineStageFlags srcStageMask,
     VkPipelineStageFlags dstStageMask,
@@ -171,7 +171,7 @@ void obdn_v_MemoryBarrier(
             1, &barrier, 0, NULL, 0, NULL);
 }
 
-void obdn_CreateFence(VkDevice device, VkFence* fence)
+void onyx_CreateFence(VkDevice device, VkFence* fence)
 {
     VkFenceCreateInfo ci = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -180,7 +180,7 @@ void obdn_CreateFence(VkDevice device, VkFence* fence)
     V_ASSERT( vkCreateFence(device, &ci, NULL, fence) );
 }
 
-void obdn_CreateSemaphore(VkDevice device, VkSemaphore* semaphore)
+void onyx_CreateSemaphore(VkDevice device, VkSemaphore* semaphore)
 {
     const VkSemaphoreCreateInfo semaCi = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
@@ -189,7 +189,7 @@ void obdn_CreateSemaphore(VkDevice device, VkSemaphore* semaphore)
     V_ASSERT( vkCreateSemaphore(device, &semaCi, NULL, semaphore) );
 }
 
-void obdn_CreateSemaphores(VkDevice device, u32 count, VkSemaphore* semas)
+void onyx_CreateSemaphores(VkDevice device, u32 count, VkSemaphore* semas)
 {
     const VkSemaphoreCreateInfo semaCi = {
         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO
@@ -200,7 +200,7 @@ void obdn_CreateSemaphores(VkDevice device, u32 count, VkSemaphore* semas)
     }
 }
 
-void obdn_CreateFences(VkDevice device, bool signaled, int count, VkFence* fences)
+void onyx_CreateFences(VkDevice device, bool signaled, int count, VkFence* fences)
 {
     VkFenceCreateInfo ci = {
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
@@ -213,7 +213,7 @@ void obdn_CreateFences(VkDevice device, bool signaled, int count, VkFence* fence
     }
 }
 
-void obdn_CmdSetViewportScissor(VkCommandBuffer cmdbuf, u32 x, u32 y, u32 w, u32 h)
+void onyx_CmdSetViewportScissor(VkCommandBuffer cmdbuf, u32 x, u32 y, u32 w, u32 h)
 {
     VkViewport vp = {
         .width = w,
@@ -231,7 +231,7 @@ void obdn_CmdSetViewportScissor(VkCommandBuffer cmdbuf, u32 x, u32 y, u32 w, u32
     vkCmdSetScissor(cmdbuf, 0, 1, &sz);
 }
 
-void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height)
+void onyx_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsigned height)
 {
     VkViewport vp = {
         .width = width,
@@ -249,7 +249,7 @@ void obdn_CmdSetViewportScissorFull(VkCommandBuffer cmdbuf, unsigned width, unsi
     vkCmdSetScissor(cmdbuf, 0, 1, &sz);
 }
 
-void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf, 
+void onyx_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf, 
         const VkRenderPass renderPass, const VkFramebuffer framebuffer,
         unsigned width, unsigned height,
         float r, float g, float b, float a)
@@ -271,12 +271,12 @@ void obdn_CmdBeginRenderPass_ColorDepth(VkCommandBuffer cmdbuf,
     vkCmdBeginRenderPass(cmdbuf, &rpi, VK_SUBPASS_CONTENTS_INLINE);
 }
 
-void obdn_CmdEndRenderPass(VkCommandBuffer cmdbuf)
+void onyx_CmdEndRenderPass(VkCommandBuffer cmdbuf)
 {
     vkCmdEndRenderPass(cmdbuf);
 }
 
-void obdn_CmdClearColorImage(VkCommandBuffer cmdbuf, VkImage image, VkImageLayout layout,
+void onyx_CmdClearColorImage(VkCommandBuffer cmdbuf, VkImage image, VkImageLayout layout,
         uint32_t base_mip_level, uint32_t mip_level_count,
         float r, float g, float b, float a)
 {

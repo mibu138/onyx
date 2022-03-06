@@ -35,31 +35,31 @@ if(FREETYPE_FOUND)
     set(FT2_DIR ${FREETYPE_INCLUDE_DIR_ft2build})
 endif()
 
-if(${OBSIDIAN_ENABLE_SHADERC})
+if(${ONYX_ENABLE_SHADERC})
     list(APPEND PRIVATE_DEPS shaderc)
 endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-add_library(obsidian STATIC)
-target_sources(obsidian PRIVATE ${SRCS})
-target_include_directories(obsidian
-    PRIVATE "../include/obsidian"
+add_library(onyx STATIC)
+target_sources(onyx PRIVATE ${SRCS})
+target_include_directories(onyx
+    PRIVATE "../include/onyx"
     INTERFACE "../include")
-target_link_libraries(obsidian
+target_link_libraries(onyx
     PRIVATE ${PRIVATE_DEPS}
     PUBLIC ${DEPS})
-if (${OBSIDIAN_ENABLE_SHADERC})
-target_compile_definitions(obsidian PUBLIC OBSIDIAN_SHADERC_ENABLED)
+if (${ONYX_ENABLE_SHADERC})
+target_compile_definitions(onyx PUBLIC ONYX_SHADERC_ENABLED)
 endif()
 if(WIN32)
-set_target_properties(obsidian PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
+set_target_properties(onyx PROPERTIES WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
 endif()
-add_library(Obsidian::Obsidian ALIAS obsidian)
+add_library(Onyx::Onyx ALIAS onyx)
 
 if(UNIX)
-    target_compile_definitions(obsidian PUBLIC UNIX)
+    target_compile_definitions(onyx PUBLIC UNIX)
 elseif(WIN32)
-    target_compile_definitions(obsidian PUBLIC WIN32)
+    target_compile_definitions(onyx PUBLIC WIN32)
 else()
     message(FATAL_ERROR "Need additional platform checks if not on unix.")
 endif()

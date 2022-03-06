@@ -1,5 +1,5 @@
 include(author_shaders)
-author_shaders(obsidian_shaders obsidian Obsidian::glslc
+author_shaders(onyx_shaders onyx Onyx::glslc
     SOURCES
     default.frag
     default.vert

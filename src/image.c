@@ -14,22 +14,22 @@
 
 #define IMG_OUT_DIR "/out/images/"
 
-typedef Obdn_Command      Command;
-typedef Obdn_Barrier      Barrier;
-typedef Obdn_BufferRegion BufferRegion;
-typedef Obdn_Image        Image;
+typedef Onyx_Command      Command;
+typedef Onyx_Barrier      Barrier;
+typedef Onyx_BufferRegion BufferRegion;
+typedef Onyx_Image        Image;
 
-#define DPRINT(fmt, ...) hell_DebugPrint(OBDN_DEBUG_TAG_IMG, fmt, ##__VA_ARGS__)
+#define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_IMG, fmt, ##__VA_ARGS__)
 
 static void
-createMipMaps(const Obdn_Instance* intstance, const VkFilter filter,
+createMipMaps(const Onyx_Instance* intstance, const VkFilter filter,
               const VkImageLayout finalLayout, Image* image)
 {
     DPRINT("Creating mips for image %p\n", image->handle);
 
-    Command cmd = obdn_CreateCommand(intstance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = onyx_CreateCommand(intstance, ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     VkImageMemoryBarrier barrier = {
         .sType                       = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -103,17 +103,17 @@ createMipMaps(const Obdn_Instance* intstance, const VkFilter filter,
                          VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, NULL, 0,
                          NULL, 1, &barrier);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
     image->layout = finalLayout;
 }
 
 VkImageBlit
-obdn_ImageBlitSimpleColor(uint32_t srcWidth, uint32_t srcHeight,
+onyx_ImageBlitSimpleColor(uint32_t srcWidth, uint32_t srcHeight,
                           uint32_t dstWidth, uint32_t dstHeight,
                           uint32_t srcMipLevel, uint32_t dstMipLevel)
 {
@@ -132,7 +132,7 @@ obdn_ImageBlitSimpleColor(uint32_t srcWidth, uint32_t srcHeight,
 }
 
 VkImageCopy
-obdn_ImageCopySimpleColor(uint32_t width, uint32_t height, uint32_t srcOffsetX,
+onyx_ImageCopySimpleColor(uint32_t width, uint32_t height, uint32_t srcOffsetX,
                           uint32_t srcOffsetY, uint32_t srcMipLevel,
                           uint32_t dstOffsetX, uint32_t dstOffsetY,
                           uint32_t dstMipLevel)
@@ -157,17 +157,17 @@ obdn_ImageCopySimpleColor(uint32_t width, uint32_t height, uint32_t srcOffsetX,
     return copy;
 }
 
-Obdn_Image
-obdn_CreateImageAndSampler(Obdn_Memory* memory, const uint32_t width,
+Onyx_Image
+onyx_CreateImageAndSampler(Onyx_Memory* memory, const uint32_t width,
                            const uint32_t height, const VkFormat format,
                            const VkImageUsageFlags  usageFlags,
                            const VkImageAspectFlags aspectMask,
                            const VkSampleCountFlags sampleCount,
                            const uint32_t mipLevels, const VkFilter filter,
-                           const Obdn_MemoryType memType)
+                           const Onyx_MemoryType memType)
 {
-    Obdn_Image image =
-        obdn_CreateImage(memory, width, height, format, usageFlags, aspectMask,
+    Onyx_Image image =
+        onyx_CreateImage(memory, width, height, format, usageFlags, aspectMask,
                          sampleCount, mipLevels, memType);
 
     VkSamplerCreateInfo samplerInfo = {
@@ -198,7 +198,7 @@ obdn_CreateImageAndSampler(Obdn_Memory* memory, const uint32_t width,
 }
 
 void
-obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf,
+onyx_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf,
                               const Barrier         barrier,
                               const VkImageLayout   oldLayout,
                               const VkImageLayout   newLayout,
@@ -227,8 +227,8 @@ obdn_CmdTransitionImageLayout(const VkCommandBuffer cmdbuf,
 }
 
 void
-obdn_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel,
-                          const Obdn_BufferRegion* region, Obdn_Image* image)
+onyx_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel,
+                          const Onyx_BufferRegion* region, Onyx_Image* image)
 {
     const VkImageSubresourceLayers subRes = {
         .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
@@ -252,8 +252,8 @@ obdn_CmdCopyBufferToImage(VkCommandBuffer cmdbuf, uint32_t mipLevel,
 }
 
 void
-obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
-                          const Obdn_Image* image, Obdn_BufferRegion* region)
+onyx_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
+                          const Onyx_Image* image, Onyx_BufferRegion* region)
 {
     assert(miplevel < image->mipLevels);
     const VkImageSubresourceLayers subRes = {.aspectMask = image->aspectMask,
@@ -274,13 +274,13 @@ obdn_CmdCopyImageToBuffer(VkCommandBuffer cmdbuf, uint32_t miplevel,
 }
 
 void
-obdn_TransitionImageLayout(const VkImageLayout oldLayout,
-                           const VkImageLayout newLayout, Obdn_Image* image)
+onyx_TransitionImageLayout(const VkImageLayout oldLayout,
+                           const VkImageLayout newLayout, Onyx_Image* image)
 {
-    Command cmd = obdn_CreateCommand(image->pChain->memory->instance,
-                                     OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = onyx_CreateCommand(image->pChain->memory->instance,
+                                     ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     Barrier barrier = {
         .srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
@@ -289,25 +289,25 @@ obdn_TransitionImageLayout(const VkImageLayout oldLayout,
         .dstAccessMask = 0,
     };
 
-    obdn_CmdTransitionImageLayout(cmd.buffer, barrier, oldLayout, newLayout,
+    onyx_CmdTransitionImageLayout(cmd.buffer, barrier, oldLayout, newLayout,
                                   image->mipLevels, image->handle);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
     image->layout = newLayout;
 }
 
 void
-obdn_CopyBufferToImage(const Obdn_BufferRegion* region, Obdn_Image* image)
+onyx_CopyBufferToImage(const Onyx_BufferRegion* region, Onyx_Image* image)
 {
-    Command cmd = obdn_CreateCommand(image->pChain->memory->instance,
-                                     OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Command cmd = onyx_CreateCommand(image->pChain->memory->instance,
+                                     ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     VkImageLayout origLayout = image->layout;
 
@@ -319,11 +319,11 @@ obdn_CopyBufferToImage(const Obdn_BufferRegion* region, Obdn_Image* image)
     };
 
     if (origLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        obdn_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout,
+        onyx_CmdTransitionImageLayout(cmd.buffer, barrier, image->layout,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                       image->mipLevels, image->handle);
 
-    obdn_CmdCopyBufferToImage(cmd.buffer, 0, region, image);
+    onyx_CmdCopyBufferToImage(cmd.buffer, 0, region, image);
 
     barrier.srcStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
@@ -331,33 +331,33 @@ obdn_CopyBufferToImage(const Obdn_BufferRegion* region, Obdn_Image* image)
     barrier.dstAccessMask = 0;
 
     if (origLayout != VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
-        obdn_CmdTransitionImageLayout(
+        onyx_CmdTransitionImageLayout(
             cmd.buffer, barrier, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
             origLayout, image->mipLevels, image->handle);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
     DPRINT("Copying complete.\n");
 }
 
 uint32_t
-obdn_CalcMipLevelsForImage(uint32_t width, uint32_t height)
+onyx_CalcMipLevelsForImage(uint32_t width, uint32_t height)
 {
     return floor(log2(fmax(width, height))) + 1;
 }
 
 void
-obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount,
+onyx_LoadImageData(Onyx_Memory* memory, int w, int h, uint8_t channelCount,
                    void* data, const VkFormat format,
                    VkImageUsageFlags        usageFlags,
                    const VkImageAspectFlags aspectMask,
                    const VkSampleCountFlags sampleCount, const VkFilter filter,
                    const VkImageLayout layout, const bool createMips,
-                   Obdn_MemoryType memoryType, Image* image)
+                   Onyx_MemoryType memoryType, Image* image)
 {
     assert(data);
     const uint32_t mipLevels = createMips ? floor(log2(fmax(w, h))) + 1 : 1;
@@ -367,33 +367,33 @@ obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount,
         usageFlags |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
     *image =
-        obdn_CreateImageAndSampler(memory, w, h, format, usageFlags, aspectMask,
+        onyx_CreateImageAndSampler(memory, w, h, format, usageFlags, aspectMask,
                                    sampleCount, mipLevels, filter, memoryType);
 
-    BufferRegion stagingBuffer = obdn_RequestBufferRegion(
+    BufferRegion stagingBuffer = onyx_RequestBufferRegion(
         memory, image->size, VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-        OBDN_MEMORY_HOST_GRAPHICS_TYPE); // TODO: support transfer queue here
+        ONYX_MEMORY_HOST_GRAPHICS_TYPE); // TODO: support transfer queue here
 
     DPRINT("loading image: width %d height %d channels %d\n", w, h,
            channelCount);
-    DPRINT("Obdn_V_Image size: %ld\n", image->size);
+    DPRINT("Onyx_V_Image size: %ld\n", image->size);
     memcpy(stagingBuffer.hostData, data, w * h * channelCount);
 
     Command cmd =
-        obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+        onyx_CreateCommand(memory->instance, ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     Barrier barrier = {.srcStageFlags = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
                        .dstStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT,
                        .srcAccessMask = 0,
                        .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT};
 
-    obdn_CmdTransitionImageLayout(
+    onyx_CmdTransitionImageLayout(
         cmd.buffer, barrier, VK_IMAGE_LAYOUT_UNDEFINED,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, mipLevels, image->handle);
 
-    obdn_CmdCopyBufferToImage(cmd.buffer, 0, &stagingBuffer, image);
+    onyx_CmdCopyBufferToImage(cmd.buffer, 0, &stagingBuffer, image);
 
     if (!createMips)
     {
@@ -401,32 +401,32 @@ obdn_LoadImageData(Obdn_Memory* memory, int w, int h, uint8_t channelCount,
         barrier.dstAccessMask = 0;
         barrier.srcStageFlags = VK_PIPELINE_STAGE_TRANSFER_BIT;
         barrier.dstStageFlags = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
-        obdn_CmdTransitionImageLayout(cmd.buffer, barrier,
+        onyx_CmdTransitionImageLayout(cmd.buffer, barrier,
                                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
                                       layout, mipLevels, image->handle);
         image->layout = layout;
     }
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_FreeBufferRegion(&stagingBuffer);
+    onyx_FreeBufferRegion(&stagingBuffer);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
     if (createMips)
         createMipMaps(memory->instance, VK_FILTER_LINEAR, layout, image);
 }
 
 void
-obdn_LoadImage(Obdn_Memory* memory, const char* filename,
+onyx_LoadImage(Onyx_Memory* memory, const char* filename,
                const uint8_t channelCount, const VkFormat format,
                VkImageUsageFlags        usageFlags,
                const VkImageAspectFlags aspectMask,
                const VkSampleCountFlags sampleCount, const VkFilter filter,
                const VkImageLayout layout, const bool createMips,
-               Obdn_MemoryType memoryType, Image* image)
+               Onyx_MemoryType memoryType, Image* image)
 {
     assert(channelCount < 5);
     int            w, h, n;
@@ -434,7 +434,7 @@ obdn_LoadImage(Obdn_Memory* memory, const char* filename,
     assert(data);
     assert(image);
     assert(image->size == 0);
-    obdn_LoadImageData(memory, w, h, channelCount, data, format, usageFlags,
+    onyx_LoadImageData(memory, w, h, channelCount, data, format, usageFlags,
                        aspectMask, sampleCount, filter, layout, createMips,
                        memoryType, image);
 
@@ -442,16 +442,16 @@ obdn_LoadImage(Obdn_Memory* memory, const char* filename,
 }
 
 void
-obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image,
-               Obdn_V_ImageFileType fileType, VkImageLayout image_layout,
+onyx_SaveImage(Onyx_Memory* memory, Onyx_Image* image,
+               Onyx_V_ImageFileType fileType, VkImageLayout image_layout,
                const char* filename)
 {
-    Obdn_BufferRegion region = obdn_RequestBufferRegion(
+    Onyx_BufferRegion region = onyx_RequestBufferRegion(
         memory, image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-        OBDN_MEMORY_HOST_TRANSFER_TYPE);
+        ONYX_MEMORY_HOST_TRANSFER_TYPE);
 
     VkImageLayout origLayout = image_layout;
-    obdn_TransitionImageLayout(origLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+    onyx_TransitionImageLayout(origLayout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
                                image);
 
     const VkImageSubresourceLayers subRes = {
@@ -475,27 +475,27 @@ obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image,
                                        .bufferImageHeight = 0,
                                        .bufferRowLength   = 0};
 
-    Obdn_Command cmd =
-        obdn_CreateCommand(memory->instance, OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Onyx_Command cmd =
+        onyx_CreateCommand(memory->instance, ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     DPRINT("Copying image to host...\n");
     vkCmdCopyImageToBuffer(cmd.buffer, image->handle,
                            VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region.buffer,
                            1, &imgCopy);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 
-    obdn_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout,
+    onyx_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, origLayout,
                                image);
 
     DPRINT("Copying complete.\n");
-    obdn_Announce("Writing out to jpg...\n");
+    onyx_Announce("Writing out to jpg...\n");
 
     char        strbuf[256];
     const char* pwd = getenv("PWD");
@@ -511,12 +511,12 @@ obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image,
     int r;
     switch (fileType)
     {
-    case OBDN_V_IMAGE_FILE_TYPE_PNG: {
+    case ONYX_V_IMAGE_FILE_TYPE_PNG: {
         r = stbi_write_png(strbuf, image->extent.width, image->extent.height, 4,
                            region.hostData, 0);
         break;
     }
-    case OBDN_V_IMAGE_FILE_TYPE_JPG: {
+    case ONYX_V_IMAGE_FILE_TYPE_JPG: {
         r = stbi_write_jpg(strbuf, image->extent.width, image->extent.height, 4,
                            region.hostData, 0);
         break;
@@ -525,18 +525,18 @@ obdn_SaveImage(Obdn_Memory* memory, Obdn_Image* image,
 
     assert(0 != r);
 
-    obdn_FreeBufferRegion(&region);
+    onyx_FreeBufferRegion(&region);
 
-    obdn_Announce("Image saved to %s!\n", strbuf);
+    onyx_Announce("Image saved to %s!\n", strbuf);
 }
 
 void
-obdn_v_ClearColorImage(Obdn_Image* image)
+onyx_v_ClearColorImage(Onyx_Image* image)
 {
-    Obdn_Command cmd = obdn_CreateCommand(image->pChain->memory->instance,
-                                          OBDN_V_QUEUE_GRAPHICS_TYPE);
+    Onyx_Command cmd = onyx_CreateCommand(image->pChain->memory->instance,
+                                          ONYX_V_QUEUE_GRAPHICS_TYPE);
 
-    obdn_BeginCommandBuffer(cmd.buffer);
+    onyx_BeginCommandBuffer(cmd.buffer);
 
     VkClearColorValue clearColor = {
         .float32[0] = 0,
@@ -554,15 +554,15 @@ obdn_v_ClearColorImage(Obdn_Image* image)
     vkCmdClearColorImage(cmd.buffer, image->handle, image->layout, &clearColor,
                          1, &range);
 
-    obdn_EndCommandBuffer(cmd.buffer);
+    onyx_EndCommandBuffer(cmd.buffer);
 
-    obdn_SubmitAndWait(&cmd, 0);
+    onyx_SubmitAndWait(&cmd, 0);
 
-    obdn_DestroyCommand(cmd);
+    onyx_DestroyCommand(cmd);
 }
 
 VkImageSubresourceRange
-obdn_GetImageSubresourceRange(const Obdn_Image* img)
+onyx_GetImageSubresourceRange(const Onyx_Image* img)
 {
-    return obdn_ImageSubresourceRange(img->aspectMask, 0, img->mipLevels, 0, 0);
+    return onyx_ImageSubresourceRange(img->aspectMask, 0, img->mipLevels, 0, 0);
 }

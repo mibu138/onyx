@@ -1,5 +1,5 @@
-#ifndef OBSIDIAN_H
-#define OBSIDIAN_H
+#ifndef ONYX_H
+#define ONYX_H
 
 #ifdef __cplusplus
 extern "C" {
@@ -18,28 +18,28 @@ extern "C" {
 #include "file.h"
 #include "pipeline.h"
 
-typedef VkDevice Obdn_Device;
+typedef VkDevice Onyx_Device;
 
 typedef struct {
-    Obdn_Instance* instance;
-    Obdn_Memory*   memory;
-    Obdn_Device    device;   
-} Obdn_Orb;
+    Onyx_Instance* instance;
+    Onyx_Memory*   memory;
+    Onyx_Device    device;   
+} Onyx_Orb;
 
-static inline int obdn_CreateOrb(const Obdn_InstanceParms* ip,
+static inline int onyx_CreateOrb(const Onyx_InstanceParms* ip,
     const uint32_t hostGraphicsBufferMB,
     const uint32_t deviceGraphicsBufferMB,
     const uint32_t deviceGraphicsImageMB, const uint32_t hostTransferBufferMB,
     const uint32_t deviceExternalGraphicsImageMB, 
-    Obdn_Orb* orb)
+    Onyx_Orb* orb)
 {
-    orb->instance = obdn_AllocInstance();
-    orb->memory   = obdn_AllocMemory();
-    obdn_CreateInstance(ip, orb->instance);
-    obdn_CreateMemory(orb->instance, hostGraphicsBufferMB,
+    orb->instance = onyx_AllocInstance();
+    orb->memory   = onyx_AllocMemory();
+    onyx_CreateInstance(ip, orb->instance);
+    onyx_CreateMemory(orb->instance, hostGraphicsBufferMB,
         deviceGraphicsBufferMB, deviceGraphicsImageMB,
         hostTransferBufferMB, deviceExternalGraphicsImageMB, orb->memory);
-    orb->device = obdn_GetDevice(orb->instance);
+    orb->device = onyx_GetDevice(orb->instance);
     return 0;
 }
 
@@ -47,4 +47,4 @@ static inline int obdn_CreateOrb(const Obdn_InstanceParms* ip,
 }
 #endif
 
-#endif /* end of include guard: OBSIDIAN_H */
+#endif /* end of include guard: ONYX_H */

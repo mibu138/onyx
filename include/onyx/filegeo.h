@@ -1,5 +1,5 @@
-#ifndef OBSIDIAN_FILE_GEO_H
-#define OBSIDIAN_FILE_GEO_H
+#ifndef ONYX_FILE_GEO_H
+#define ONYX_FILE_GEO_H
 
 #include <stdint.h>
 
@@ -12,8 +12,8 @@ typedef struct {
     char**    attrNames;
     void**    attributes;
     uint32_t* indices;
-} Obdn_FileGeo;
+} Onyx_FileGeo;
 
 
-#endif /* end of include guard: OBSIDIAN_FILE_GEO_H */
+#endif /* end of include guard: ONYX_FILE_GEO_H */
 

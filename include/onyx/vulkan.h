@@ -1,5 +1,5 @@
-#ifndef OBDN_VULKAN_H
-#define OBDN_VULKAN_H
+#ifndef ONYX_VULKAN_H
+#define ONYX_VULKAN_H
 
 #ifdef UNIX
 #define VK_USE_PLATFORM_XCB_KHR
@@ -13,7 +13,7 @@
 #include <vulkan/vulkan.h>
 
 static inline void
-obdn_VulkanErrorMessage(VkResult result, const char* filestr, int linenum,
+onyx_VulkanErrorMessage(VkResult result, const char* filestr, int linenum,
                         const char* funcstr)
 {
     if (result != VK_SUCCESS)
@@ -75,42 +75,42 @@ obdn_VulkanErrorMessage(VkResult result, const char* filestr, int linenum,
 // note VkResults >= 0 are considered success codes.
 #ifndef NDEBUG
 #define V_ASSERT(expr)                                                         \
-    (obdn_VulkanErrorMessage(expr, __FILE__, __LINE__, __func__))
+    (onyx_VulkanErrorMessage(expr, __FILE__, __LINE__, __func__))
 #else
 #define V_ASSERT(expr) (expr)
 #endif
 
-#define OBDN_VK_DYNAMIC_STATE_CREATE_INFO()                                    \
+#define ONYX_VK_DYNAMIC_STATE_CREATE_INFO()                                    \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO          \
     }
-#define OBDN_VK_DESCRIPTOR_SET_LAYOUT_CREATE_INFO()                            \
+#define ONYX_VK_DESCRIPTOR_SET_LAYOUT_CREATE_INFO()                            \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO           \
     }
-#define OBDN_VK_PIPELINE_LAYOUT_CREATE_INFO()                                  \
+#define ONYX_VK_PIPELINE_LAYOUT_CREATE_INFO()                                  \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO                 \
     }
-#define OBDN_VK_RENDER_PASS_BEGIN_INFO()                                       \
+#define ONYX_VK_RENDER_PASS_BEGIN_INFO()                                       \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO                      \
     }
-#define OBDN_VK_SUBMIT_INFO()                                                  \
+#define ONYX_VK_SUBMIT_INFO()                                                  \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO                                 \
     }
-#define OBDN_VK_FENCE_CREATE_INFO()                                            \
+#define ONYX_VK_FENCE_CREATE_INFO()                                            \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO                           \
     }
-#define OBDN_VK_IMAGE_MEMORY_BARRIER()                                         \
+#define ONYX_VK_IMAGE_MEMORY_BARRIER()                                         \
     {                                                                          \
         .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER                        \
     }
 
 static inline VkDescriptorSetLayoutBinding
-obdn_VkDescriptorSetLayoutBinding(uint32_t           binding,
+onyx_VkDescriptorSetLayoutBinding(uint32_t           binding,
                                   VkDescriptorType   descriptorType,
                                   uint32_t           descriptorCount,
                                   VkShaderStageFlags stageFlags,
@@ -125,7 +125,7 @@ obdn_VkDescriptorSetLayoutBinding(uint32_t           binding,
 }
 
 static inline VkShaderModuleCreateInfo
-obdn_ShaderModuleCreateInfo(size_t codeSize, const void* pCode)
+onyx_ShaderModuleCreateInfo(size_t codeSize, const void* pCode)
 {
     return (VkShaderModuleCreateInfo){
         .sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -134,7 +134,7 @@ obdn_ShaderModuleCreateInfo(size_t codeSize, const void* pCode)
 }
 
 static inline VkPipelineShaderStageCreateInfo
-obdn_PipelineShaderStageCreateInfo(
+onyx_PipelineShaderStageCreateInfo(
     VkShaderStageFlagBits stage, VkShaderModule module, const char* entryName,
     const VkSpecializationInfo* pSpecializationInfo /*can be NULL*/)
 {
@@ -147,7 +147,7 @@ obdn_PipelineShaderStageCreateInfo(
 }
 
 static inline VkPipelineVertexInputStateCreateInfo
-obdn_PipelineVertexInputStateCreateInfo(
+onyx_PipelineVertexInputStateCreateInfo(
     uint32_t                                 vertexBindingDescriptionCount,
     const VkVertexInputBindingDescription*   pVertexBindingDescriptions,
     uint32_t                                 vertexAttributeDescriptionCount,
@@ -162,7 +162,7 @@ obdn_PipelineVertexInputStateCreateInfo(
 }
 
 static inline VkVertexInputBindingDescription
-obdn_VertexInputBindingDescription(uint32_t binding, uint32_t stride,
+onyx_VertexInputBindingDescription(uint32_t binding, uint32_t stride,
                                    VkVertexInputRate inputRate)
 {
     VkVertexInputBindingDescription d = {};
@@ -173,7 +173,7 @@ obdn_VertexInputBindingDescription(uint32_t binding, uint32_t stride,
 }
 
 static inline VkVertexInputAttributeDescription
-obdn_VertexInputAttributeDescription(uint32_t location, uint32_t binding,
+onyx_VertexInputAttributeDescription(uint32_t location, uint32_t binding,
                                      VkFormat format, uint32_t offset)
 {
     VkVertexInputAttributeDescription d = {};
@@ -185,7 +185,7 @@ obdn_VertexInputAttributeDescription(uint32_t location, uint32_t binding,
 }
 
 static inline VkPipelineInputAssemblyStateCreateInfo
-obdn_PipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology,
+onyx_PipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology,
                                           VkBool32 primitiveRestartEnable)
 {
     VkPipelineInputAssemblyStateCreateInfo c = {};
@@ -196,7 +196,7 @@ obdn_PipelineInputAssemblyStateCreateInfo(VkPrimitiveTopology topology,
 }
 
 static inline VkPipelineTessellationStateCreateInfo
-obdn_PipelineTessellationStateCreateInfo(uint32_t patchControlPoints)
+onyx_PipelineTessellationStateCreateInfo(uint32_t patchControlPoints)
 {
     VkPipelineTessellationStateCreateInfo c = {};
     c.sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
@@ -205,7 +205,7 @@ obdn_PipelineTessellationStateCreateInfo(uint32_t patchControlPoints)
 }
 
 static inline VkPipelineViewportStateCreateInfo
-obdn_PipelineViewportStateCreateInfo(uint32_t          viewportCount,
+onyx_PipelineViewportStateCreateInfo(uint32_t          viewportCount,
                                      const VkViewport* pViewports,
                                      uint32_t          scissorCount,
                                      const VkRect2D*   pScissors)
@@ -220,7 +220,7 @@ obdn_PipelineViewportStateCreateInfo(uint32_t          viewportCount,
 }
 
 static inline VkPipelineRasterizationStateCreateInfo
-obdn_PipelineRasterizationStateCreateInfo(
+onyx_PipelineRasterizationStateCreateInfo(
     VkBool32 depthClampEnable, VkBool32 rasterizerDiscardEnable,
     VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace,
     VkBool32 depthBiasEnable, float depthBiasConstantFactor,
@@ -242,7 +242,7 @@ obdn_PipelineRasterizationStateCreateInfo(
 }
 
 static inline VkPipelineMultisampleStateCreateInfo
-obdn_PipelineMultisampleStateCreateInfo(
+onyx_PipelineMultisampleStateCreateInfo(
     VkSampleCountFlagBits rasterizationSamples, VkBool32 sampleShadingEnable,
     float minSampleShading, const VkSampleMask* pSampleMask,
     VkBool32 alphaToCoverageEnable, VkBool32 alphaToOneEnable)
@@ -259,7 +259,7 @@ obdn_PipelineMultisampleStateCreateInfo(
 }
 
 static inline VkPipelineDepthStencilStateCreateInfo
-obdn_PipelineDepthStencilStateCreateInfo(
+onyx_PipelineDepthStencilStateCreateInfo(
     VkBool32 depthTestEnable, VkBool32 depthWriteEnable,
     VkCompareOp depthCompareOp, VkBool32 depthBoundsTestEnable,
     VkBool32 stencilTestEnable, VkStencilOpState front, VkStencilOpState back,
@@ -280,7 +280,7 @@ obdn_PipelineDepthStencilStateCreateInfo(
 }
 
 static inline VkPipelineColorBlendStateCreateInfo
-obdn_PipelineColorBlendStateCreateInfo(
+onyx_PipelineColorBlendStateCreateInfo(
     VkBool32 logicOpEnable, VkLogicOp logicOp, uint32_t attachmentCount,
     const VkPipelineColorBlendAttachmentState* pAttachments,
     float                                      blendConstants[4])
@@ -297,7 +297,7 @@ obdn_PipelineColorBlendStateCreateInfo(
 }
 
 static inline VkPipelineColorBlendAttachmentState
-obdn_PipelineColorBlendAttachmentState(
+onyx_PipelineColorBlendAttachmentState(
     VkBool32 blendEnable, VkBlendFactor srcColorBlendFactor,
     VkBlendFactor dstColorBlendFactor, VkBlendOp colorBlendOp,
     VkBlendFactor srcAlphaBlendFactor, VkBlendFactor dstAlphaBlendFactor,
@@ -316,7 +316,7 @@ obdn_PipelineColorBlendAttachmentState(
 }
 
 static inline VkPipelineDynamicStateCreateInfo
-obdn_PipelineDynamicStateCreateInfo(uint32_t              dynamicStateCount,
+onyx_PipelineDynamicStateCreateInfo(uint32_t              dynamicStateCount,
                                     const VkDynamicState* pDynamicStates)
 {
     VkPipelineDynamicStateCreateInfo c = {};
@@ -327,7 +327,7 @@ obdn_PipelineDynamicStateCreateInfo(uint32_t              dynamicStateCount,
 }
 
 static inline VkGraphicsPipelineCreateInfo
-obdn_GraphicsPipelineCreateInfo(
+onyx_GraphicsPipelineCreateInfo(
     uint32_t stageCount, const VkPipelineShaderStageCreateInfo* pStages,
     const VkPipelineVertexInputStateCreateInfo*   pVertexInputState,
     const VkPipelineInputAssemblyStateCreateInfo* pInputAssemblyState,
@@ -363,7 +363,7 @@ obdn_GraphicsPipelineCreateInfo(
 }
 
 static inline VkAttachmentDescription
-obdn_AttachmentDescription(VkFormat format, VkSampleCountFlagBits samples,
+onyx_AttachmentDescription(VkFormat format, VkSampleCountFlagBits samples,
                            VkAttachmentLoadOp  loadOp,
                            VkAttachmentStoreOp storeOp,
                            VkAttachmentLoadOp  stencilLoadOp,
@@ -384,7 +384,7 @@ obdn_AttachmentDescription(VkFormat format, VkSampleCountFlagBits samples,
 }
 
 static inline VkAttachmentReference
-obdn_AttachmentReference(uint32_t attachment, VkImageLayout layout)
+onyx_AttachmentReference(uint32_t attachment, VkImageLayout layout)
 {
     VkAttachmentReference c = {};
     c.attachment            = attachment;
@@ -393,7 +393,7 @@ obdn_AttachmentReference(uint32_t attachment, VkImageLayout layout)
 }
 
 static inline VkSubpassDescription
-obdn_SubpassDescription(VkPipelineBindPoint          pipelineBindPoint,
+onyx_SubpassDescription(VkPipelineBindPoint          pipelineBindPoint,
                         uint32_t                     inputAttachmentCount,
                         const VkAttachmentReference* pInputAttachments,
                         uint32_t                     colorAttachmentCount,
@@ -417,7 +417,7 @@ obdn_SubpassDescription(VkPipelineBindPoint          pipelineBindPoint,
 }
 
 static inline VkSubpassDependency
-obdn_SubpassDependency(uint32_t srcSubpass, uint32_t dstSubpass,
+onyx_SubpassDependency(uint32_t srcSubpass, uint32_t dstSubpass,
                        VkPipelineStageFlags srcStageMask,
                        VkPipelineStageFlags dstStageMask,
                        VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask,
@@ -435,7 +435,7 @@ obdn_SubpassDependency(uint32_t srcSubpass, uint32_t dstSubpass,
 }
 
 static inline VkRenderPassCreateInfo
-obdn_RenderPassCreateInfo(uint32_t                       attachmentCount,
+onyx_RenderPassCreateInfo(uint32_t                       attachmentCount,
                           const VkAttachmentDescription* pAttachments,
                           uint32_t                       subpassCount,
                           const VkSubpassDescription*    pSubpasses,
@@ -454,7 +454,7 @@ obdn_RenderPassCreateInfo(uint32_t                       attachmentCount,
 }
 
 static inline VkRenderPassBeginInfo
-obdn_RenderPassBeginInfo(VkRenderPass renderPass, VkFramebuffer framebuffer,
+onyx_RenderPassBeginInfo(VkRenderPass renderPass, VkFramebuffer framebuffer,
                          VkRect2D renderArea, uint32_t clearValueCount,
                          const VkClearValue* pClearValues)
 {
@@ -469,7 +469,7 @@ obdn_RenderPassBeginInfo(VkRenderPass renderPass, VkFramebuffer framebuffer,
 }
 
 static inline VkDescriptorBufferInfo
-obdn_DescriptorBufferInfo(VkBuffer buffer, VkDeviceSize offset,
+onyx_DescriptorBufferInfo(VkBuffer buffer, VkDeviceSize offset,
                           VkDeviceSize range)
 {
     VkDescriptorBufferInfo c = {};
@@ -480,7 +480,7 @@ obdn_DescriptorBufferInfo(VkBuffer buffer, VkDeviceSize offset,
 }
 
 static inline VkDescriptorImageInfo
-obdn_DescriptorImageInfo(VkSampler sampler, VkImageView imageView,
+onyx_DescriptorImageInfo(VkSampler sampler, VkImageView imageView,
                          VkImageLayout imageLayout)
 {
     VkDescriptorImageInfo c = {};
@@ -491,7 +491,7 @@ obdn_DescriptorImageInfo(VkSampler sampler, VkImageView imageView,
 }
 
 static inline VkWriteDescriptorSet
-obdn_WriteDescriptorSet(VkDescriptorSet dstSet, uint32_t dstBinding,
+onyx_WriteDescriptorSet(VkDescriptorSet dstSet, uint32_t dstBinding,
                         uint32_t dstArrayElement, uint32_t descriptorCount,
                         VkDescriptorType              descriptorType,
                         const VkDescriptorImageInfo*  pImageInfo,
@@ -512,7 +512,7 @@ obdn_WriteDescriptorSet(VkDescriptorSet dstSet, uint32_t dstBinding,
 }
 
 static inline VkImageSubresourceRange
-obdn_ImageSubresourceRange(VkImageAspectFlags aspectMask, uint32_t baseMipLevel,
+onyx_ImageSubresourceRange(VkImageAspectFlags aspectMask, uint32_t baseMipLevel,
                            uint32_t levelCount, uint32_t baseArrayLayer,
                            uint32_t layerCount)
 {
@@ -526,7 +526,7 @@ obdn_ImageSubresourceRange(VkImageAspectFlags aspectMask, uint32_t baseMipLevel,
 }
 
 static inline VkImageMemoryBarrier
-obdn_ImageMemoryBarrier(VkAccessFlags srcAccessMask,
+onyx_ImageMemoryBarrier(VkAccessFlags srcAccessMask,
                         VkAccessFlags dstAccessMask, VkImageLayout oldLayout,
                         VkImageLayout newLayout, uint32_t srcQueueFamilyIndex,
                         uint32_t dstQueueFamilyIndex, VkImage image,
@@ -546,7 +546,7 @@ obdn_ImageMemoryBarrier(VkAccessFlags srcAccessMask,
 }
 
 static inline VkMemoryBarrier
-obdn_MemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)
+onyx_MemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)
 {
     VkMemoryBarrier c = {};
     c.sType           = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -557,7 +557,7 @@ obdn_MemoryBarrier(VkAccessFlags srcAccessMask, VkAccessFlags dstAccessMask)
 }
 
 static inline VkSubmitInfo
-obdn_SubmitInfo(uint32_t waitSemaphoreCount, const VkSemaphore* pWaitSemaphores,
+onyx_SubmitInfo(uint32_t waitSemaphoreCount, const VkSemaphore* pWaitSemaphores,
                 const VkPipelineStageFlags* pWaitDstStageMask,
                 uint32_t                    commandBufferCount,
                 const VkCommandBuffer*      pCommandBuffers,
@@ -577,7 +577,7 @@ obdn_SubmitInfo(uint32_t waitSemaphoreCount, const VkSemaphore* pWaitSemaphores,
 }
 
 static inline VkCommandBufferSubmitInfo
-obdn_CommandBufferSubmitInfo(VkCommandBuffer commandBuffer, uint32_t deviceMask)
+onyx_CommandBufferSubmitInfo(VkCommandBuffer commandBuffer, uint32_t deviceMask)
 {
     VkCommandBufferSubmitInfo c = {};
     c.sType                     = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
@@ -588,7 +588,7 @@ obdn_CommandBufferSubmitInfo(VkCommandBuffer commandBuffer, uint32_t deviceMask)
 }
 
 static inline VkSemaphoreSubmitInfo
-obdn_SemaphoreSubmitInfo(
+onyx_SemaphoreSubmitInfo(
     VkSemaphore              semaphore,
     uint64_t                 value,
     VkPipelineStageFlags2    stageMask,
@@ -606,7 +606,7 @@ obdn_SemaphoreSubmitInfo(
 }
 
 static inline VkSubmitInfo2
-obdn_SubmitInfo2(VkSubmitFlags flags, uint32_t waitSemaphoreInfoCount,
+onyx_SubmitInfo2(VkSubmitFlags flags, uint32_t waitSemaphoreInfoCount,
                  const VkSemaphoreSubmitInfo*     pWaitSemaphoreInfos,
                  uint32_t                         commandBufferInfoCount,
                  const VkCommandBufferSubmitInfo* pCommandBufferInfos,
@@ -626,4 +626,4 @@ obdn_SubmitInfo2(VkSubmitFlags flags, uint32_t waitSemaphoreInfoCount,
     return c;
 }
 
-#endif /* end of include guard: OBDN_VULKAN_H */
+#endif /* end of include guard: ONYX_VULKAN_H */

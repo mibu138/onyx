@@ -1,11 +1,11 @@
 cmake_minimum_required(VERSION 3.17)
 
-project(Obsidian VERSION 0.1.0)
+project(Onyx VERSION 0.1.0)
 
-option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
-option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
-option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
-option(OBSIDIAN_ENABLE_SHADERC   "Access shaderc functionality" OFF)
+option(ONYX_SKIP_EXAMPLES "Skip building examples" OFF)
+option(ONYX_SKIP_TESTS    "Skip building tests" OFF)
+option(ONYX_BUILD_GLSLC   "Build glslc executable" OFF)
+option(ONYX_ENABLE_SHADERC   "Access shaderc functionality" OFF)
 
 if(NOT DEFINED HELL_URL)
     set(HELL_URL https://github.com/mokchira/hell)
@@ -19,22 +19,21 @@ list(APPEND CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
 
 include(FetchContent)
 include(fetch_shaderc)
-set(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps)
 
 FetchContent_Declare(
     hell
     GIT_REPOSITORY ${HELL_URL}
-    GIT_TAG master)
+    GIT_TAG onyx)
 
 FetchContent_Declare(
     coal
     GIT_REPOSITORY ${COAL_URL}
-    GIT_TAG master)
+    GIT_TAG onyx)
 
 include(GNUInstallDirs)
 enable_testing()
 
-if (${OBSIDIAN_ENABLE_SHADERC})
+if (${ONYX_ENABLE_SHADERC})
     fetch_shaderc()
     set(GLC glslc_exe)
 endif()
@@ -56,10 +55,10 @@ endif()
 if (NOT DEFINED GLC)
     find_program(GLSLC glslc)
     if (GLSLC STREQUAL "GLSLC-NOTFOUND")
-        if (OBSIDIAN_BUILD_GLSLC AND NOT ${OBSIDIAN_ENABLE_SHADERC})
+        if (ONYX_BUILD_GLSLC AND NOT ${ONYX_ENABLE_SHADERC})
             fetch_shaderc()
         else()
-            message(FATAL_ERROR "Cannot find glslc. Set OBSIDIAN_BUILD_GLSLC=ON to build it.")
+            message(FATAL_ERROR "Cannot find glslc. Set ONYX_BUILD_GLSLC=ON to build it.")
         endif()
     else()
         message("Using system glslc ${GLSLC}")
@@ -71,15 +70,15 @@ endif()
 
 find_package(Freetype)
 
-add_executable(Obsidian::glslc ALIAS glslc_exe)
+add_executable(Onyx::glslc ALIAS glslc_exe)
 
 FetchContent_MakeAvailable(hell coal)
 
 add_subdirectory(src)
-if(NOT ${OBSIDIAN_SKIP_EXAMPLES})
+if(NOT ${ONYX_SKIP_EXAMPLES})
     add_subdirectory(examples)
 endif()
-if(NOT ${OBSIDIAN_SKIP_TESTS})
+if(NOT ${ONYX_SKIP_TESTS})
     add_subdirectory(tests)
 endif()
 

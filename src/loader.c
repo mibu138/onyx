@@ -138,7 +138,7 @@ VKAPI_ATTR void VKAPI_CALL vkCmdTraceRaysKHR(
             width, height, depth);
 }
 
-void obdn_v_LoadFunctions(const VkDevice device)
+void onyx_v_LoadFunctions(const VkDevice device)
 {
     pfn_vkGetAccelerationStructureBuildSizesKHR = (PFN_vkGetAccelerationStructureBuildSizesKHR)
         vkGetDeviceProcAddr(device, "vkGetAccelerationStructureBuildSizesKHR");
@@ -165,5 +165,5 @@ void obdn_v_LoadFunctions(const VkDevice device)
     pfn_vkGetSemaphoreFdKHR = (PFN_vkGetSemaphoreFdKHR)
         vkGetDeviceProcAddr(device, "vkGetSemaphoreFdKHR");
 #endif
-    hell_DebugPrint(OBDN_DEBUG_TAG_VK, "======= Vulkan Functions loaded ===== \n");
+    hell_DebugPrint(ONYX_DEBUG_TAG_VK, "======= Vulkan Functions loaded ===== \n");
 }

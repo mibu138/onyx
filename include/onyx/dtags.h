@@ -1,0 +1,15 @@
+// debug tags
+
+#define ONYX_DEBUG_TAG_MEM           "ONYX_MEM"
+#define ONYX_DEBUG_TAG_SCENE         "ONYX_SCENE"
+#define ONYX_DEBUG_TAG_RAYTRACE      "ONYX_RT"
+#define ONYX_DEBUG_TAG_UI            "ONYX_UI"
+#define ONYX_DEBUG_TAG_VK            "ONYX_VK"
+#define ONYX_DEBUG_TAG_IMG           "ONYX_IMG"
+#define ONYX_DEBUG_TAG_SWAP          "ONYX_SWAP"
+#define ONYX_DEBUG_TAG_GRAPHIC_PIPE  "ONYX_GPIPE"
+#define ONYX_DEBUG_TAG_RAYTRACE_PIPE "ONYX_RPIPE"
+#define ONYX_DEBUG_TAG_COMPUTE_PIPE  "ONYX_CPIPE"
+#define ONYX_DEBUG_TAG_PIPE          "ONYX_PIPE"
+#define ONYX_DEBUG_TAG_SHADE         "ONYX_SHADE"
+#define ONYX_DEBUG_TAG_GEO           "ONYX_GEO"
