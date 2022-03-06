@@ -95,7 +95,7 @@ void init(void)
     obdn_PrintGeo(&triangle);
 
     // call this render pass joe
-    obdn_CreateRenderPass_ColorDepth(device, 
+    obdn_CreateRenderPass_ColorDepth(device,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
         VK_ATTACHMENT_LOAD_OP_CLEAR, VK_ATTACHMENT_STORE_OP_STORE,
@@ -116,9 +116,9 @@ void init(void)
     drawCommands[1] = obdn_CreateCommand(oInstance, OBDN_V_QUEUE_GRAPHICS_TYPE);
 }
 
-#define TARGET_RENDER_INTERVAL 500 
+#define TARGET_RENDER_INTERVAL 500
 
-void draw(u64 fi, u64 dt)
+void draw(i64 fi, i64 dt)
 {
     static Hell_Tick timeOfLastRender = 0;
     static Hell_Tick timeSinceLastRender = TARGET_RENDER_INTERVAL;
@@ -129,8 +129,7 @@ void draw(u64 fi, u64 dt)
     timeOfLastRender = hell_Time();
     timeSinceLastRender = 0;
 
-    VkFence fence = VK_NULL_HANDLE;
-    const Obdn_Frame* fb = obdn_AcquireSwapchainFrame(swapchain, &fence, &acquireSemaphore);
+    const Obdn_Frame* fb = obdn_AcquireSwapchainFrame(swapchain, VK_NULL_HANDLE, acquireSemaphore);
 
     if (fb->dirty)
         onSwapchainRecreate();
@@ -138,7 +137,7 @@ void draw(u64 fi, u64 dt)
     Obdn_Command cmd = drawCommands[frameCounter % 2];
 
     obdn_ResetCommand(&cmd);
-    
+
     obdn_BeginCommandBuffer(cmd.buffer);
 
     const VkExtent2D dim = obdn_GetSwapchainExtent(swapchain);
@@ -180,7 +179,7 @@ int main(int argc, char *argv[])
     hell_CreateGrimoire(eventQueue, grimoire);
     hell_CreateWindow(eventQueue, 666, 666, 0, window);
     hell_CreateHellmouth(grimoire, eventQueue, console, 1, &window, draw, NULL, hellmouth);
-    hell_SetVar(grimoire, "maxFps", "1000", 0);
+    hell_SetVar(grimoire, "maxFps", 1000, 0);
     hell_Print("Starting hello triangle.\n");
 
     oInstance = obdn_AllocInstance();
@@ -209,7 +208,7 @@ int main(int argc, char *argv[])
 
     VkImageView views[2] = {obdn_GetSwapchainImageView(swapchain, 0), obdn_GetSwapchainImageView(swapchain, 1)};
 
-    obdn_CreateUI(oMemory, eventQueue, window, obdn_GetSwapchainFormat(swapchain), 
+    obdn_CreateUI(oMemory, eventQueue, window, obdn_GetSwapchainFormat(swapchain),
             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
                 VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
                 2,

@@ -1,33 +1,36 @@
-list(APPEND SRCS 
-    video.c      
-    memory.c     
-    image.c      
-    command.c    
-    loader.c     
-    swapchain.c  
-    render.c     
+list(APPEND SRCS
+    video.c
+    memory.c
+    image.c
+    command.c
+    loader.c
+    swapchain.c
+    render.c
     frame.c
-    pipeline.c   
-    renderpass.c 
-    raytrace.c   
-    geo.c        
-    scene.c      
-    file.c       
-    common.c       
+    pipeline.c
+    renderpass.c
+    raytrace.c
+    geo.c
+    scene.c
+    file.c
+    common.c
     util.c
     locations.c
     mikktspace.c
-
     )
-list(APPEND DEPS 
-    Vulkan::Vulkan)
-list(APPEND PRIVATE_DEPS 
-    thirdparty)
+list(APPEND DEPS
+    Vulkan::Vulkan
+    )
+#private. users should set their own versions for these and not rely on ours.
+list(APPEND PRIVATE_DEPS
+    Hell::Hell
+    Coal::Coal
+    )
 if(FREETYPE_FOUND)
     list(APPEND SRCS
-	ui.c         
+	ui.c
 	text.c)
-    list(APPEND DEPS 
+    list(APPEND DEPS
     Freetype::Freetype)
     set(FT2_DIR ${FREETYPE_INCLUDE_DIR_ft2build})
 endif()
@@ -43,8 +46,8 @@ target_include_directories(obsidian
     PRIVATE "../include/obsidian"
     INTERFACE "../include")
 target_link_libraries(obsidian
-    PRIVATE ${PRIVATE_DEPS}  
-    PUBLIC ${DEPS} Hell::Hell Coal::Coal)
+    PRIVATE ${PRIVATE_DEPS}
+    PUBLIC ${DEPS})
 if (${OBSIDIAN_ENABLE_SHADERC})
 target_compile_definitions(obsidian PUBLIC OBSIDIAN_SHADERC_ENABLED)
 endif()
@@ -60,3 +63,5 @@ elseif(WIN32)
 else()
     message(FATAL_ERROR "Need additional platform checks if not on unix.")
 endif()
+
+add_subdirectory(shaders)

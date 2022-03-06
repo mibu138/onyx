@@ -6,11 +6,6 @@ option(OBSIDIAN_SKIP_EXAMPLES "Skip building examples" OFF)
 option(OBSIDIAN_SKIP_TESTS    "Skip building tests" OFF)
 option(OBSIDIAN_BUILD_GLSLC   "Build glslc executable" OFF)
 option(OBSIDIAN_ENABLE_SHADERC   "Access shaderc functionality" OFF)
-option(OBSIDIAN_EXPORT_COMPILE_COMMANDS "Export compile_commands.json" ON)
-
-if (${OBSIDIAN_EXPORT_COMPILE_COMMANDS})
-    set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-endif()
 
 if(NOT DEFINED HELL_URL)
     set(HELL_URL https://github.com/mokchira/hell)
@@ -27,7 +22,7 @@ include(fetch_shaderc)
 set(FETCHCONTENT_BASE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/deps)
 
 FetchContent_Declare(
-    hell 
+    hell
     GIT_REPOSITORY ${HELL_URL}
     GIT_TAG master)
 
@@ -43,7 +38,7 @@ if (${OBSIDIAN_ENABLE_SHADERC})
     fetch_shaderc()
     set(GLC glslc_exe)
 endif()
-    
+
 find_package(Vulkan 1.2.162)
 if (NOT Vulkan_FOUND)
     FetchContent_Declare(
@@ -79,11 +74,8 @@ find_package(Freetype)
 add_executable(Obsidian::glslc ALIAS glslc_exe)
 
 FetchContent_MakeAvailable(hell coal)
-add_library(thirdparty INTERFACE)
-target_include_directories(thirdparty INTERFACE "thirdparty")
 
-add_subdirectory(source)
-add_subdirectory(shaders)
+add_subdirectory(src)
 if(NOT ${OBSIDIAN_SKIP_EXAMPLES})
     add_subdirectory(examples)
 endif()
