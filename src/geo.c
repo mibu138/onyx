@@ -8,17 +8,20 @@
 #include "render.h"
 #include <hell/common.h>
 #include <hell/debug.h>
+#include <hell/len.h>
 #include <stdlib.h>
 #include <string.h>
 
 const int CW = 1;
 
 typedef Onyx_GeoAttributeSize AttrSize;
-typedef Onyx_Geometry         Prim;
+typedef Onyx_Geometry         Geo;
 
 typedef enum {
     ONYX_R_ATTRIBUTE_SFLOAT_TYPE,
 } Onyx_R_AttributeType;
+
+static const char* g_attr_names[] = {POS_NAME, NORMAL_NAME, UV_NAME, UVW_NAME, TANGENT_NAME, SIGN_NAME, BITANGENT_NAME};
 
 #define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
@@ -89,9 +92,9 @@ mikkt_SetTSpaceBasic(const SMikkTSpaceContext* pContext,
     Vec3* tangents = onyx_GetGeoAttribute2(geo, TANGENT_NAME);
     float* signs  = onyx_GetGeoAttribute2(geo, SIGN_NAME);
 
-    tangents[v].x = fvTangent[0]; 
-    tangents[v].y = fvTangent[1]; 
-    tangents[v].z = fvTangent[2]; 
+    tangents[v].x = fvTangent[0];
+    tangents[v].y = fvTangent[1];
+    tangents[v].z = fvTangent[2];
     signs[v] = fSign;
 }
 
@@ -128,39 +131,39 @@ initPrimBuffers(Onyx_Memory* memory, VkBufferUsageFlags extraFlags,
 }
 
 static void
-printPrim(const Prim* prim)
+printPrim(const Geo* geo)
 {
     hell_Print(">>> printing Fprim info...\n");
     hell_Print(">>> attrCount %d vertexCount %d indexCount %d \n",
-               prim->attrCount, prim->vertexCount, prim->indexCount);
+               geo->attrCount, geo->vertexCount, geo->indexCount);
     hell_Print(">>> attrSizes ");
-    for (int i = 0; i < prim->attrCount; i++)
-        hell_Print("%d ", prim->attrSizes[i]);
+    for (int i = 0; i < geo->attrCount; i++)
+        hell_Print("%d ", geo->attrSizes[i]);
     hell_Print("\n>>> attrNames ");
-    for (int i = 0; i < prim->attrCount; i++)
-        hell_Print("%s ", prim->attrNames[i]);
+    for (int i = 0; i < geo->attrCount; i++)
+        hell_Print("%s ", geo->attrNames[i]);
     hell_Print("\n>>> Attributes: \n");
-    for (int i = 0; i < prim->attrCount; i++)
+    for (int i = 0; i < geo->attrCount; i++)
     {
-        const size_t offset = prim->attrOffsets[i];
-        hell_Print(">>> %s @ offset %ld: ", prim->attrNames[i], offset);
-        for (int j = 0; j < prim->vertexCount; j++)
+        const size_t offset = geo->attrOffsets[i];
+        hell_Print(">>> %s @ offset %ld: ", geo->attrNames[i], offset);
+        for (int j = 0; j < geo->vertexCount; j++)
         {
             hell_Print("{");
-            const int    dim = prim->attrSizes[i] / 4;
+            const int    dim = geo->attrSizes[i] / 4;
             const float* vals =
-                &((float*)(prim->vertexRegion.hostData + offset))[j * dim];
+                &((float*)(geo->vertexRegion.hostData + offset))[j * dim];
             assert(vals != NULL);
             for (int k = 0; k < dim; k++)
                 hell_Print("%f%s", vals[k], k == dim - 1 ? "" : ", ");
-            hell_Print("%s", j == prim->vertexCount - 1 ? "}" : "}, ");
+            hell_Print("%s", j == geo->vertexCount - 1 ? "}" : "}, ");
         }
         hell_Print("\n");
     }
     hell_Print("Indices: ");
-    for (int i = 0; i < prim->indexCount; i++)
-        hell_Print("%d%s", ((Onyx_GeoIndex*)prim->indexRegion.hostData)[i],
-                   i == prim->indexCount - 1 ? "" : ", ");
+    for (int i = 0; i < geo->indexCount; i++)
+        hell_Print("%d%s", ((Onyx_GeoIndex*)geo->indexRegion.hostData)[i],
+                   i == geo->indexCount - 1 ? "" : ", ");
     hell_Print("\n");
 }
 
@@ -513,7 +516,7 @@ onyx_CreateCubeWithTangents(Onyx_Memory* memory, const bool isClockWise)
 
     SMikkTSpaceContext mikkt_context = {.m_pInterface = &mikkt_interface,
                                         .m_pUserData  = &geo};
-    
+
     onyx_PrintGeo(&geo);
     tbool r = genTangSpaceDefault(&mikkt_context);
     assert(r);
@@ -696,6 +699,29 @@ onyx_CreateGeometry(Onyx_Memory* memory, VkBufferUsageFlags extraBufferFlags,
     initPrimBuffers(memory, extraBufferFlags, &prim);
 
     return prim;
+}
+
+Onyx_Geometry
+onyx_CreateGeometry2(Onyx_Memory* memory, VkBufferUsageFlags extraBufferFlags,
+                    const uint32_t vertCount, const uint32_t indexCount,
+                    const uint8_t attrCount, const uint8_t attrSizes[], const char* attrNames[])
+{
+    Geo g = onyx_CreateGeometry(memory, extraBufferFlags, vertCount, indexCount, attrCount, attrSizes);
+    for (int i = 0; i < attrCount; i++)
+    {
+        bool found = false;
+        for (int j = 0; j < LEN(g_attr_names); j++)
+        {
+            if (strncmp(attrNames[i], g_attr_names[j], ATTR_NAME_LEN) == 0)
+            {
+                found = true;
+                break;
+            }
+        }
+        assert(found);
+        memcpy(g.attrNames[i], attrNames[i], ATTR_NAME_LEN);
+    }
+    return g;
 }
 
 Onyx_VertexDescription

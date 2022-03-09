@@ -20,11 +20,11 @@ list(APPEND SRCS
     )
 list(APPEND DEPS
     Vulkan::Vulkan
+    Hell::Hell
+    Coal::Coal
     )
 #private. users should set their own versions for these and not rely on ours.
 list(APPEND PRIVATE_DEPS
-    Hell::Hell
-    Coal::Coal
     )
 if(FREETYPE_FOUND)
     list(APPEND SRCS

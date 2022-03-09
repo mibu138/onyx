@@ -208,7 +208,7 @@ initDebugMessenger(const VkInstance          instance,
         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
         .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT |
-#if 1
+#if 0
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
 #endif
                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT,
@@ -645,8 +645,7 @@ onyx_CreateInstance(const Onyx_InstanceParms* parms, Onyx_Instance* instance)
         enabled_instance_layer_names.count, enabled_instance_layer_names.elems,
         enabled_device_extension_names.count,
         enabled_device_extension_names.elems, parms->disableValidation,
-        enabled_validation_features.count, 
-        enabled_validation_features.elems,
+        enabled_validation_features.count, enabled_validation_features.elems,
         &instance->vkinstance);
     if (r != VK_SUCCESS)
     {
@@ -878,22 +877,16 @@ onyx_AllocInstance(void)
 }
 
 void
-onyx_QueueSubmit(
-    VkQueue                                     queue,
-    uint32_t                                    submitCount,
-    const VkSubmitInfo*                         pSubmits,
-    VkFence                                     fence)
+onyx_QueueSubmit(VkQueue queue, uint32_t submitCount,
+                 const VkSubmitInfo* pSubmits, VkFence fence)
 {
     V_ASSERT(vkQueueSubmit(queue, submitCount, pSubmits, fence));
 }
 
 void
-onyx_QueueSubmit2(
-    VkQueue                                     queue,
-    uint32_t                                    submitCount,
-    const VkSubmitInfo2*                        pSubmits,
-    VkFence                                     fence)
+onyx_QueueSubmit2(VkQueue queue, uint32_t submitCount,
+                  const VkSubmitInfo2* pSubmits, VkFence fence)
 {
     hell_Error(HELL_ERR_FATAL, "Not implemented yet\n");
-    //V_ASSERT(vkQueueSubmit2(queue, submitCount, pSubmits, fence));
+    // V_ASSERT(vkQueueSubmit2(queue, submitCount, pSubmits, fence));
 }

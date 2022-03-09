@@ -11,7 +11,7 @@
 
 static Hell_EventQueue* eventQueue;
 static Hell_Grimoire*   grimoire;
-static Hell_Hellmouth*  hellmouth;
+static Hell_Mouth*  hellmouth;
 static Hell_Console*    console;
 static Hell_Window*     window;
 

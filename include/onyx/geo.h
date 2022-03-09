@@ -62,6 +62,15 @@ Onyx_Geometry onyx_CreateGeometry(Onyx_Memory*       memory,
                                   const uint32_t     indexCount,
                                   const uint8_t      attrCount,
                                   const uint8_t      attrSizes[/*attrCount*/]);
+
+// allows passing of attrib names
+Onyx_Geometry onyx_CreateGeometry2(Onyx_Memory*       memory,
+                                  VkBufferUsageFlags extraBufferFlags,
+                                  const uint32_t     vertCount,
+                                  const uint32_t     indexCount,
+                                  const uint8_t      attrCount,
+                                  const uint8_t      attrSizes[/*attrCount*/],
+                                  const char*        attrNames[/*attrCount*/]);
 Onyx_VertexDescription
       onyx_GetVertexDescription(const uint32_t              attrCount,
                                 const Onyx_GeoAttributeSize attrSizes[/*attrCount*/]);
