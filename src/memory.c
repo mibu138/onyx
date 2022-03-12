@@ -383,12 +383,12 @@ requestBlock(const u64 size, const u64 alignment,
     assert(newBlockIndex < MAX_BLOCKS);
     assert(newBlock->inUse == false);
     // we will assume correct alignment for the first block... TODO Make sure this is enforced somehow.
-    // if the newOffset is not equal to currentOffset, we must change the currentOffset 
+    // if the newOffset is not equal to currentOffset, we must change the currentOffset
     // to the new offset, alter the size, and also add the difference in offsets to the
     // size of the previous block. This is why we check if the index is 0 and hope for the best in that case.
-    // we have already checked to make sure that the block has enough space to fit the resource given its new offset. 
+    // we have already checked to make sure that the block has enough space to fit the resource given its new offset.
     u64 diff = 0;
-    if (availInfo.index > 0 && availInfo.newOffset != curBlock->offset) 
+    if (availInfo.index > 0 && availInfo.newOffset != curBlock->offset)
     {
         diff   = availInfo.newOffset - curBlock->offset;
         curBlock->size = curBlock->size - diff;
@@ -509,12 +509,12 @@ onyx_CreateMemory(const Onyx_Instance* instance, const uint32_t hostGraphicsBuff
     VkBufferUsageFlags hostGraphicsFlags =
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
-        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT | 
+        VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
         VK_BUFFER_USAGE_TRANSFER_DST_BIT |
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
@@ -525,7 +525,7 @@ onyx_CreateMemory(const Onyx_Instance* instance, const uint32_t hostGraphicsBuff
     VkBufferUsageFlags devBufFlags =
         VK_BUFFER_USAGE_VERTEX_BUFFER_BIT |
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
-        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT | 
+        VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
@@ -616,7 +616,7 @@ onyx_RequestBufferRegion(Onyx_Memory* memory, const size_t size,
                          const Onyx_MemoryType  memType)
 {
     uint32_t alignment = alignmentForBufferUsage(memory, flags);
-    return onyx_RequestBufferRegionAligned(memory, 
+    return onyx_RequestBufferRegionAligned(memory,
         size, alignment,
         memType); // TODO: fix this. find the maximum alignment and choose that
 }
@@ -821,7 +821,7 @@ onyx_TransferToDevice(Onyx_Memory* memory, Onyx_BufferRegion* pRegion)
     assert(srcRegion.pChain ==
            &memory->blockChainHostGraphicsBuffer); // only chain it makes sense
                                                    // to transfer from
-    Onyx_BufferRegion destRegion = onyx_RequestBufferRegion(memory, 
+    Onyx_BufferRegion destRegion = onyx_RequestBufferRegion(memory,
         srcRegion.size, 0, ONYX_MEMORY_DEVICE_TYPE);
 
     onyx_CopyBufferRegion(&srcRegion, &destRegion);
@@ -963,14 +963,14 @@ Onyx_Memory* onyx_AllocMemory(void)
     return hell_Malloc(sizeof(Onyx_Memory));
 }
 
-static void 
+static void
 simpleBlockchainReport(const BlockChain* chain)
 {
     float percent = (float)chain->usedSize / chain->totalSize;
     hell_Print("Blockchain: %s Used Size: %d Total Size: %d Percent Used: %f\n", chain->name, chain->usedSize, chain->totalSize, percent);
 }
 
-void 
+void
 onyx_MemoryReportSimple(const Onyx_Memory* memory)
 {
     hell_Print("Memory Report\n");
@@ -981,7 +981,7 @@ onyx_MemoryReportSimple(const Onyx_Memory* memory)
     simpleBlockchainReport(&memory->blockChainExternalDeviceGraphicsImage);
 }
 
-void 
+void
 onyx_GetImageMemoryUsage(const Onyx_Memory* memory, uint64_t* bytes_in_use, uint64_t* total_bytes)
 {
     *bytes_in_use = memory->blockChainDeviceGraphicsImage.usedSize;
