@@ -118,4 +118,7 @@ bool onyx_GetExternalMemoryWin32Handle(const Onyx_Memory* memory, HANDLE* handle
 bool onyx_GetExternalMemoryFd(const Onyx_Memory* memory, int* fd, uint64_t* size);
 #endif
 
+void
+onyx_ResizeBufferRegion(Onyx_BufferRegion* region, size_t new_size);
+
 #endif /* end of include guard: V_MEMORY_H */

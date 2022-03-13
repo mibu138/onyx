@@ -39,7 +39,7 @@ typedef struct BlockChain {
     char                 name[16]; // for debugging
     VkDeviceSize         totalSize;
     VkDeviceSize         usedSize;
-    VkDeviceSize         defaultAlignment;
+    VkDeviceSize         alignment;
     VkDeviceAddress      bufferAddress;
     uint32_t             count;
     uint32_t             cur;

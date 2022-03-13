@@ -17,7 +17,9 @@
 
 #define MB 0x100000
 
+typedef Onyx_Memory Memory;
 typedef Onyx_BufferRegion BufferRegion;
+typedef Onyx_MemBlock Block;
 //
 // static uint32_t findMemoryType(uint32_t memoryTypeBitsRequirement)
 // __attribute__ ((unused));
@@ -111,7 +113,7 @@ initBlockChain(Onyx_Memory* memory, const Onyx_MemoryType memType,
     chain->totalSize        = memorySize;
     chain->usedSize         = 0;
     chain->nextBlockId      = 1;
-    chain->defaultAlignment = 4;
+    chain->alignment = 4;
     chain->bufferFlags      = bufferUsageFlags;
     chain->blocks[0].inUse  = false;
     chain->blocks[0].offset = 0;
@@ -586,8 +588,20 @@ onyx_RequestBufferRegionAligned(Onyx_Memory* memory, const size_t size,
         assert(0);
     }
 
+    assert(hell_is_power_of_two(alignment));
+
     if (0 == alignment)
-        alignment = chain->defaultAlignment;
+        alignment = chain->alignment;
+    // i want to move to a model where we have a separate chain for each
+    // alignment type. the main reason is for resizing: if i need to resize a
+    // region I need to know what alignment it requires. I don't want the user
+    // to have to provide that again. But I also don't want to store an
+    // alignment along with every region. So for now, I just make sure the chain
+    // alignment is as large as the largest alignment requirement it has
+    // allocated for. since each is a power of 2, then it implicitly will
+    // satisfy all of its regions alignment reqs.
+    else if (alignment > chain->alignment)
+        chain->alignment = alignment;
     block = requestBlock(size, alignment, chain);
 
     Onyx_BufferRegion region = {0};
@@ -991,4 +1005,54 @@ onyx_GetImageMemoryUsage(const Onyx_Memory* memory, uint64_t* bytes_in_use, uint
 const Onyx_Instance* onyx_GetMemoryInstance(const Onyx_Memory* memory)
 {
     return memory->instance;
+}
+
+#define error hell_error_fatal
+
+static void
+growBufferRegion(BufferRegion* region, size_t new_size)
+{
+    BlockChain* chain = region->pChain;
+    uint32_t cur_id = region->memBlockId;
+    Block* block = NULL;
+
+    for (int i = 0; i < chain->count; i++) {
+        if (chain->blocks[i].id == cur_id) {
+            block = &chain->blocks[i];
+            break;
+        }
+    }
+    assert(block);
+
+    if (new_size <= block->size) {
+        // can trivially set the region size to new_size and return
+        region->size = new_size;
+        return;
+    }
+
+    Block*       new_block  = requestBlock(new_size, chain->alignment, chain);
+    BufferRegion new_region = *region;
+    new_region.offset       = new_block->offset;
+    new_region.memBlockId   = new_block->id;
+    new_region.size         = new_size;
+
+    // is host mapped
+    if (new_region.hostData) {
+        new_region.hostData = chain->hostData + new_block->offset;
+        memcpy(new_region.hostData, region->hostData, region->size);
+    } else {
+        error("GPU resident grow region not implemented yet :(");
+    }
+
+    onyx_FreeBufferRegion(region);
+    *region = new_region;
+}
+
+void
+onyx_ResizeBufferRegion(BufferRegion* region, size_t new_size)
+{
+    if (new_size > region->size)
+        growBufferRegion(region, new_size);
+    else
+        hell_error_fatal("Shrinking buffer is not supported yet :(");
 }
