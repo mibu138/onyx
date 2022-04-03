@@ -21,6 +21,8 @@
 #define DPRINT_VK(fmt, ...)                                                    \
     hell_DebugPrint(ONYX_DEBUG_TAG_VK, fmt, ##__VA_ARGS__)
 
+typedef Onyx_QueueFamily QueueFamily;
+
 static VkBool32
 debugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT      messageSeverity,
               VkDebugUtilsMessageTypeFlagsEXT             messageTypes,
@@ -152,8 +154,8 @@ initVkInstance(u32          enabledInstanceExentensionCount,
                const VkValidationFeatureEnableEXT* pEnabledValidationFeatures,
                VkInstance*                         instance)
 {
-    uint32_t vulkver = getVkVersionAvailable();
-    // uint32_t vulkver = VK_MAKE_VERSION(1, 2, 0);
+    //uint32_t vulkver = getVkVersionAvailable();
+    uint32_t vulkver = VK_API_VERSION_1_2;
     // printf("Choosing vulkan version: 1.2.0\n");
 
     const char appName[]    = "Hell";

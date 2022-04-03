@@ -17,6 +17,25 @@
 
 enum shaderStageType { VERT, FRAG };
 
+#define SCRATCH_BUFFER_SIZE 2000
+int         scratch_marker = 0;
+static char scratch_buffer[SCRATCH_BUFFER_SIZE];
+
+static void
+reset_scratch_buffer(void)
+{
+    scratch_marker = 0;
+}
+
+static void*
+scratch_alloc(int size)
+{
+    assert(size + scratch_marker < SCRATCH_BUFFER_SIZE);
+    int offset = scratch_marker;
+    scratch_marker += size;
+    return scratch_buffer + offset ;
+}
+
 // universal prefix path to search at runtime for shaders.
 static char* runtimeSpvPrefix; 
 
@@ -718,6 +737,22 @@ void onyx_CreatePipelineLayouts(VkDevice device, const uint8_t count, const Onyx
     }
 }
 
+void onyx_create_pipeline_layout(VkDevice device, const Onyx_PipelineLayoutInfo* li,
+        VkPipelineLayout* layout)
+{
+    VkPipelineLayoutCreateInfo info = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+        .pNext = NULL,
+        .flags = 0,
+        .setLayoutCount = li->descriptorSetCount,
+        .pSetLayouts = li->descriptorSetLayouts,
+        .pushConstantRangeCount = li->pushConstantCount,
+        .pPushConstantRanges = li->pushConstantsRanges
+    };
+
+    V_ASSERT(vkCreatePipelineLayout(device, &info, NULL, layout));
+}
+
 void onyx_r_CleanUpPipelines()
 {
     hell_DebugPrint(ONYX_DEBUG_TAG_PIPE, "called. no longer does anything\n");
@@ -900,7 +935,7 @@ onyx_CreateShaderModule(VkDevice device, const char* shader_string,
     {
     case ONYX_SHADER_TYPE_VERTEX:   shader_kind = shaderc_vertex_shader; break;
     case ONYX_SHADER_TYPE_FRAGMENT: shader_kind = shaderc_fragment_shader; break;
-    case ONYX_SHADER_TYPE_COMPUTE:  
+    case ONYX_SHADER_TYPE_COMPUTE: shader_kind = shaderc_compute_shader; break; 
     case ONYX_SHADER_TYPE_GEOMETRY: 
     case ONYX_SHADER_TYPE_TESS_CONTROL: 
     case ONYX_SHADER_TYPE_TESS_EVALUATION: 
@@ -931,6 +966,183 @@ onyx_CreateShaderModule(VkDevice device, const char* shader_string,
     shaderc_result_release(result);
 }
 #endif
+
+void
+onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
+                              const VkPipelineCache cache, VkPipeline* pipeline)
+{
+    reset_scratch_buffer();
+
+    VkPipelineShaderStageCreateInfo* shader_stages =
+        scratch_alloc(sizeof(*shader_stages) * s->shader_stage_count);
+
+    for (int i = 0; i < s->shader_stage_count; i++)
+    {
+        shader_stages[i] = (VkPipelineShaderStageCreateInfo){
+            .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .module = s->shader_stages[i].module,
+            .pName  = s->shader_stages[i].p_name,
+            .pSpecializationInfo = s->shader_stages[i].p_specialization_info,
+            .stage               = s->shader_stages[i].stage};
+    }
+
+    VkPipelineVertexInputStateCreateInfo vertex_input = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+        .vertexAttributeDescriptionCount =
+            s->vertex_attribute_description_count,
+        .pVertexAttributeDescriptions  = s->vertex_attribute_descriptions,
+        .vertexBindingDescriptionCount = s->vertex_binding_description_count,
+        .pVertexBindingDescriptions    = s->vertex_binding_descriptions};
+
+    VkPipelineInputAssemblyStateCreateInfo input_assem = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+        .primitiveRestartEnable = s->primitive_restart_enable,
+        .topology               = s->topology};
+
+    VkPipelineTessellationStateCreateInfo tess = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO,
+        .patchControlPoints = s->patch_control_points,
+    };
+
+    VkViewport viewport = {.width    = s->viewport_width,
+                           .height   = s->viewport_height,
+                           .x        = 0,
+                           .y        = 0,
+                           .minDepth = 0.0,
+                           .maxDepth = 1.0};
+
+    VkRect2D scissor = {.extent.width  = s->viewport_width,
+                        .extent.height = s->viewport_height,
+                        .offset.x      = 0,
+                        .offset.y      = 0};
+
+    VkPipelineViewportStateCreateInfo view = {
+        .sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+        .scissorCount  = 1,
+        .pScissors     = &scissor,
+        .viewportCount = 1,
+        .pViewports    = &viewport,
+    };
+
+    VkPipelineRasterizationStateCreateInfo raster = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+        .depthClampEnable        = s->depth_clamp_enable,
+        .rasterizerDiscardEnable = s->rasterizer_discard_enable,
+        .polygonMode             = s->polygon_mode,
+        .cullMode                = s->cull_mode,
+        .frontFace               = s->front_face,
+        .depthBiasEnable         = s->depth_bias_enable,
+        .depthBiasConstantFactor = s->depth_bias_constant_factor,
+        .depthBiasClamp          = s->depth_bias_clamp,
+        .depthBiasSlopeFactor    = s->depth_bias_slope_factor,
+        .lineWidth               = s->line_width,
+    };
+
+    VkPipelineMultisampleStateCreateInfo multisamp = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+        .rasterizationSamples  = s->rasterization_samples
+                                     ? s->rasterization_samples
+                                     : VK_SAMPLE_COUNT_1_BIT,
+        .sampleShadingEnable   = s->sample_shading_enable,
+        .minSampleShading      = s->min_sample_shading,
+        .pSampleMask           = s->p_sample_mask,
+        .alphaToCoverageEnable = s->alpha_to_coverage_enable,
+        .alphaToOneEnable      = s->alpha_to_one_enable,
+    };
+
+    VkPipelineDepthStencilStateCreateInfo depthstencil = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        .depthTestEnable       = s->depth_test_enable,
+        .depthWriteEnable      = s->depth_write_enable,
+        .depthCompareOp        = (VkCompareOp)(s->depth_compare_op + 1),
+        .depthBoundsTestEnable = s->depth_bounds_test_enable,
+        .stencilTestEnable     = s->stencil_test_enable,
+        .front                 = s->front,
+        .back                  = s->back,
+        .minDepthBounds        = s->min_depth_bounds,
+        .maxDepthBounds        = s->max_depth_bounds,
+    };
+
+    VkColorComponentFlags write_all =
+        VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT |
+        VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+
+    VkPipelineColorBlendAttachmentState* attachment_blends =
+        scratch_alloc(sizeof(attachment_blends[0]) * s->attachment_count);
+
+    for (int i = 0; i < s->attachment_count; i++)
+    {
+        VkPipelineColorBlendAttachmentState blend_attachment =
+            onyx_PipelineColorBlendAttachmentState(
+                s->attachment_blends[i].blend_enable, VK_BLEND_FACTOR_SRC_ALPHA,
+                VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+                VK_BLEND_FACTOR_ONE, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA,
+                VK_BLEND_OP_ADD, write_all);
+
+        switch (s->attachment_blends[i].blend_mode)
+        {
+        case ONYX_BLEND_MODE_OVER:
+            setBlendModeOver(&blend_attachment);
+            break;
+        case ONYX_BLEND_MODE_OVER_NO_PREMUL:
+            setBlendModeOverNoPremul(&blend_attachment);
+            break;
+        case ONYX_BLEND_MODE_ERASE:
+            setBlendModeErase(&blend_attachment);
+            break;
+        case ONYX_BLEND_MODE_OVER_MONOCHROME:
+            setBlendModeOverMonochrome(&blend_attachment);
+            break;
+        case ONYX_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME:
+            setBlendModeOverNoPremulMonochrome(&blend_attachment);
+            break;
+        case ONYX_BLEND_MODE_ERASE_MONOCHROME:
+            setBlendModeEraseMonochrome(&blend_attachment);
+            break;
+        case ONYX_BLEND_MODE_NONE:
+            break;
+        }
+
+        attachment_blends[i] = blend_attachment;
+    }
+
+    VkPipelineColorBlendStateCreateInfo colorblend = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+        .attachmentCount = s->attachment_count,
+        .pAttachments    = attachment_blends,
+        .logicOp         = s->logic_op,
+        .logicOpEnable   = s->logic_op_enable,
+        .blendConstants  = {s->blend_constants[0], s->blend_constants[1],
+                           s->blend_constants[2], s->blend_constants[3]}};
+
+    VkPipelineDynamicStateCreateInfo dynstate = {
+        .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+        .dynamicStateCount = s->dynamic_state_count,
+        .pDynamicStates    = s->dynamic_states};
+
+    VkGraphicsPipelineCreateInfo gpci = {
+        .sType               = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+        .stageCount          = s->shader_stage_count,
+        .pStages             = shader_stages,
+        .pVertexInputState   = &vertex_input,
+        .pInputAssemblyState = &input_assem,
+        .pTessellationState  = &tess,
+        .pViewportState      = &view,
+        .pRasterizationState = &raster,
+        .pMultisampleState   = &multisamp,
+        .pDepthStencilState  = &depthstencil,
+        .pColorBlendState    = &colorblend,
+        .pDynamicState       = &dynstate,
+        .layout              = s->layout,
+        .renderPass          = s->render_pass,
+        .subpass             = s->subpass,
+        .basePipelineHandle  = s->base_pipeline,
+        .basePipelineIndex   = s->base_pipeline_index,
+    };
+
+    V_ASSERT(
+        vkCreateGraphicsPipelines(s->device, cache, 1, &gpci, NULL, pipeline));
+}
 
 void 
 onyx_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
@@ -996,6 +1208,29 @@ onyx_CreateGraphicsPipeline_Basic(VkDevice device, VkPipelineLayout layout,
             &colorblend, &dynstate, layout, renderPass, subpass, VK_NULL_HANDLE, 0);
     V_ASSERT( vkCreateGraphicsPipelines(device, VK_NULL_HANDLE, 1, &gpci, NULL, pipeline) );
 };
+
+void
+onyx_create_compute_pipeline(VkDevice device, VkPipelineCache cache, const OnyxComputePipelineInfo* s,
+                            VkPipeline* pipeline)
+{
+    VkComputePipelineCreateInfo cpci = {
+        .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+        .basePipelineHandle = s->base_pipeline,
+        .basePipelineIndex = s->base_pipeline_index,
+        .layout = s->layout,
+        .flags = s->flags,
+        .stage = (VkPipelineShaderStageCreateInfo){
+            .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+            .stage = s->shader_stage.stage,
+            .flags = s->shader_stage.flags,
+            .module = s->shader_stage.module,
+            .pName = s->shader_stage.p_name,
+            .pSpecializationInfo = s->shader_stage.p_specialization_info
+        },
+    };
+
+    V_ASSERT( vkCreateComputePipelines(device, cache, 1, &cpci, NULL, pipeline) );
+}
 
 const char* 
 onyx_GetFullScreenQuadShaderString(void)

@@ -55,7 +55,7 @@ typedef enum {
     ONYX_R_PIPELINE_RAYTRACE_TYPE
 } Onyx_R_PipelineType;
 
-typedef enum {
+typedef enum OnyxBlendMode {
     ONYX_BLEND_MODE_NONE,
     ONYX_BLEND_MODE_OVER,
     ONYX_BLEND_MODE_OVER_NO_PREMUL, 
@@ -63,7 +63,10 @@ typedef enum {
     ONYX_BLEND_MODE_OVER_MONOCHROME,
     ONYX_BLEND_MODE_OVER_NO_PREMUL_MONOCHROME,
     ONYX_BLEND_MODE_ERASE_MONOCHROME,
-} Onyx_BlendMode;
+} OnyxBlendMode;
+
+// remove eventually
+typedef OnyxBlendMode Onyx_BlendMode;
 
 typedef struct {
     VkRenderPass              renderPass;
@@ -88,6 +91,117 @@ typedef struct {
     uint32_t                  dynamicStateCount;
     VkDynamicState*           pDynamicStates;
 } Onyx_GraphicsPipelineInfo;
+
+typedef struct OnyxPipelineShaderStageInfo {
+    VkPipelineShaderStageCreateFlags    flags;
+    VkShaderStageFlagBits               stage;
+    VkShaderModule                      module;
+    const char*                         p_name;
+    const VkSpecializationInfo*         p_specialization_info;
+} OnyxPipelineShaderStageInfo;
+
+// 1 less than VkCompareOp... because 0 as none is a bad default
+typedef enum OnyxCompareOp {
+    ONYX_COMPARE_OP_LESS  = 0,
+    ONYX_COMPARE_OP_EQUAL = 1,
+    ONYX_COMPARE_OP_LESS_OR_EQUAL = 2,
+    ONYX_COMPARE_OP_GREATER = 3,
+    ONYX_COMPARE_OP_NOT_EQUAL = 4,
+    ONYX_COMPARE_OP_GREATER_OR_EQUAL = 5,
+    ONYX_COMPARE_OP_ALWAYS = 6,
+} OnyxCompareOp;
+
+typedef struct OnyxPipelineColorBlendAttachment {
+    bool          blend_enable;
+    OnyxBlendMode blend_mode;
+} OnyxPipelineColorBlendAttachment;
+
+_Static_assert(ONYX_COMPARE_OP_LESS == VK_COMPARE_OP_LESS - 1, "Should be 1 less");
+
+typedef struct OnyxGraphicsPipelineInfo {
+    VkDevice         device;
+    VkPipelineLayout layout;
+    VkRenderPass     render_pass;
+    uint32_t         subpass;
+
+    const VkPipeline      base_pipeline;
+    uint32_t              base_pipeline_index;
+
+    uint32_t                           shader_stage_count;
+    const OnyxPipelineShaderStageInfo* shader_stages;
+
+    // from VkPipelineInputAssemblyStateCreateInfo
+    VkPrimitiveTopology topology;
+    bool                primitive_restart_enable;
+
+    // from VkPipelineVertexInputStateCreateInfo
+    uint32_t                                 vertex_binding_description_count;
+    const VkVertexInputBindingDescription*   vertex_binding_descriptions;
+    uint32_t                                 vertex_attribute_description_count;
+    const VkVertexInputAttributeDescription* vertex_attribute_descriptions;
+    uint32_t                                 patch_control_points;
+
+    // from VkPipelineViewportStateCreateInfo
+    // can be ignored if both scissor and viewport are dynamic
+    uint32_t viewport_width;
+    uint32_t viewport_height;
+
+    // from VkPipelineRasterizationStateCreateInfo
+    bool            depth_clamp_enable;
+    bool            rasterizer_discard_enable;
+    // 0 == fill
+    VkPolygonMode   polygon_mode;
+    VkCullModeFlags cull_mode;
+    // 0 == counter clock wise
+    VkFrontFace     front_face;
+    bool            depth_bias_enable;
+    float           depth_bias_constant_factor;
+    float           depth_bias_clamp;
+    float           depth_bias_slope_factor;
+    float           line_width;
+
+    // from VkPipelineMultisampleStateCreateInfo
+    // if this is 0, it will automatically be set to VK_SAMPLE_COUNT_1_BIT
+    VkSampleCountFlags  rasterization_samples;
+    // these can all be left at 0
+    VkBool32            sample_shading_enable;
+    float               min_sample_shading;
+    const VkSampleMask* p_sample_mask;
+    VkBool32            alpha_to_coverage_enable;
+    VkBool32            alpha_to_one_enable;
+
+    // from VkPipelineDepthStencilStateCreateInfo
+    bool             depth_test_enable;
+    bool             depth_write_enable;
+    OnyxCompareOp    depth_compare_op;
+    bool             depth_bounds_test_enable;
+    bool             stencil_test_enable;
+    VkStencilOpState front;
+    VkStencilOpState back;
+    float            min_depth_bounds;
+    float            max_depth_bounds;
+
+    // from VkPipelineColorBlendStateCreateInfo
+    // if logic op is enabled, the operation applies to all attachments
+    // and color blending is disabled. only valid for integer attachments.
+    bool                              logic_op_enable;
+    VkLogicOp                         logic_op;
+    uint32_t                          attachment_count;
+    OnyxPipelineColorBlendAttachment* attachment_blends;
+    float                             blend_constants[4];
+
+    //
+    uint32_t        dynamic_state_count;
+    VkDynamicState* dynamic_states;
+} OnyxGraphicsPipelineInfo;
+
+typedef struct OnyxComputePipelineInfo {
+    VkPipelineCreateFlags       flags;
+    VkPipelineLayout            layout;
+    OnyxPipelineShaderStageInfo shader_stage;
+    VkPipeline                  base_pipeline;
+    int32_t                     base_pipeline_index;
+} OnyxComputePipelineInfo;
 
 typedef struct {
     VkPipelineLayout layout;
@@ -129,6 +243,17 @@ void onyx_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass rend
                                         const VkPolygonMode mode,
                                         VkPipeline *pipeline);
 
+void
+onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
+                              const VkPipelineCache cache, VkPipeline* pipeline);
+
+void
+onyx_create_compute_pipeline(VkDevice, VkPipelineCache, const OnyxComputePipelineInfo* s,
+                            VkPipeline* pipeline);
+
+void onyx_create_pipeline_layout(VkDevice device, const Onyx_PipelineLayoutInfo* li,
+        VkPipelineLayout* layout);
+
 void onyx_CreateDescriptorPool(VkDevice device,
                             uint32_t uniformBufferCount,
                             uint32_t dynamicUniformBufferCount,
@@ -147,10 +272,8 @@ void onyx_SetRuntimeSpvPrefix(const char* prefix);
 
 const char* onyx_GetFullScreenQuadShaderString(void);
 
-#ifdef ONYX_SHADERC_ENABLED
 void onyx_CreateShaderModule(VkDevice device, const char* shader_string, 
         const char* name, Onyx_ShaderType type, VkShaderModule* module);
-#endif
 
 // Creates a basic graphics pipeline.
 // patchControlPoints will be ignored unless a tesselation shader stage is

@@ -17,6 +17,8 @@ typedef enum {
 } Onyx_MemoryType;
 
 typedef struct Onyx_Memory Onyx_Memory;
+typedef struct Onyx_Memory onyx_Memory;
+typedef Onyx_MemoryType onyx_MemoryType;
 
 struct BlockChain;
 

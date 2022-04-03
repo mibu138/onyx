@@ -26,29 +26,6 @@
 
 #define SWAPCHAIN_DEFAULT_FORMAT VK_FORMAT_B8G8R8A8_SRGB
 
-typedef struct Onyx_Swapchain {
-    VkDevice                     device;
-    VkQueue                      presentQueue;
-    Onyx_Frame             framebuffers[SWAPCHAIN_IMAGE_COUNT];
-    uint32_t                     aovCount;
-    Onyx_AovInfo                 aovInfos[ONYX_MAX_AOVS];
-    uint32_t                     imageCount;
-    VkFormat                     format;
-    VkSwapchainKHR               swapchain;
-    VkImageUsageFlags            imageUsageFlags;
-    // native windows are abstrated by surfaces. a swapchain can only be
-    // associated with one window. 30.7 in spec.
-    VkSurfaceKHR                 surface;
-    uint32_t                     acquiredImageIndex;
-    bool                         hasDepthImages;
-    bool                         dirty;
-    uint32_t                     width;
-    uint32_t                     height;
-    VkPhysicalDevice             physicalDevice;
-    VkPresentModeKHR             presentMode;
-    Onyx_Memory*                 memory;
-} Onyx_Swapchain;
-
 static VkExtent2D
 getCorrectedSwapchainDimensions(const VkSurfaceCapabilitiesKHR capabilities,
                                 VkExtent2D                     hint)
@@ -237,7 +214,7 @@ createSwapchainFramebuffers(Onyx_Swapchain* swapchain, uint32_t aovCount, Onyx_A
 
     for (int i = 0; i < swapchain->imageCount; i++)
     {
-        Onyx_Frame* fb = &swapchain->framebuffers[i];
+        Onyx_Frame* fb = &swapchain->frames[i];
         memset(fb, 0, sizeof(Onyx_Frame));
         Onyx_Image* colorImage = &fb->aovs[0];
         colorImage->handle = imageBuffer[i];
@@ -289,7 +266,7 @@ recreateSwapchain(Onyx_Swapchain* swapchain, const uint32_t widthHint,
 {
     for (int i = 0; i < swapchain->imageCount; i++)
     {
-        Onyx_Frame* fb = &swapchain->framebuffers[i];
+        Onyx_Frame* fb = &swapchain->frames[i];
         vkDestroyImageView(swapchain->device, fb->aovs[0].view, NULL);
         for (uint32_t i = 1; i < fb->aovCount; i++)
         {
@@ -358,7 +335,7 @@ onyx_DestroySwapchain(const Onyx_Instance* instance, Onyx_Swapchain* swapchain)
 {
     for (int i = 0; i < ONYX_FRAME_COUNT; i++)
     {
-        Onyx_Frame* fb = &swapchain->framebuffers[i];
+        Onyx_Frame* fb = &swapchain->frames[i];
         vkDestroyImageView(swapchain->device, fb->aovs[0].view, NULL);
         for (uint32_t i = 1; i < fb->aovCount; i++)
         {
@@ -424,7 +401,7 @@ retry:
     {
         hell_Error(HELL_ERR_FATAL, "Device lost\n");
     }
-    return &swapchain->framebuffers[swapchain->acquiredImageIndex];
+    return &swapchain->frames[swapchain->acquiredImageIndex];
 }
 
 bool
@@ -449,7 +426,7 @@ onyx_PresentFrame(Onyx_Swapchain* swapchain, const uint32_t semaphoreCount,
         return false;
     }
     assert(VK_SUCCESS == presentResult);
-    swapchain->framebuffers[swapchain->acquiredImageIndex].dirty = false;
+    swapchain->frames[swapchain->acquiredImageIndex].dirty = false;
     return true;
 }
 
@@ -474,7 +451,7 @@ onyx_GetSwapchainHeight(const Onyx_Swapchain* swapchain)
 VkImageView
 onyx_GetSwapchainImageView(const Onyx_Swapchain* swapchain, int index)
 {
-    return swapchain->framebuffers[index].aovs[0].view;
+    return swapchain->frames[index].aovs[0].view;
 }
 
 size_t
@@ -516,5 +493,5 @@ uint32_t onyx_GetSwapchainFrameCount(const Onyx_Swapchain* s)
 
 const Onyx_Frame* onyx_GetSwapchainFrames(const Onyx_Swapchain* s)
 {
-    return s->framebuffers;
+    return s->frames;
 }

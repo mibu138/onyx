@@ -20,7 +20,29 @@ typedef enum Onyx_SurfaceType {
 } Onyx_SurfaceType;
 
 struct Onyx_V_Command;
-typedef struct Onyx_Instance Onyx_Instance;
+
+#define MAX_QUEUES 32
+
+typedef struct Onyx_QueueFamily {
+    uint32_t index;
+    uint32_t queueCount;
+    VkQueue  queues[MAX_QUEUES];
+} Onyx_QueueFamily;
+
+typedef struct Onyx_Instance {
+    VkInstance                                         vkinstance;
+    VkPhysicalDevice                                   physicalDevice;
+    VkDevice                                           device;
+    Onyx_QueueFamily                                   graphicsQueueFamily;
+    Onyx_QueueFamily                                   computeQueueFamily;
+    Onyx_QueueFamily                                   transferQueueFamily;
+    VkQueue                                            presentQueue;
+    VkDebugUtilsMessengerEXT                           debugMessenger;
+    VkPhysicalDeviceRayTracingPipelinePropertiesKHR    rtProperties;
+    VkPhysicalDeviceAccelerationStructurePropertiesKHR accelStructProperties;
+    VkPhysicalDeviceProperties                         deviceProperties;
+} Onyx_Instance;
+
 
 uint64_t onyx_SizeOfInstance(void);
 Onyx_Instance* onyx_AllocInstance(void);
