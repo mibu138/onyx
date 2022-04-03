@@ -6,6 +6,7 @@ option(ONYX_SKIP_EXAMPLES "Skip building examples" OFF)
 option(ONYX_SKIP_TESTS    "Skip building tests" OFF)
 option(ONYX_BUILD_GLSLC   "Build glslc executable" OFF)
 option(ONYX_ENABLE_SHADERC   "Access shaderc functionality" OFF)
+option(ONYX_BUILD_VULKAN_FROM_SOURCE "Access shaderc functionality" OFF)
 
 if(NOT DEFINED HELL_URL)
     set(HELL_URL https://github.com/mokchira/hell)
@@ -38,8 +39,14 @@ if (${ONYX_ENABLE_SHADERC})
     set(GLC glslc_exe)
 endif()
 
-find_package(Vulkan 1.2.162)
-if (NOT Vulkan_FOUND)
+if (NOT ONYX_BUILD_VULKAN_FROM_SOURCE)
+    find_package(Vulkan 1.2.162)
+    if (NOT Vulkan_FOUND)
+        set(ONYX_BUILD_VULKAN_FROM_SOURCE TRUE)
+    endif()
+endif()
+
+if (ONYX_BUILD_VULKAN_FROM_SOURCE)
     FetchContent_Declare(
         vulkan_headers
         GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers
