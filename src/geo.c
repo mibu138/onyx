@@ -23,6 +23,8 @@ typedef enum {
 
 static const char* g_attr_names[] = {POS_NAME, NORMAL_NAME, UV_NAME, UVW_NAME, TANGENT_NAME, SIGN_NAME, BITANGENT_NAME};
 
+typedef OnyxGeometry Geometry;
+
 #define DPRINT(fmt, ...) hell_DebugPrint(ONYX_DEBUG_TAG_GEO, fmt, ##__VA_ARGS__)
 
 // mikkt callbacks
@@ -722,6 +724,90 @@ onyx_CreateGeometry2(Onyx_Memory* memory, VkBufferUsageFlags extraBufferFlags,
         memcpy(g.attrNames[i], attrNames[i], ATTR_NAME_LEN);
     }
     return g;
+}
+
+static uint8_t*
+get_attribute_sizes_ptr(Geometry* geo)
+{
+    if (geo->attribute_count * sizeof(geo->attribute_sizes.arr[0]) > sizeof(geo->attribute_sizes.arr))
+        return geo->attribute_sizes.ptr;
+    else
+        return geo->attribute_sizes.arr;
+}
+
+static uint8_t*
+get_attribute_types_ptr(Geometry* geo)
+{
+    if (geo->attribute_count * sizeof(geo->attribute_types.arr[0]) > sizeof(geo->attribute_types.arr))
+        return geo->attribute_types.ptr;
+    else
+        return geo->attribute_types.arr;
+}
+
+static uint8_t
+get_index_size(const Geometry* geo)
+{
+    if (geo->flags & ONYX_GEOMETRY_FLAG_INDEX_SIZE_SHORT)
+        return 2;
+    else
+        return 4;
+}
+
+OnyxGeometry
+onyx_create_geometry(const OnyxCreateGeometryInfo* c)
+{
+    assert((c->index_count > 0 && ~c->flags & ONYX_GEOMETRY_FLAG_UNINDEXED) ||
+           (c->index_count == 0 && c->flags & ONYX_GEOMETRY_FLAG_UNINDEXED));
+    assert(c->attr_count > 0);
+    assert(c->vertex_count > 0);
+
+    OnyxGeometry geo = {
+        .type = c->type, 
+        .flags = c->flags, 
+        .attribute_count = c->attr_count
+    };
+
+    // too big for the internal buffer
+    if (geo.attribute_count * sizeof(geo.attribute_sizes.arr[0]) >
+        sizeof(geo.attribute_sizes))
+    {
+        hell_array_alloc(geo.attribute_sizes.ptr, c->attr_count);
+    }
+
+    memcpy(get_attribute_sizes_ptr(&geo), c->attr_sizes, c->attr_count);
+
+    if (~c->flags & ONYX_GEOMETRY_FLAG_NO_TYPES)
+    {
+        if (geo.attribute_count * sizeof(geo.attribute_types.arr[0]) >
+            sizeof(geo.attribute_types))
+        {
+            hell_array_alloc(geo.attribute_types.ptr, c->attr_count);
+        }
+        memcpy(get_attribute_types_ptr(&geo), c->attr_types, c->attr_count);
+    }
+
+    u32 vertex_size = 0;
+    for (u32 i = 0; i < c->attr_count; i++)
+    {
+        vertex_size += c->attr_sizes[i];
+    }
+
+    const u32 vert_buf_size = vertex_size * c->vertex_count;
+
+    geo.vertex_buffer_region = onyx_RequestBufferRegion(c->memory, vert_buf_size,
+                             VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
+                             c->memtype);
+
+    if (~c->flags & ONYX_GEOMETRY_FLAG_UNINDEXED)
+    {
+        assert(c->index_count > 0);
+        const u32 index_buf_size = c->index_count * get_index_size(&geo);
+        geo.index_buffer_region = onyx_RequestBufferRegion(
+                c->memory, index_buf_size, VK_BUFFER_USAGE_INDEX_BUFFER_BIT, c->memtype);
+    }
+    // TODO finish
+
+    return geo;
 }
 
 Onyx_VertexDescription

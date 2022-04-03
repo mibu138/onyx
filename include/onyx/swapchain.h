@@ -11,6 +11,32 @@
 typedef void (*Onyx_R_SwapchainRecreationFn)(void);
 typedef struct Onyx_Swapchain Onyx_Swapchain;
 
+#define SWAPCHAIN_IMAGE_COUNT 2
+
+typedef struct Onyx_Swapchain {
+    VkDevice                     device;
+    VkQueue                      presentQueue;
+    Onyx_Frame                   frames[SWAPCHAIN_IMAGE_COUNT];
+    uint32_t                     aovCount;
+    Onyx_AovInfo                 aovInfos[ONYX_MAX_AOVS];
+    uint32_t                     imageCount;
+    VkFormat                     format;
+    VkSwapchainKHR               swapchain;
+    VkImageUsageFlags            imageUsageFlags;
+    // native windows are abstrated by surfaces. a swapchain can only be
+    // associated with one window. 30.7 in spec.
+    VkSurfaceKHR                 surface;
+    uint32_t                     acquiredImageIndex;
+    bool                         hasDepthImages;
+    bool                         dirty;
+    uint32_t                     width;
+    uint32_t                     height;
+    VkPhysicalDevice             physicalDevice;
+    VkPresentModeKHR             presentMode;
+    Onyx_Memory*                 memory;
+} Onyx_Swapchain;
+
+
 Onyx_Swapchain* onyx_AllocSwapchain(void);
 size_t          onyx_SizeOfSwapchain(void);
 void            onyx_FreeSwapchain(Onyx_Swapchain* swapchain);

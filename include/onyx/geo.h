@@ -2,6 +2,7 @@
 #define ONYX_R_GEO_H
 
 #include "memory.h"
+#include "attribute.h"
 #include <stdint.h>
 
 #define ONYX_R_MAX_VERT_ATTRIBUTES 8
@@ -29,6 +30,58 @@ typedef struct Onyx_Geometry {
     VkDeviceSize attrOffsets[ONYX_R_MAX_VERT_ATTRIBUTES];
 } Onyx_Geometry;
 
+typedef enum onyx_GeometryType {
+    ONYX_GEOMETRY_TYPE_TRIANGLES = 0,
+    ONYX_GEOMETRY_TYPE_POINTS    = 1,
+    ONYX_GEOMETRY_TYPE_LINES     = 2,
+    ONYX_GEOMETRY_TYPE_MAX
+} onyx_GeometryType;
+
+typedef enum onyx_GeometryFlag {
+    ONYX_GEOMETRY_FLAG_ARRAY_OF_STRUCTS = 1 << 0,
+    ONYX_GEOMETRY_FLAG_UNINDEXED        = 1 << 1,
+    ONYX_GEOMETRY_FLAG_INDEX_SIZE_SHORT = 1 << 2,
+    ONYX_GEOMETRY_FLAG_NO_TYPES         = 1 << 3,
+    ONYX_GEOMETRY_FLAG_MAX
+} onyx_GeometryFlag; 
+
+typedef enum OnyxAttributeTypes {
+    ONYX_ATTRIBUTE_TYPE_POS,
+    ONYX_ATTRIBUTE_TYPE_UV,
+    ONYX_ATTRIBUTE_TYPE_NORMAL,
+    ONYX_ATTRIBUTE_TYPE_TANGENT,
+    ONYX_ATTRIBUTE_TYPE_BITANGENT,
+} OnyxAttributeTypes;
+
+typedef uint32_t OnyxFlags;
+
+typedef struct OnyxGeometry {
+    uint32_t                type : 2;
+    uint32_t                flags : 4;
+    uint32_t                attribute_count : 8;
+    // if attribute_count is greater than 8 then p_attribute_sizes will point to
+    // a separately allocated array where they are stored.
+    union {
+        uint8_t  arr[8];
+        uint8_t* ptr;
+    } attribute_sizes;
+    // keeping these separate gives us two things. one is that we can
+    // use different buffer usage flags for each, which may matter on some
+    // devices.
+    // more importantly it allows us to more easily put the index buffer and 
+    // vertex buffer in separate regions of memory. this simplifies
+    // resizing the geometry (imagine resizing the geometry if the indices
+    // started right after the vertices).
+    Onyx_BufferRegion       vertex_buffer_region;
+    // maybe unused
+    Onyx_BufferRegion       index_buffer_region;
+    // same pattern as sizes. maybe unused.
+    union {
+        uint8_t  arr[8];
+        uint8_t* ptr;
+    } attribute_types;
+} OnyxGeometry;
+
 typedef struct {
     uint32_t bindingCount;
     uint32_t attributeCount;
@@ -38,10 +91,24 @@ typedef struct {
         attributeDescriptions[ONYX_R_MAX_VERT_ATTRIBUTES];
 } Onyx_VertexDescription;
 
+typedef struct {
+    onyx_Memory* memory;
+    onyx_MemoryType memtype;
+    onyx_GeometryType type; 
+    u32 flags;
+    u32 attr_count; 
+    u8* attr_sizes;
+    u8* attr_types;
+    u32 vertex_count;
+    u32 index_count;
+} OnyxCreateGeometryInfo;
+
 // pos and color. clockwise for now.
+OnyxGeometry onyx_create_geometry(const OnyxCreateGeometryInfo* c);
 Onyx_Geometry onyx_CreateTriangle(Onyx_Memory*);
 Onyx_Geometry onyx_CreateCube(Onyx_Memory* memory, const bool isClockWise);
-Onyx_Geometry onyx_CreateCubeWithTangents(Onyx_Memory* memory, const bool isClockWise);
+Onyx_Geometry onyx_CreateCubeWithTangents(Onyx_Memory* memory,
+                                          const bool   isClockWise);
 Onyx_Geometry onyx_CreatePoints(Onyx_Memory*, const uint32_t count);
 Onyx_Geometry onyx_CreateCurve(Onyx_Memory*, const uint32_t vertCount,
                                const uint32_t patchSize,
@@ -65,12 +132,12 @@ Onyx_Geometry onyx_CreateGeometry(Onyx_Memory*       memory,
 
 // allows passing of attrib names
 Onyx_Geometry onyx_CreateGeometry2(Onyx_Memory*       memory,
-                                  VkBufferUsageFlags extraBufferFlags,
-                                  const uint32_t     vertCount,
-                                  const uint32_t     indexCount,
-                                  const uint8_t      attrCount,
-                                  const uint8_t      attrSizes[/*attrCount*/],
-                                  const char*        attrNames[/*attrCount*/]);
+                                   VkBufferUsageFlags extraBufferFlags,
+                                   const uint32_t     vertCount,
+                                   const uint32_t     indexCount,
+                                   const uint8_t      attrCount,
+                                   const uint8_t      attrSizes[/*attrCount*/],
+                                   const char*        attrNames[/*attrCount*/]);
 Onyx_VertexDescription
       onyx_GetVertexDescription(const uint32_t              attrCount,
                                 const Onyx_GeoAttributeSize attrSizes[/*attrCount*/]);
