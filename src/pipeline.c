@@ -1018,7 +1018,7 @@ onyx_CreateShaderModule(VkDevice device, const char* shader_string,
 }
 
 void
-onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
+onyx_create_graphics_pipeline(VkDevice device, const OnyxGraphicsPipelineInfo* s,
                               const VkPipelineCache cache, VkPipeline* pipeline)
 {
     reset_scratch_buffer();
@@ -1191,7 +1191,7 @@ onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
     };
 
     V_ASSERT(
-        vkCreateGraphicsPipelines(s->device, cache, 1, &gpci, NULL, pipeline));
+        vkCreateGraphicsPipelines(device, cache, 1, &gpci, NULL, pipeline));
 }
 
 void 

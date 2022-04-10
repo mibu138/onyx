@@ -47,7 +47,7 @@ static const char* fragment_shader_code =
     "layout(location = 0) out vec4 out_color;"
     "void main()"
     "{"
-    "   out_color = vec4(1, 0, 1, 1);\n"
+    "   out_color = vec4(0.8, 0.4, 0, 1);\n"
     "}"
     "";
 
@@ -145,7 +145,6 @@ initApp(void)
         .cull_mode = VK_CULL_MODE_NONE,
         .depth_test_enable = false,
         .depth_write_enable = false,
-        .device = device,
         .dynamic_state_count = 2,
         .dynamic_states = (VkDynamicState[2]){VK_DYNAMIC_STATE_VIEWPORT,
             VK_DYNAMIC_STATE_SCISSOR},
@@ -183,7 +182,7 @@ initApp(void)
         },
     };
 
-    onyx_create_graphics_pipeline(&pi, NULL, &pipeline);
+    onyx_create_graphics_pipeline(device, &pi, NULL, &pipeline);
 
     createSurfaceDependent();
     onyx_CreateFence(device, &drawFence);
