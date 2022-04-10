@@ -10,6 +10,11 @@ target_link_libraries(hello-triangle PRIVATE Onyx::Onyx Hell::Hell
     Coal::Coal)
 set_target_properties(hello-triangle PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 
+add_executable(hello-glslang ${OSTAG} hello-glslang.c)
+target_link_libraries(hello-glslang PRIVATE Onyx::Onyx Hell::Hell
+    Coal::Coal)
+set_target_properties(hello-glslang PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+
 if (FREETYPE_FOUND)
 add_executable(hello-ui ${OSTAG} hello-ui.c)
 target_link_libraries(hello-ui PRIVATE Onyx::Onyx Hell::Hell Coal::Coal)

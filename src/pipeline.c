@@ -13,6 +13,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
+#include "glslang-wrapper.h"
 #include <shaderc/shaderc.h>
 
 enum shaderStageType { VERT, FRAG };
@@ -925,13 +926,13 @@ onyx_AllocateDescriptorSets(const VkDevice device, VkDescriptorPool pool, uint32
     V_ASSERT(vkAllocateDescriptorSets(device, &allocInfo, sets));
 }
 
-#ifdef ONYX_SHADERC_ENABLED
-void 
-onyx_CreateShaderModule(VkDevice device, const char* shader_string, 
-        const char* name, Onyx_ShaderType type, VkShaderModule* module)
+// caller must free bytes buffer
+static bool
+compile_spirv_shaderc(const SpirvCompileInfo* c, u8** bytes_buffer, int* byte_count)
 {
+#ifdef ONYX_SHADERC_ENABLED
     shaderc_shader_kind shader_kind = 0;
-    switch (type)
+    switch (c->shader_type)
     {
     case ONYX_SHADER_TYPE_VERTEX:   shader_kind = shaderc_vertex_shader; break;
     case ONYX_SHADER_TYPE_FRAGMENT: shader_kind = shaderc_fragment_shader; break;
@@ -947,25 +948,74 @@ onyx_CreateShaderModule(VkDevice device, const char* shader_string,
     }
     shaderc_compiler_t compiler = shaderc_compiler_initialize();
     shaderc_compilation_result_t result = shaderc_compile_into_spv(
-            compiler, shader_string, strlen(shader_string), shader_kind, 
-            name, "main", NULL);
+            compiler, c->shader_string, strlen(c->shader_string), shader_kind, 
+            c->name, c->entry_point, NULL);
     shaderc_compilation_status comp_status = shaderc_result_get_compilation_status(result);
     size_t num_warnings = shaderc_result_get_num_warnings(result);
     size_t num_errors   = shaderc_result_get_num_errors(result);
     if (num_warnings || num_errors)
     {
-        hell_Print("Shader %s Compilation error: %s\n", name, 
+        hell_Print("Shader %s Compilation error: %s\n", c->name, 
                 shaderc_result_get_error_message(result));
     }
     if (comp_status != shaderc_compilation_status_success)
         hell_Error(HELL_ERR_FATAL, "ERROR: shader compilation failed\n");
     const char* bytes = shaderc_result_get_bytes(result);
     size_t num_bytes  = shaderc_result_get_length(result);
-    VkShaderModuleCreateInfo ci = onyx_ShaderModuleCreateInfo(num_bytes, bytes);
-    V_ASSERT(vkCreateShaderModule(device, &ci, NULL, module));
+    *byte_count = num_bytes;
+    *bytes_buffer = hell_Malloc(num_bytes);
+    memcpy(*bytes_buffer, bytes, num_bytes);
     shaderc_result_release(result);
-}
+    return true;
+#else
+    return false;
 #endif
+}
+
+static bool
+compile_spirv_glslang(const SpirvCompileInfo* c, u8** bytes_buffer, int* byte_count)
+{
+#if ONYX_GLSLANG_ENABLED
+    return glsl_to_spirv(c, bytes_buffer, byte_count);
+#else
+    return false;
+#endif
+}
+
+void 
+onyx_create_shader_module(VkDevice device, const SpirvCompileInfo* sci,
+                             VkShaderModule* module)
+{
+    u8* bytes;
+    int byte_count;
+#ifdef ONYX_SHADERC_ENABLED
+    if (!compile_spirv_shaderc(sci, &bytes, &byte_count))
+        assert(0 && "Shader compilation failed");
+#elif ONYX_GLSLANG_ENABLED
+    if (!compile_spirv_glslang(sci, &bytes, &byte_count))
+        assert(0 && "Shader compilation failed");
+#else
+    assert(0 && "No shader compiler was enabled");
+#endif
+    VkShaderModuleCreateInfo ci = onyx_ShaderModuleCreateInfo(byte_count, bytes);
+    V_ASSERT(vkCreateShaderModule(device, &ci, NULL, module));
+    hell_Free(bytes);
+}
+
+void 
+onyx_CreateShaderModule(VkDevice device, const char* shader_string,
+                             const char* name, Onyx_ShaderType type,
+                             VkShaderModule* module)
+{
+    SpirvCompileInfo sci = {
+        .entry_point = "main",
+        .name = name,
+        .shader_type = type,
+        .shader_string = shader_string
+    };
+
+    onyx_create_shader_module(device, &sci, module);
+}
 
 void
 onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
@@ -981,8 +1031,8 @@ onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
         shader_stages[i] = (VkPipelineShaderStageCreateInfo){
             .sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
             .module = s->shader_stages[i].module,
-            .pName  = s->shader_stages[i].p_name,
-            .pSpecializationInfo = s->shader_stages[i].p_specialization_info,
+            .pName  = s->shader_stages[i].entry_point,
+            .pSpecializationInfo = s->shader_stages[i].specialization_info,
             .stage               = s->shader_stages[i].stage};
     }
 
@@ -1224,8 +1274,8 @@ onyx_create_compute_pipeline(VkDevice device, VkPipelineCache cache, const OnyxC
             .stage = s->shader_stage.stage,
             .flags = s->shader_stage.flags,
             .module = s->shader_stage.module,
-            .pName = s->shader_stage.p_name,
-            .pSpecializationInfo = s->shader_stage.p_specialization_info
+            .pName = s->shader_stage.entry_point,
+            .pSpecializationInfo = s->shader_stage.specialization_info
         },
     };
 
