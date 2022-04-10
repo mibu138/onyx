@@ -166,7 +166,7 @@ initApp(void)
                 .stage = VK_SHADER_STAGE_FRAGMENT_BIT
             }
         },
-        .subpass = 1,
+        .subpass = 0,
         .topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST,
         .vertex_attribute_description_count = 1,
         .vertex_attribute_descriptions = &(VkVertexInputAttributeDescription){
