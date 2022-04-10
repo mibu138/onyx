@@ -40,6 +40,7 @@ if(${ONYX_ENABLE_SHADERC})
 endif()
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+
 add_library(onyx STATIC)
 target_sources(onyx PRIVATE ${SRCS})
 target_include_directories(onyx
@@ -48,6 +49,17 @@ target_include_directories(onyx
 target_link_libraries(onyx
     PRIVATE ${PRIVATE_DEPS}
     PUBLIC ${DEPS})
+
+if (${ONYX_ENABLE_GLSLANG})
+    add_library(glslang_wrapper STATIC
+        glslang-wrapper.cpp)
+    target_link_libraries(glslang_wrapper 
+        PRIVATE SPIRV glslang Hell::Hell)
+    target_link_libraries(onyx
+        PRIVATE glslang_wrapper)
+    target_compile_definitions(onyx PUBLIC ONYX_GLSLANG_ENABLED)
+endif()
+
 if (${ONYX_ENABLE_SHADERC})
 target_compile_definitions(onyx PUBLIC ONYX_SHADERC_ENABLED)
 endif()

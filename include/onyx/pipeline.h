@@ -4,6 +4,7 @@
 #include "def.h"
 #include "geo.h"
 #include "raytrace.h"
+#include "types.h"
 
 #define ONYX_MAX_PIPELINES 10
 #define ONYX_MAX_DESCRIPTOR_SETS 100
@@ -11,19 +12,6 @@
 #define ONYX_MAX_PUSH_CONSTANTS 5
 
 #define ONYX_FULL_SCREEN_VERT_SPV "full-screen.vert.spv"
-
-typedef enum Onyx_ShaderType {
-    ONYX_SHADER_TYPE_VERTEX,
-    ONYX_SHADER_TYPE_FRAGMENT,
-    ONYX_SHADER_TYPE_COMPUTE,
-    ONYX_SHADER_TYPE_GEOMETRY,
-    ONYX_SHADER_TYPE_TESS_CONTROL,
-    ONYX_SHADER_TYPE_TESS_EVALUATION,
-    ONYX_SHADER_TYPE_RAY_GEN,
-    ONYX_SHADER_TYPE_ANY_HIT,
-    ONYX_SHADER_TYPE_CLOSEST_HIT,
-    ONYX_SHADER_TYPE_MISS,
-} Onyx_ShaderType;
 
 typedef struct {
     uint32_t                 descriptorCount;
@@ -92,12 +80,12 @@ typedef struct {
     VkDynamicState*           pDynamicStates;
 } Onyx_GraphicsPipelineInfo;
 
-typedef struct OnyxPipelineShaderStageInfo {
+typedef struct {
     VkPipelineShaderStageCreateFlags    flags;
     VkShaderStageFlagBits               stage;
     VkShaderModule                      module;
-    const char*                         p_name;
-    const VkSpecializationInfo*         p_specialization_info;
+    const char*                         entry_point;
+    const VkSpecializationInfo*         specialization_info;
 } OnyxPipelineShaderStageInfo;
 
 // 1 less than VkCompareOp... because 0 as none is a bad default
@@ -242,6 +230,10 @@ void onyx_CreateGraphicsPipeline_Taurus(VkDevice device, const VkRenderPass rend
                                         const VkPipelineLayout layout,
                                         const VkPolygonMode mode,
                                         VkPipeline *pipeline);
+
+void 
+onyx_create_shader_module(VkDevice device, const SpirvCompileInfo* sci,
+                             VkShaderModule* module);
 
 void
 onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
