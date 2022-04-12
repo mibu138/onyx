@@ -107,7 +107,6 @@ typedef struct OnyxPipelineColorBlendAttachment {
 _Static_assert(ONYX_COMPARE_OP_LESS == VK_COMPARE_OP_LESS - 1, "Should be 1 less");
 
 typedef struct OnyxGraphicsPipelineInfo {
-    VkDevice         device;
     VkPipelineLayout layout;
     VkRenderPass     render_pass;
     uint32_t         subpass;
@@ -236,7 +235,7 @@ onyx_create_shader_module(VkDevice device, const SpirvCompileInfo* sci,
                              VkShaderModule* module);
 
 void
-onyx_create_graphics_pipeline(const OnyxGraphicsPipelineInfo* s,
+onyx_create_graphics_pipeline(VkDevice device, const OnyxGraphicsPipelineInfo* s,
                               const VkPipelineCache cache, VkPipeline* pipeline);
 
 void
