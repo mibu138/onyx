@@ -9,6 +9,9 @@
 #include <string.h>
 #define STB_IMAGE_IMPLEMENTATION
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#define STBIW_MALLOC hell_Malloc
+#define STBIW_REALLOC hell_Realloc
+#define STBIW_FREE hell_Free
 #include "stb_image.h"
 #include "stb_image_write.h"
 
@@ -442,6 +445,114 @@ onyx_LoadImage(Onyx_Memory* memory, const char* filename,
                        memoryType, image);
 
     stbi_image_free(data);
+}
+
+int
+onyx_copy_image_to_buffer(Onyx_Image* restrict image, VkImageLayout orig_layout, Onyx_BufferRegion* restrict region)
+{
+    Onyx_Memory* memory = image->pChain->memory;
+    *region = onyx_RequestBufferRegion(
+        memory, image->size, VK_BUFFER_USAGE_TRANSFER_DST_BIT,
+        ONYX_MEMORY_HOST_TRANSFER_TYPE);
+
+    onyx_TransitionImageLayout(orig_layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                               image);
+
+    const VkImageSubresourceLayers subRes = {
+        .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
+        .baseArrayLayer = 0,
+        .layerCount     = 1,
+        .mipLevel       = 0,
+    };
+
+    const VkOffset3D imgOffset = {.x = 0, .y = 0, .z = 0};
+
+    DPRINT("Extent: %d, %d", image->extent.width, image->extent.height);
+    DPRINT("Image Layout: %d", image->layout);
+    DPRINT("Orig Layout: %d", orig_layout);
+    DPRINT("Image size: %ld", image->size);
+
+    const VkBufferImageCopy imgCopy = {.imageOffset       = imgOffset,
+                                       .imageExtent       = image->extent,
+                                       .imageSubresource  = subRes,
+                                       .bufferOffset      = region->offset,
+                                       .bufferImageHeight = 0,
+                                       .bufferRowLength   = 0};
+
+    Onyx_Command cmd =
+        onyx_CreateCommand(memory->instance, ONYX_V_QUEUE_GRAPHICS_TYPE);
+
+    onyx_BeginCommandBuffer(cmd.buffer);
+
+    DPRINT("Copying image to host...\n");
+    vkCmdCopyImageToBuffer(cmd.buffer, image->handle,
+                           VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, region->buffer,
+                           1, &imgCopy);
+
+    onyx_EndCommandBuffer(cmd.buffer);
+
+    onyx_SubmitAndWait(&cmd, 0);
+
+    onyx_DestroyCommand(cmd);
+
+    onyx_TransitionImageLayout(VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, orig_layout,
+                               image);
+
+    return 0;
+}
+
+int
+onyx_write_image_to_png_buf(Onyx_Image* restrict img,
+                            VkImageLayout layout,
+                            uint8_t** restrict png_buf,
+                            int* restrict png_buf_size)
+{
+    Onyx_BufferRegion br = {0};
+    int err;
+
+    err = onyx_copy_image_to_buffer(img, layout, &br);
+    if (err)
+        goto end;
+
+    int ncomp = 0;
+    switch (img->format)
+    {
+    case (VK_FORMAT_R8_UNORM):
+    case (VK_FORMAT_R8_SNORM):
+    case (VK_FORMAT_R8_USCALED):
+    case (VK_FORMAT_R8_SSCALED):
+    case (VK_FORMAT_R8_UINT):
+    case (VK_FORMAT_R8_SINT):
+    case (VK_FORMAT_R8_SRGB):
+        ncomp = 1;
+        break;
+    case (VK_FORMAT_R8G8B8A8_UNORM):
+    case (VK_FORMAT_R8G8B8A8_SNORM):
+    case (VK_FORMAT_R8G8B8A8_USCALED):
+    case (VK_FORMAT_R8G8B8A8_SSCALED):
+    case (VK_FORMAT_R8G8B8A8_UINT):
+    case (VK_FORMAT_R8G8B8A8_SINT):
+    case (VK_FORMAT_R8G8B8A8_SRGB):
+    case (VK_FORMAT_B8G8R8A8_UNORM):
+    case (VK_FORMAT_B8G8R8A8_SNORM):
+    case (VK_FORMAT_B8G8R8A8_USCALED):
+    case (VK_FORMAT_B8G8R8A8_SSCALED):
+    case (VK_FORMAT_B8G8R8A8_UINT):
+    case (VK_FORMAT_B8G8R8A8_SINT):
+    case (VK_FORMAT_B8G8R8A8_SRGB):
+        ncomp = 4;
+        break;
+    }
+
+    assert(ncomp && "Image format is not being handled in switch");
+
+    const uint8_t* pixels = br.hostData;
+    *png_buf = stbi_write_png_to_mem(pixels, 0, img->extent.width, img->extent.height, ncomp, png_buf_size);
+    if (!png_buf) {err = -1; goto end;}
+
+end:
+    onyx_FreeBufferRegion(&br);
+    return err;
 }
 
 void
