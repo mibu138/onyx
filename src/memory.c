@@ -205,12 +205,14 @@ initBlockChain(Onyx_Memory* memory, const Onyx_MemoryType memType,
 
         DPRINT("Host Buffer ALIGNMENT: %zu\n", memReqs.alignment);
 
+#ifndef ONYX_NO_BUFFER_DEVICE_ADDRESS
         const VkBufferDeviceAddressInfo addrInfo = {
             .sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
             .buffer = chain->buffer};
 
         chain->bufferAddress =
             vkGetBufferDeviceAddress(memory->instance->device, &addrInfo);
+#endif
 
         if (mapBuffer)
             V_ASSERT(vkMapMemory(memory->instance->device, chain->vkmemory, 0,

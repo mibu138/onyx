@@ -53,7 +53,7 @@ checkForAvailableLayers(u32          enabledInstanceLayerCount,
             hell_Print("-");
         }
         hell_Print("\n");
-        for (int i = 0; i < availableCount; i++)
+        for (uint32_t i = 0; i < availableCount; i++)
         {
             const char* name = propertiesAvailable[i].layerName;
             const char* desc = propertiesAvailable[i].description;
@@ -67,11 +67,11 @@ checkForAvailableLayers(u32          enabledInstanceLayerCount,
         }
         hell_Print("\n");
     }
-    for (int i = 0; i < enabledInstanceLayerCount; i++)
+    for (uint32_t i = 0; i < enabledInstanceLayerCount; i++)
     {
         bool        matched   = false;
         const char* layerName = ppEnabledInstanceLayerNames[i];
-        for (int j = 0; j < availableCount; j++)
+        for (uint32_t j = 0; j < availableCount; j++)
         {
             if (strcmp(layerName, propertiesAvailable[j].layerName) == 0)
             {
@@ -103,17 +103,17 @@ checkForAvailableExtensions(u32          enabledInstanceExentensionCount,
     if (listAvailableExtensions)
     {
         onyx_Announce("%s\n", "Vulkan Instance extensions available:");
-        for (int i = 0; i < availableCount; i++)
+        for (uint32_t i = 0; i < availableCount; i++)
         {
             hell_Print("%s\n", propertiesAvailable[i].extensionName);
         }
         hell_Print("\n");
     }
-    for (int i = 0; i < enabledInstanceExentensionCount; i++)
+    for (uint32_t i = 0; i < enabledInstanceExentensionCount; i++)
     {
         bool        matched       = false;
         const char* extensionName = ppEnabledInstanceExtensionNames[i];
-        for (int j = 0; j < availableCount; j++)
+        for (uint32_t j = 0; j < availableCount; j++)
         {
             if (strcmp(extensionName, propertiesAvailable[j].extensionName) ==
                 0)
@@ -246,7 +246,7 @@ retrievePhysicalDevice(const VkInstance            instance,
     DPRINT_VK("Physical device count: %d\n", physdevcount);
     DPRINT_VK("Physical device names:\n");
     int nvidiaCardIndex = -1;
-    for (int i = 0; i < physdevcount; i++)
+    for (uint32_t i = 0; i < physdevcount; i++)
     {
         vkGetPhysicalDeviceProperties(devices[i], &props[i]);
         DPRINT_VK("Device %d: name: %s\t vendorID: %d\n", i,
@@ -284,7 +284,7 @@ initDevice(
     vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &qfcount, qfprops);
 
     int8_t transferQueueTicker = 2, computeQueueTicker = 2;
-    for (int i = 0; i < qfcount; i++)
+    for (uint32_t i = 0; i < qfcount; i++)
     {
         VkQueryControlFlags flags = qfprops[i].queueFlags;
         onyx_Announce("Queue Family %d: count: %d flags: ", i,
@@ -332,15 +332,15 @@ initDevice(
     float transferPriorities[MAX_QUEUES];
     float computePriorities[MAX_QUEUES];
 
-    for (int i = 0; i < graphicsQueueFamily->queueCount; i++)
+    for (uint32_t i = 0; i < graphicsQueueFamily->queueCount; i++)
     {
         graphicsPriorities[i] = 1.0;
     }
-    for (int i = 0; i < transferQueueFamily->queueCount; i++)
+    for (uint32_t i = 0; i < transferQueueFamily->queueCount; i++)
     {
         transferPriorities[i] = 1.0;
     }
-    for (int i = 0; i < computeQueueFamily->queueCount; i++)
+    for (uint32_t i = 0; i < computeQueueFamily->queueCount; i++)
     {
         computePriorities[i] = 1.0;
     }
@@ -450,12 +450,16 @@ initDevice(
 
     VkPhysicalDeviceBufferDeviceAddressFeaturesEXT devAddressFeatures = {
         .sType =
-            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES,
-        .pNext = &rtFeatures};
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES_EXT,
+        .pNext = NULL};
 
     VkPhysicalDeviceDescriptorIndexingFeatures descIndexingFeatures = {
         .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+#ifndef ONYX_NO_BUFFER_DEVICE_ADDRESS
+        .pNext = &devAddressFeatures,
+#else
         .pNext = NULL,
+#endif
     };
 
     VkPhysicalDeviceFeatures2 deviceFeatures = {
@@ -463,7 +467,7 @@ initDevice(
         .pNext = &descIndexingFeatures};
 
     if (enableRayTracing)
-        descIndexingFeatures.pNext = &devAddressFeatures;
+        devAddressFeatures.pNext = &rtFeatures;
 
     vkGetPhysicalDeviceFeatures2(physicalDevice, &deviceFeatures);
 
@@ -532,7 +536,7 @@ initDevice(
 
     for (int i = 0; i < defExtCount; i++)
         strcpy(extNamesData[i], defaultExtNames[i]);
-    for (int i = 0; i < userExtCount; i++)
+    for (uint32_t i = 0; i < userExtCount; i++)
         strcpy(extNamesData[i + defExtCount], userExtensions[i]);
 
     const char* extNames[MAX_EXT];
@@ -556,7 +560,7 @@ initDevice(
         .ppEnabledLayerNames     = NULL,
         .pEnabledFeatures        = NULL, // not used in newer vulkan versions
         .pQueueCreateInfos       = qci,
-        .queueCreateInfoCount    = LEN(qci),
+        .queueCreateInfoCount    = qfcount,
     };
 
     VkResult r = vkCreateDevice(physicalDevice, &dci, NULL, device);
@@ -569,17 +573,18 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
            QueueFamily* computeQueueFamily, QueueFamily* transferQueueFamily,
            VkQueue* presentQueue)
 {
-    for (int i = 0; i < graphicsQueueFamily->queueCount; i++)
+    uint32_t i;
+    for (i = 0; i < graphicsQueueFamily->queueCount; i++)
     {
         vkGetDeviceQueue(device, graphicsQueueFamily->index, i,
                          &graphicsQueueFamily->queues[i]);
     }
-    for (int i = 0; i < transferQueueFamily->queueCount; i++)
+    for (i = 0; i < transferQueueFamily->queueCount; i++)
     {
         vkGetDeviceQueue(device, transferQueueFamily->index, i,
                          &transferQueueFamily->queues[i]);
     }
-    for (int i = 0; i < computeQueueFamily->queueCount; i++)
+    for (i = 0; i < computeQueueFamily->queueCount; i++)
     {
         vkGetDeviceQueue(device, computeQueueFamily->index, i,
                          &computeQueueFamily->queues[i]);
@@ -592,6 +597,8 @@ initQueues(const VkDevice device, QueueFamily* graphicsQueueFamily,
 void
 onyx_CreateInstance(const Onyx_InstanceParms* parms, Onyx_Instance* instance)
 {
+    uint32_t i;
+
     memset(instance, 0, sizeof(Onyx_Instance));
     Hell_Array enabled_instance_extension_names, enabled_instance_layer_names,
         enabled_device_extension_names, enabled_validation_features;
@@ -603,13 +610,13 @@ onyx_CreateInstance(const Onyx_InstanceParms* parms, Onyx_Instance* instance)
                      &enabled_device_extension_names);
     hell_CreateArray(12, sizeof(VkValidationFeatureEnableEXT), NULL, NULL,
                      &enabled_validation_features);
-    for (int i = 0; i < parms->enabledInstanceExentensionCount; i++)
+    for (i = 0; i < parms->enabledInstanceExentensionCount; i++)
         hell_ArrayPush(&enabled_instance_extension_names,
                        &parms->ppEnabledInstanceExtensionNames[i]);
-    for (int i = 0; i < parms->enabledInstanceLayerCount; i++)
+    for (i = 0; i < parms->enabledInstanceLayerCount; i++)
         hell_ArrayPush(&enabled_instance_layer_names,
                        &parms->ppEnabledInstanceLayerNames[i]);
-    for (int i = 0; i < parms->enabledDeviceExtensionCount; i++)
+    for (i = 0; i < parms->enabledDeviceExtensionCount; i++)
         hell_ArrayPush(&enabled_device_extension_names,
                        &parms->ppEnabledDeviceExtensionNames[i]);
     if (!parms->disableValidation)

@@ -14,7 +14,6 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include "glslang-wrapper.h"
-#include <shaderc/shaderc.h>
 
 enum shaderStageType { VERT, FRAG };
 

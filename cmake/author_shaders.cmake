@@ -7,7 +7,7 @@ function(author_shaders target_name output_dir glslc)
     if (NOT DEFINED glslc)
         message(FATAL_ERROR "Shader compiler not given")
     endif()
-    set(GLCFLAGS "--target-env=vulkan1.2")
+    set(GLCFLAGS "--target-env vulkan1.2")
     set(DIR ${CMAKE_CURRENT_SOURCE_DIR})
     if (DEFINED SHADER_BUILD_DIR)
         set(BUILD_DIR "${SHADER_BUILD_DIR}/${output_dir}")
@@ -19,7 +19,7 @@ function(author_shaders target_name output_dir glslc)
     foreach(SRC ${S_SOURCES})
         get_filename_component(FILE_NAME ${SRC} NAME)
         set(SPV "${BUILD_DIR}/${FILE_NAME}.spv")
-        set(CMD ${glslc} ${GLCFLAGS} ${DIR}/${SRC} -o ${SPV})
+        set(CMD ${glslc} --target-env vulkan1.2 ${DIR}/${SRC} -o ${SPV})
         add_custom_command(
             OUTPUT  ${SPV}
             COMMAND ${CMD}

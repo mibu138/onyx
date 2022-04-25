@@ -2,7 +2,9 @@
 #define ONYX_VULKAN_H
 
 #ifdef UNIX
+#ifndef VK_USE_PLATFORM_XCB_KHR
 #define VK_USE_PLATFORM_XCB_KHR
+#endif
 #else
 #define VK_USE_PLATFORM_WIN32_KHR
 #endif

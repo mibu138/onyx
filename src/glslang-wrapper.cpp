@@ -2,7 +2,7 @@
 #define HELL_SIMPLE_FUNC_NAMES
 #include <assert.h>
 #include <glslang/Public/ShaderLang.h>
-#include <glslang/SPIRV/GlslangToSpv.h>
+#include <SPIRV/GlslangToSpv.h>
 #include "../include/onyx/types.h"
 #include <hell/hell.h>
 
