@@ -144,7 +144,9 @@ initBlockChain(Onyx_Memory* memory, const Onyx_MemoryType memType,
 
     const VkMemoryAllocateFlagsInfo allocFlagsInfo = {
         .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
+#ifndef ONYX_NO_BUFFER_DEVICE_ADDRESS
         .flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+#endif
         .pNext = pNext};
 
     const VkMemoryAllocateInfo allocInfo = {
@@ -515,7 +517,9 @@ onyx_CreateMemory(const Onyx_Instance* instance, const uint32_t hostGraphicsBuff
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+#ifndef ONYX_NO_BUFFER_DEVICE_ADDRESS
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+#endif
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |
         VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT |
@@ -523,7 +527,9 @@ onyx_CreateMemory(const Onyx_Instance* instance, const uint32_t hostGraphicsBuff
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VkBufferUsageFlags hostTransferFlags =
+#ifndef ONYX_NO_BUFFER_DEVICE_ADDRESS
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+#endif
         VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     VkBufferUsageFlags devBufFlags =
@@ -531,7 +537,9 @@ onyx_CreateMemory(const Onyx_Instance* instance, const uint32_t hostGraphicsBuff
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_STORAGE_BIT_KHR |
         VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT |
         VK_BUFFER_USAGE_INDEX_BUFFER_BIT |
+#ifndef ONYX_NO_BUFFER_DEVICE_ADDRESS
         VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT |
+#endif
         VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
         VK_BUFFER_USAGE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY_BIT_KHR |
         VK_BUFFER_USAGE_SHADER_BINDING_TABLE_BIT_KHR |

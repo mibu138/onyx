@@ -73,7 +73,7 @@ add_library(Onyx::Onyx ALIAS onyx)
 
 if(UNIX)
     target_compile_definitions(onyx PUBLIC UNIX)
-    target_compile_options(onyx PUBLIC -Wno-missing-braces
+    target_compile_options(onyx PUBLIC -Wno-missing-braces -Wno-error
         -fdiagnostics-color=always)
 elseif(WIN32)
     target_compile_definitions(onyx PUBLIC WIN32)

@@ -72,7 +72,7 @@ glsl_to_spirv(const SpirvCompileInfo* info, unsigned char** spirv_code_buf,
     shader.setEntryPoint(info->entry_point);
     shader.setEnvInput(EShSource::EShSourceGlsl, shader_stage, EShClient::EShClientVulkan, 460);
     shader.setEnvClient(EShClient::EShClientVulkan, EshTargetClientVersion::EShTargetVulkan_1_2);
-    shader.setEnvTarget(EShTargetLanguage::EshTargetSpv, EShTargetLanguageVersion::EShTargetSpv_1_5);
+    shader.setEnvTarget(EShTargetLanguage::EshTargetSpv, EShTargetLanguageVersion::EShTargetSpv_1_3);
 
     EShMessages messages = (EShMessages)(EShMsgSpvRules | EShMsgVulkanRules);
 

@@ -105,6 +105,7 @@ typedef struct {
 
 // pos and color. clockwise for now.
 OnyxGeometry onyx_create_geometry(const OnyxCreateGeometryInfo* c);
+void onyx_free_geometry(const OnyxGeometry* geo);
 Onyx_Geometry onyx_CreateTriangle(Onyx_Memory*);
 Onyx_Geometry onyx_CreateCube(Onyx_Memory* memory, const bool isClockWise);
 Onyx_Geometry onyx_CreateCubeWithTangents(Onyx_Memory* memory,

@@ -726,10 +726,22 @@ onyx_CreateGeometry2(Onyx_Memory* memory, VkBufferUsageFlags extraBufferFlags,
     return g;
 }
 
+static bool
+dyn_alloc_sizes(const Geometry* geo)
+{
+    return geo->attribute_count * sizeof(geo->attribute_sizes.arr[0]) > sizeof(geo->attribute_sizes.arr);
+}
+
+static bool
+dyn_alloc_types(const Geometry* geo)
+{
+    return geo->attribute_count * sizeof(geo->attribute_types.arr[0]) > sizeof(geo->attribute_types.arr);
+}
+
 static uint8_t*
 get_attribute_sizes_ptr(Geometry* geo)
 {
-    if (geo->attribute_count * sizeof(geo->attribute_sizes.arr[0]) > sizeof(geo->attribute_sizes.arr))
+    if (dyn_alloc_sizes(geo))
         return geo->attribute_sizes.ptr;
     else
         return geo->attribute_sizes.arr;
@@ -738,7 +750,7 @@ get_attribute_sizes_ptr(Geometry* geo)
 static uint8_t*
 get_attribute_types_ptr(Geometry* geo)
 {
-    if (geo->attribute_count * sizeof(geo->attribute_types.arr[0]) > sizeof(geo->attribute_types.arr))
+    if (dyn_alloc_sizes(geo))
         return geo->attribute_types.ptr;
     else
         return geo->attribute_types.arr;
@@ -768,8 +780,7 @@ onyx_create_geometry(const OnyxCreateGeometryInfo* c)
     };
 
     // too big for the internal buffer
-    if (geo.attribute_count * sizeof(geo.attribute_sizes.arr[0]) >
-        sizeof(geo.attribute_sizes))
+    if (dyn_alloc_sizes(&geo))
     {
         hell_array_alloc(geo.attribute_sizes.ptr, c->attr_count);
     }
@@ -778,8 +789,7 @@ onyx_create_geometry(const OnyxCreateGeometryInfo* c)
 
     if (~c->flags & ONYX_GEOMETRY_FLAG_NO_TYPES)
     {
-        if (geo.attribute_count * sizeof(geo.attribute_types.arr[0]) >
-            sizeof(geo.attribute_types))
+        if (dyn_alloc_types(&geo))
         {
             hell_array_alloc(geo.attribute_types.ptr, c->attr_count);
         }
@@ -808,6 +818,19 @@ onyx_create_geometry(const OnyxCreateGeometryInfo* c)
     // TODO finish
 
     return geo;
+}
+
+void
+onyx_free_geometry(const OnyxGeometry* geo)
+{
+    if (dyn_alloc_sizes(geo))
+        hell_Free(geo->attribute_sizes.ptr);
+    if (dyn_alloc_types(geo))
+        hell_Free(geo->attribute_types.ptr);
+    onyx_FreeBufferRegion(&geo->vertex_buffer_region);
+    if (~geo->flags & ONYX_GEOMETRY_FLAG_UNINDEXED)
+        onyx_FreeBufferRegion(&geo->index_buffer_region);
+    memset(geo, 0, sizeof(*geo));
 }
 
 Onyx_VertexDescription

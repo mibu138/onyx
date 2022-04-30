@@ -501,6 +501,38 @@ onyx_copy_image_to_buffer(Onyx_Image* restrict image, VkImageLayout orig_layout,
     return 0;
 }
 
+int 
+onyx_copy_png_buf_to_image(const uint8_t* restrict png_buf,
+                            const int png_buf_size,
+                            Onyx_Memory* memory,
+                            VkImageLayout layout,
+                            Onyx_Image* restrict img)
+{
+    int x,y,comp;
+    uint8_t* pxls = stbi_load_from_memory(png_buf, png_buf_size, &x, &y, &comp, 0);
+    if (!pxls)
+        return -1;
+
+    assert((uint32_t)x == img->extent.width);
+    assert((uint32_t)y == img->extent.height);
+    assert(x * y * comp == (int)img->size);
+
+    Onyx_BufferRegion gpu_buf = onyx_RequestBufferRegion(
+        memory, img->size,
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, ONYX_MEMORY_HOST_GRAPHICS_TYPE);
+
+    memcpy(gpu_buf.hostData, pxls, img->size);
+
+    // copy buffer to image should take layout parm
+    assert(img->layout == layout);
+    onyx_CopyBufferToImage(&gpu_buf, img);
+
+    onyx_FreeBufferRegion(&gpu_buf);
+    hell_Free(pxls);
+
+    return 0;
+}
+
 int
 onyx_write_image_to_png_buf(Onyx_Image* restrict img,
                             VkImageLayout layout,

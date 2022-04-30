@@ -74,6 +74,13 @@ onyx_write_image_to_png_buf(Onyx_Image* restrict img,
                             uint8_t** png_buf,
                             int* restrict png_buf_size);
 
+int 
+onyx_copy_png_buf_to_image(const uint8_t* restrict png_buf,
+                            const int png_buf_size,
+                            Onyx_Memory* memory,
+                            VkImageLayout layout,
+                            Onyx_Image* restrict img);
+
 int onyx_copy_image_to_buffer(Onyx_Image* restrict image,
                               VkImageLayout orig_layout,
                               Onyx_BufferRegion* restrict region);
