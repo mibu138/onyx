@@ -26,6 +26,8 @@ typedef struct {
     Onyx_Device    device;
 } Onyx_Orb;
 
+typedef Onyx_Orb OnyxContext;
+
 static inline int onyx_CreateOrb(const Onyx_InstanceParms* ip,
     const uint32_t hostGraphicsBufferMB,
     const uint32_t deviceGraphicsBufferMB,

@@ -104,7 +104,11 @@ typedef struct OnyxPipelineColorBlendAttachment {
     OnyxBlendMode blend_mode;
 } OnyxPipelineColorBlendAttachment;
 
+#ifndef __cplusplus
 _Static_assert(ONYX_COMPARE_OP_LESS == VK_COMPARE_OP_LESS - 1, "Should be 1 less");
+#else
+static_assert(ONYX_COMPARE_OP_LESS == VK_COMPARE_OP_LESS - 1, "Should be 1 less");
+#endif
 
 typedef struct OnyxGraphicsPipelineInfo {
     VkPipelineLayout layout;

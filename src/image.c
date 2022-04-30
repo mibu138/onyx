@@ -574,6 +574,9 @@ onyx_write_image_to_png_buf(Onyx_Image* restrict img,
     case (VK_FORMAT_B8G8R8A8_SRGB):
         ncomp = 4;
         break;
+    default:
+        err = -1;
+        goto end;
     }
 
     assert(ncomp && "Image format is not being handled in switch");

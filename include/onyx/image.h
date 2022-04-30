@@ -69,21 +69,21 @@ void onyx_LoadImageData(Onyx_Memory* memory, int w, int h, uint8_t channelCount,
     Onyx_Image* image);
 
 int
-onyx_write_image_to_png_buf(Onyx_Image* restrict img,
+onyx_write_image_to_png_buf(Onyx_Image* img,
                             VkImageLayout layout,
                             uint8_t** png_buf,
-                            int* restrict png_buf_size);
+                            int* png_buf_size);
 
 int 
-onyx_copy_png_buf_to_image(const uint8_t* restrict png_buf,
+onyx_copy_png_buf_to_image(const uint8_t* png_buf,
                             const int png_buf_size,
                             Onyx_Memory* memory,
                             VkImageLayout layout,
-                            Onyx_Image* restrict img);
+                            Onyx_Image* img);
 
-int onyx_copy_image_to_buffer(Onyx_Image* restrict image,
+int onyx_copy_image_to_buffer(Onyx_Image* image,
                               VkImageLayout orig_layout,
-                              Onyx_BufferRegion* restrict region);
+                              Onyx_BufferRegion* region);
 
 
 void onyx_SaveImage(Onyx_Memory* memory, Onyx_Image* image, Onyx_V_ImageFileType fileType, VkImageLayout image_layout, 
