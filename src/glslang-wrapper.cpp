@@ -67,8 +67,10 @@ glsl_to_spirv(const SpirvCompileInfo* info, unsigned char** spirv_code_buf,
         default: assert(0 && "Shader type not yet supported");
     }
 
+    int glsl_len = strlen(info->shader_string);
     TShader shader(shader_stage);
-    shader.setStrings(&info->shader_string, 1);
+    //shader.setStrings(&info->shader_string, 1);
+    shader.setStringsWithLengthsAndNames(&info->shader_string, &glsl_len, &info->name, 1);
     shader.setEntryPoint(info->entry_point);
     shader.setEnvInput(EShSource::EShSourceGlsl, shader_stage, EShClient::EShClientVulkan, 460);
     shader.setEnvClient(EShClient::EShClientVulkan, EshTargetClientVersion::EShTargetVulkan_1_2);
