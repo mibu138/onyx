@@ -24,7 +24,7 @@
 #define SWAPCHAIN_IMAGE_COUNT 2
 #define MAX_SWAP_RECREATE_FNS 8
 
-#define SWAPCHAIN_DEFAULT_FORMAT VK_FORMAT_B8G8R8A8_SRGB
+#define SWAPCHAIN_DEFAULT_FORMAT VK_FORMAT_B8G8R8A8_UNORM
 
 static VkExtent2D
 getCorrectedSwapchainDimensions(const VkSurfaceCapabilitiesKHR capabilities,

@@ -519,7 +519,7 @@ onyx_copy_png_buf_to_image(const uint8_t* restrict png_buf,
 
     Onyx_BufferRegion gpu_buf = onyx_RequestBufferRegion(
         memory, img->size,
-        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, ONYX_MEMORY_HOST_GRAPHICS_TYPE);
+        VK_BUFFER_USAGE_TRANSFER_SRC_BIT, ONYX_MEMORY_HOST_TRANSFER_TYPE);
 
     memcpy(gpu_buf.hostData, pxls, img->size);
 
