@@ -9,7 +9,6 @@
 #include <hell/window.h>
 
 typedef void (*Onyx_R_SwapchainRecreationFn)(void);
-typedef struct Onyx_Swapchain Onyx_Swapchain;
 
 #define SWAPCHAIN_IMAGE_COUNT 2
 
@@ -36,6 +35,7 @@ typedef struct Onyx_Swapchain {
     Onyx_Memory*                 memory;
 } Onyx_Swapchain;
 
+typedef Onyx_Swapchain OnyxSwapchain;
 
 Onyx_Swapchain* onyx_AllocSwapchain(void);
 size_t          onyx_SizeOfSwapchain(void);
